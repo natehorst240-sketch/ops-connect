@@ -1,0 +1,18 @@
+# Dependencies
+node_modules
+
+# Build output
+dist
+.vite
+
+# Env files — never commit these
+.env
+.env.local
+.env.*.local
+
+# Editor / OS
+.DS_Store
+.vscode
+.idea
+*.log
+*.swp
