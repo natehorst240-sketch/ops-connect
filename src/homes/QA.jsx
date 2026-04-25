@@ -19,7 +19,7 @@ export default function QAHome({ persona }) {
 
   return (
     <>
-      <PageHeader persona={persona} subtitle="Oversight view — all regions, all departments. You approve schedules, PR movements, pilot training. QA escalations go direct to Director." />
+      <PageHeader persona={persona} subtitle="Oversight view — all regions, all departments. You approve schedules, PR movements, pilot training. Asst Director escalations go direct to Director." />
       <BulletinBanner />
 
       <WeekCalendar
