@@ -2,6 +2,8 @@ import React from 'react';
 import { CheckCircle2, Timer, ArrowRight, Calendar, Zap, Shield, MessageSquare, Clock } from 'lucide-react';
 import { OPEN_SHIFTS } from '../data';
 import { PageHeader, Card, Metric, BulletinBanner } from '../ui';
+import WeekCalendar from '../shared/WeekCalendar';
+import { getEventsForPersona, getCalendarConfigForPersona } from '../shared/personaCalendarData';
 
 const MY_SHIFTS = [
   { date: '2026-04-25', time: '09:00-09:00', base: 'Cedar City Hospital', role: 'FN - URBAN' },
@@ -24,6 +26,11 @@ export default function NurseHome({ persona }) {
     <>
       <PageHeader persona={persona} subtitle="Your schedule, open shifts you can claim, and certification status." />
       <BulletinBanner />
+
+      <WeekCalendar
+        events={getEventsForPersona(persona)}
+        {...getCalendarConfigForPersona(persona)}
+      />
 
       <div className="grid grid-cols-4 gap-3 mb-5">
         <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-4 flex items-center justify-between">

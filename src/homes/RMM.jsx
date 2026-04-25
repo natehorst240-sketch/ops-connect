@@ -2,6 +2,8 @@ import React from 'react';
 import { Phone, MessageSquare, Bell, Shield, Users } from 'lucide-react';
 import { AIRCRAFT, PENDING_REQUESTS } from '../data';
 import { PageHeader, Card, Metric, StatusDot, BulletinBanner } from '../ui';
+import WeekCalendar from '../shared/WeekCalendar';
+import { getEventsForPersona, getCalendarConfigForPersona } from '../shared/personaCalendarData';
 
 export default function RMMHome({ persona }) {
   const regionAircraft = AIRCRAFT.filter(a => a.region === persona.region);
@@ -11,6 +13,11 @@ export default function RMMHome({ persona }) {
     <>
       <PageHeader persona={persona} subtitle={`Regional view — ${persona.region}. You manage approvals, coverage, and escalations for your region.`} />
       <BulletinBanner />
+
+      <WeekCalendar
+        events={getEventsForPersona(persona)}
+        {...getCalendarConfigForPersona(persona)}
+      />
 
       <div className="grid grid-cols-3 gap-3 mb-5">
         <Metric label={`${persona.region} Aircraft`} value={regionAircraft.length} accent="#22c55e" />

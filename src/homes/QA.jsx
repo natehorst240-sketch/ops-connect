@@ -1,6 +1,8 @@
 import React from 'react';
 import { AIRCRAFT, PENDING_REQUESTS } from '../data';
 import { PageHeader, Card, Metric, BulletinBanner } from '../ui';
+import WeekCalendar from '../shared/WeekCalendar';
+import { getEventsForPersona, getCalendarConfigForPersona } from '../shared/personaCalendarData';
 
 const AUDIT_EVENTS = [
   { when: '14:32', who: 'Tevita Silatolu', action: 'Approved MX Schedule', target: 'N39KM · 100-hr inspection' },
@@ -19,6 +21,11 @@ export default function QAHome({ persona }) {
     <>
       <PageHeader persona={persona} subtitle="Oversight view — all regions, all departments. You approve schedules, PR movements, pilot training. QA escalations go direct to Director." />
       <BulletinBanner />
+
+      <WeekCalendar
+        events={getEventsForPersona(persona)}
+        {...getCalendarConfigForPersona(persona)}
+      />
 
       <div className="grid grid-cols-4 gap-3 mb-5">
         <Metric label="Fleet Health" value={`${Math.round((inService / AIRCRAFT.length) * 100)}%`} sub={`${inService}/${AIRCRAFT.length}`} accent="#22c55e" />

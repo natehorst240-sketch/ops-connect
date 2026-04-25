@@ -1,6 +1,8 @@
 import React from 'react';
 import { AIRCRAFT, PENDING_REQUESTS, INSPECTIONS_DUE } from '../data';
 import { PageHeader, Card, Metric, StatusDot, BulletinBanner } from '../ui';
+import WeekCalendar from '../shared/WeekCalendar';
+import { getEventsForPersona, getCalendarConfigForPersona } from '../shared/personaCalendarData';
 
 export default function DirectorHome({ persona }) {
   const inService = AIRCRAFT.filter(a => a.status === 'IN_SERVICE').length;
@@ -12,6 +14,11 @@ export default function DirectorHome({ persona }) {
     <>
       <PageHeader persona={persona} subtitle="Executive view across all regions and all departments." />
       <BulletinBanner />
+
+      <WeekCalendar
+        events={getEventsForPersona(persona)}
+        {...getCalendarConfigForPersona(persona)}
+      />
 
       <div className="grid grid-cols-4 gap-3 mb-5">
         <Metric label="Fleet In Service" value={inService} sub={`of ${AIRCRAFT.length}`} accent="#22c55e" />

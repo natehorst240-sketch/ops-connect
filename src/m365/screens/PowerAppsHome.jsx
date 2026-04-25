@@ -6,6 +6,8 @@ import {
 } from 'lucide-react';
 import { FLUENT } from '../tokens';
 import { AIRCRAFT, PERSONAS, PENDING_REQUESTS, INSPECTIONS_DUE, OPEN_SHIFTS, CREW_REQUESTS, BULLETINS } from '../../data';
+import WeekCalendar from '../../shared/WeekCalendar';
+import { getEventsForPersona, getCalendarConfigForPersona } from '../../shared/personaCalendarData';
 
 // ============================================================================
 // MAIN: Power Apps home — persona switcher + role-specific screens
@@ -198,6 +200,10 @@ function DirectorHome({ persona }) {
     <div className="p-6">
       <PageHeader persona={persona} subtitle="Executive view · For deep analytics, see Power BI Report tab" />
       <BulletinBar />
+      <WeekCalendar
+        events={getEventsForPersona(persona)}
+        {...getCalendarConfigForPersona(persona)}
+      />
       <div className="grid grid-cols-4 gap-3 mb-4">
         <MetricTile label="Fleet In Service" value={inService} sub={`of ${AIRCRAFT.length}`} color={FLUENT.good} />
         <MetricTile label="AOG" value={aog} color={FLUENT.bad} />
@@ -268,6 +274,10 @@ function RMMHome({ persona }) {
     <div className="p-6">
       <PageHeader persona={persona} subtitle={`Regional view · ${persona.region}`} />
       <BulletinBar />
+      <WeekCalendar
+        events={getEventsForPersona(persona)}
+        {...getCalendarConfigForPersona(persona)}
+      />
       <div className="grid grid-cols-3 gap-3 mb-4">
         <MetricTile label={`${persona.region} Aircraft`} value={regionAircraft.length} color={FLUENT.good} />
         <MetricTile label="Pending Approval" value={regionRequests.length} color={FLUENT.brand} />
@@ -318,6 +328,10 @@ function AMTHome({ persona }) {
     <div className="p-6">
       <PageHeader persona={persona} subtitle="Submit requests, view schedule, track inspections" />
       <BulletinBar />
+      <WeekCalendar
+        events={getEventsForPersona(persona)}
+        {...getCalendarConfigForPersona(persona)}
+      />
       <div className="grid grid-cols-3 gap-3 mb-4">
         <MetricTile label="Shift Status" value="On Shift" color={FLUENT.good} />
         <MetricTile label="My Aircraft" value="N39KM" sub="Greybull" color={FLUENT.brand} />
@@ -383,6 +397,10 @@ function QAHome({ persona }) {
     <div className="p-6">
       <PageHeader persona={persona} subtitle="Cross-region oversight · For analytics, see Power BI Report tab" />
       <BulletinBar />
+      <WeekCalendar
+        events={getEventsForPersona(persona)}
+        {...getCalendarConfigForPersona(persona)}
+      />
       <div className="grid grid-cols-4 gap-3 mb-4">
         <MetricTile label="Compliance" value="98.2%" sub="30d" color={FLUENT.good} />
         <MetricTile label="AOG" value="1" color={FLUENT.bad} />
@@ -438,6 +456,10 @@ function MXSchedulerHome({ persona }) {
     <div className="p-6">
       <PageHeader persona={persona} subtitle="Maintenance schedule owner · For full timeline, open Resource Scheduler PCF" />
       <BulletinBar />
+      <WeekCalendar
+        events={getEventsForPersona(persona)}
+        {...getCalendarConfigForPersona(persona)}
+      />
       <div className="grid grid-cols-4 gap-3 mb-4">
         <MetricTile label="This Week" value="14" sub="events" color={FLUENT.brand} />
         <MetricTile label="Pending" value="3" color={FLUENT.warnAccent} />
@@ -506,6 +528,10 @@ function CrewSchedulerHome({ persona }) {
     <div className="p-6">
       <PageHeader persona={persona} subtitle="Crew scheduling · CompleteFlight integration via Power Automate" />
       <BulletinBar />
+      <WeekCalendar
+        events={getEventsForPersona(persona)}
+        {...getCalendarConfigForPersona(persona)}
+      />
       <div className="grid grid-cols-4 gap-3 mb-4">
         <MetricTile label="Open Shifts" value={OPEN_SHIFTS.length} color={FLUENT.brand} />
         <MetricTile label="Requests" value={CREW_REQUESTS.length} color={FLUENT.warnAccent} />
@@ -570,6 +596,10 @@ function NurseHome({ persona }) {
     <div className="p-6">
       <PageHeader persona={persona} subtitle="Personal schedule · Open shifts · Cert tracking" />
       <BulletinBar />
+      <WeekCalendar
+        events={getEventsForPersona(persona)}
+        {...getCalendarConfigForPersona(persona)}
+      />
       <div className="grid grid-cols-3 gap-3 mb-4">
         <MetricTile label="Shifts This Mo" value="7" sub="84 hrs" color={FLUENT.brand} />
         <MetricTile label="Open Shifts" value={eligible.length} sub="eligible" color={FLUENT.warnAccent} />

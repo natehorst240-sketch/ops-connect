@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Filter, ArrowRight } from 'lucide-react';
 import { AIRCRAFT, INSPECTIONS_DUE, PENDING_REQUESTS } from '../data';
 import { PageHeader, Card, Metric, StatusDot, BulletinBanner } from '../ui';
+import WeekCalendar from '../shared/WeekCalendar';
+import { getEventsForPersona, getCalendarConfigForPersona } from '../shared/personaCalendarData';
 
 export default function MXSchedulerHome({ persona }) {
   const [selectedRegion, setSelectedRegion] = useState('ALL');
@@ -11,6 +13,11 @@ export default function MXSchedulerHome({ persona }) {
     <>
       <PageHeader persona={persona} subtitle="Owner of the maintenance schedule. Drag entries on the timeline. Approve MX and PR requests. Full visibility across all regions." />
       <BulletinBanner />
+
+      <WeekCalendar
+        events={getEventsForPersona(persona)}
+        {...getCalendarConfigForPersona(persona)}
+      />
 
       <div className="grid grid-cols-4 gap-3 mb-5">
         <Metric label="Scheduled This Week" value="14" sub="events" accent="#3b82f6" />

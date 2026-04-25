@@ -2,12 +2,19 @@ import React from 'react';
 import { Plane, UserCircle, Wrench, MessageSquare, Shield, Calendar } from 'lucide-react';
 import { AIRCRAFT, INSPECTIONS_DUE } from '../data';
 import { PageHeader, Card, Metric, BulletinBanner } from '../ui';
+import WeekCalendar from '../shared/WeekCalendar';
+import { getEventsForPersona, getCalendarConfigForPersona } from '../shared/personaCalendarData';
 
 export default function AMTHome({ persona }) {
   return (
     <>
       <PageHeader persona={persona} subtitle="Frontline view — submit requests, view schedule, stay updated." />
       <BulletinBanner />
+
+      <WeekCalendar
+        events={getEventsForPersona(persona)}
+        {...getCalendarConfigForPersona(persona)}
+      />
 
       <div className="grid grid-cols-3 gap-3 mb-5">
         <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-4 flex items-center justify-between">
