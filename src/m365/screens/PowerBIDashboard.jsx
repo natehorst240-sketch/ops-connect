@@ -157,7 +157,7 @@ function ReportCanvas() {
         <span>·</span>
         <span>Refresh schedule: every 15 min</span>
         <span>·</span>
-        <span>Owner: Joe Sparto (QA)</span>
+        <span>Owner: Ryan Taul (Asst Director)</span>
       </div>
     </div>
   );

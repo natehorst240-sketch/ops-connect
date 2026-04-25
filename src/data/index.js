@@ -67,16 +67,15 @@ export const PERSONAS = [
   { id: 'director', name: 'Billy Ortega', initials: 'BO', role: 'DIRECTOR', roleTitle: 'Director of Maintenance Operations', base: 'SLC', region: 'ALL', onShift: true },
   { id: 'rmm', name: 'Tevita Silatolu', initials: 'TS', role: 'RMM', roleTitle: 'Regional Maintenance Manager', base: 'Billings, MT', region: 'WY/MT', onShift: true },
   { id: 'amt', name: 'Nathan Anderson', initials: 'NA', role: 'AMT', roleTitle: 'Aviation Maintenance Technician', base: 'Greybull IH-23', region: 'WY/MT', onShift: true },
-  { id: 'qa', name: 'Joe Sparto', initials: 'JS', role: 'QA', roleTitle: 'QA Manager', base: 'SLC', region: 'ALL', onShift: true },
+  { id: 'qa', name: 'Ryan Taul', initials: 'RT', role: 'QA', roleTitle: 'Assistant Director of Maintenance Operations', base: 'SLC', region: 'ALL', onShift: true },
   { id: 'mx_sched', name: 'Carla Weir', initials: 'CW', role: 'MX_SCHEDULER', roleTitle: 'Maintenance Scheduler', base: 'SLC', region: 'ALL', onShift: true },
-  { id: 'crew_sched', name: 'Alayna Hudson', initials: 'AH', role: 'CREW_SCHEDULER', roleTitle: 'Aviation Coordinator Manager', base: 'SLC', region: 'ALL', onShift: true },
   { id: 'nurse', name: 'M. Bryce', initials: 'MB', role: 'FLIGHT_NURSE', roleTitle: 'Flight Nurse — Urban', base: 'Cedar City Hospital', region: '109 UT', onShift: false },
 ];
 
 export const BULLETINS = [
   { level: 'ALERT', title: 'N291HC AOG — McKay Base', message: 'Tail rotor gearbox chip light. Awaiting parts ETA. Regional coverage from N431HC (Logan).', postedBy: 'Nate Horstmeier' },
   { level: 'ADVISORY', title: 'Veryon System Maintenance Window', message: 'Veryon unavailable 04/26 02:00-04:00 MT for scheduled updates.', postedBy: 'Ryan Taul' },
-  { level: 'INFO', title: 'AW109SP Q2 Inspection Cycle Starts 05/01', message: 'Review inspection intervals per aircraft. Coordinate with Carla/Rachel.', postedBy: 'Joe Sparto' },
+  { level: 'INFO', title: 'AW109SP Q2 Inspection Cycle Starts 05/01', message: 'Review inspection intervals per aircraft. Coordinate with Carla/Rachel.', postedBy: 'Ryan Taul' },
 ];
 
 export const INSPECTIONS_DUE = [
@@ -137,7 +136,7 @@ export const FLOWS = {
     title: 'Open Shift Claim',
     desc: 'Crew Scheduler publishes open shift; Flight Nurse claims it; calendar updates; payroll sees coverage.',
     steps: [
-      { actor: 'Crew Scheduler · Alayna Hudson', action: 'Publishes open shift', detail: 'FN-URBAN · 04/30 19:00–07:00 · Intermountain Medical Center' },
+      { actor: 'MX Scheduler · Carla Weir', action: 'Publishes open shift', detail: 'FN-URBAN · 04/30 19:00–07:00 · Intermountain Medical Center' },
       { actor: 'MX Connect', action: 'Notifies eligible nurses', detail: 'Filters by cert (CompleteFlight API), region, on-shift. 14 eligible.' },
       { actor: 'Flight Nurse · M. Bryce', action: 'Views open shift board', detail: 'Sees shift card with differential, base, crew composition.' },
       { actor: 'Flight Nurse · M. Bryce', action: 'Taps Claim Shift', detail: 'Requires supervisor ack on shifts creating fatigue risk (warn only).' },
@@ -164,7 +163,7 @@ export const FLOWS = {
       { actor: 'Pilot · B. Maynard', action: 'Submits time-off request', detail: '3 days · 05/12–05/14 · Family event' },
       { actor: 'Chief Pilot', action: 'Approves in one tap', detail: 'Hover card shows no coverage conflicts at Logan during window.' },
       { actor: 'MX Connect', action: 'Calculates coverage gap', detail: 'Logan base needs 24/7. Gap: 3 shifts × 12h = 36h unassigned.' },
-      { actor: 'Crew Scheduler · Alayna Hudson', action: 'Sees gap alert on timeline', detail: 'Red band on pilot row. Publish as Open Shift for each.' },
+      { actor: 'MX Scheduler · Carla Weir', action: 'Sees gap alert on timeline', detail: 'Red band on pilot row. Publish as Open Shift for each.' },
       { actor: 'Eligible Pilots', action: 'Receive open shift notification', detail: '7 pilots with Logan auth and no conflicts get in-app + email.' },
       { actor: 'Microsoft Graph', action: 'Outlook updated for time-off', detail: 'Personal + team availability calendars reflect dates.' },
     ],

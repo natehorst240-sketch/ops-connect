@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   ChevronLeft, ChevronRight, Calendar as CalIcon,
   AlertTriangle, Wrench, Plane, GraduationCap, Users, Clock,
-  Sparkles, Shield, ExternalLink,
+  Sparkles, Shield, ExternalLink, X, MapPin, User,
 } from 'lucide-react';
 
 // ============================================================================
@@ -18,18 +18,18 @@ import {
 // ============================================================================
 
 export const EVENT_TYPES = {
-  inspection: { label: 'Inspection',     color: '#eab308', bg: 'rgba(234,179,8,0.12)',  border: '#eab30855', textColor: '#fcd34d', icon: Wrench },
-  mx:         { label: 'Scheduled MX',   color: '#3b82f6', bg: 'rgba(59,130,246,0.12)', border: '#3b82f655', textColor: '#93c5fd', icon: Wrench },
-  aog:        { label: 'AOG',            color: '#ef4444', bg: 'rgba(239,68,68,0.18)',  border: '#ef4444aa', textColor: '#fca5a5', icon: AlertTriangle, pulse: true },
-  pr:         { label: 'PR Flight',      color: '#a855f7', bg: 'rgba(168,85,247,0.12)', border: '#a855f755', textColor: '#d8b4fe', icon: Plane },
-  training:   { label: 'Training',       color: '#22c55e', bg: 'rgba(34,197,94,0.12)',  border: '#22c55e55', textColor: '#86efac', icon: GraduationCap },
-  crew_shift: { label: 'Crew Shift',     color: '#ff6b1a', bg: 'rgba(255,107,26,0.12)', border: '#ff6b1a55', textColor: '#fdba74', icon: Users },
-  open_shift: { label: 'Open Shift',     color: '#06b6d4', bg: 'rgba(6,182,212,0.12)',  border: '#06b6d455', textColor: '#67e8f9', icon: Clock },
-  cert_exp:   { label: 'Cert Expiry',    color: '#fbbf24', bg: 'rgba(251,191,36,0.10)', border: '#fbbf2466', textColor: '#fde68a', icon: Shield, dashed: true },
-  time_off:   { label: 'Time Off',       color: '#94a3b8', bg: 'rgba(148,163,184,0.10)', border: '#94a3b855', textColor: '#cbd5e1', icon: CalIcon },
-  audit:      { label: 'Audit Event',    color: '#8b5cf6', bg: 'rgba(139,92,246,0.10)', border: '#8b5cf655', textColor: '#c4b5fd', icon: Shield },
-  approval:   { label: 'Approval',       color: '#10b981', bg: 'rgba(16,185,129,0.12)', border: '#10b98155', textColor: '#6ee7b7', icon: Sparkles },
-  summary:    { label: 'Summary',        color: '#64748b', bg: 'rgba(100,116,139,0.18)', border: '#64748baa', textColor: '#e2e8f0', icon: CalIcon },
+  inspection: { label: 'Inspection',     color: '#ca8a04', bg: 'rgba(234,179,8,0.10)',  border: '#ca8a0466', textColor: '#854d0e', icon: Wrench },
+  mx:         { label: 'Scheduled MX',   color: '#2563eb', bg: 'rgba(59,130,246,0.10)', border: '#2563eb55', textColor: '#1e3a8a', icon: Wrench },
+  aog:        { label: 'AOG',            color: '#dc2626', bg: 'rgba(239,68,68,0.14)',  border: '#dc2626aa', textColor: '#991b1b', icon: AlertTriangle, pulse: true },
+  pr:         { label: 'PR Flight',      color: '#9333ea', bg: 'rgba(168,85,247,0.10)', border: '#9333ea55', textColor: '#581c87', icon: Plane },
+  training:   { label: 'Training',       color: '#16a34a', bg: 'rgba(34,197,94,0.10)',  border: '#16a34a55', textColor: '#14532d', icon: GraduationCap },
+  crew_shift: { label: 'Crew Shift',     color: '#ea580c', bg: 'rgba(234,88,12,0.10)',  border: '#ea580c55', textColor: '#7c2d12', icon: Users },
+  open_shift: { label: 'Open Shift',     color: '#0891b2', bg: 'rgba(6,182,212,0.10)',  border: '#0891b255', textColor: '#155e75', icon: Clock },
+  cert_exp:   { label: 'Cert Expiry',    color: '#d97706', bg: 'rgba(251,191,36,0.10)', border: '#d9770666', textColor: '#78350f', icon: Shield, dashed: true },
+  time_off:   { label: 'Time Off',       color: '#64748b', bg: 'rgba(148,163,184,0.10)', border: '#64748b55', textColor: '#334155', icon: CalIcon },
+  audit:      { label: 'Audit Event',    color: '#7c3aed', bg: 'rgba(139,92,246,0.10)', border: '#7c3aed55', textColor: '#4c1d95', icon: Shield },
+  approval:   { label: 'Approval',       color: '#059669', bg: 'rgba(16,185,129,0.10)', border: '#05966955', textColor: '#064e3b', icon: Sparkles },
+  summary:    { label: 'Summary',        color: '#475569', bg: 'rgba(100,116,139,0.14)', border: '#475569aa', textColor: '#1e293b', icon: CalIcon },
 };
 
 // ============================================================================
@@ -98,6 +98,12 @@ export default function WeekCalendar({
 }) {
   const [anchorDate, setAnchorDate] = useState(new Date(initialDate));
   const [view, setView] = useState('week'); // 'week' | 'month'
+  const [detailEvent, setDetailEvent] = useState(null);
+
+  const handleEventClick = (event) => {
+    setDetailEvent(event);
+    if (onEventClick) onEventClick(event);
+  };
 
   const weekStart = startOfWeek(anchorDate);
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
@@ -178,9 +184,9 @@ export default function WeekCalendar({
 
       {/* Body */}
       {view === 'week' ? (
-        <WeekGrid eventsByDay={eventsByDay} today={today} density={density} onEventClick={onEventClick} />
+        <WeekGrid eventsByDay={eventsByDay} today={today} density={density} onEventClick={handleEventClick} />
       ) : (
-        <MonthView anchorDate={anchorDate} events={events} today={today} onEventClick={onEventClick} />
+        <MonthView anchorDate={anchorDate} events={events} today={today} onEventClick={handleEventClick} />
       )}
 
       {/* Legend */}
@@ -203,6 +209,7 @@ export default function WeekCalendar({
           </div>
         </div>
       )}
+      {detailEvent && <EventDetailModal event={detailEvent} onClose={() => setDetailEvent(null)} />}
     </div>
   );
 }
@@ -342,39 +349,158 @@ function MonthView({ anchorDate, events, today, onEventClick }) {
           const inMonth = day.getMonth() === monthStart.getMonth();
           const isToday = isSameDay(day, today);
           const dayEvents = events.filter(e => eventOnDay(e, day));
-          const counts = {};
-          dayEvents.forEach(e => { counts[e.type] = (counts[e.type] || 0) + 1; });
+          const MAX_VISIBLE = 3;
+          const visible = dayEvents.slice(0, MAX_VISIBLE);
+          const overflow = dayEvents.length - visible.length;
 
           return (
             <div
               key={i}
               className={`p-1.5 ${i % 7 > 0 ? 'border-l border-neutral-800' : ''} ${i >= 7 ? 'border-t border-neutral-800' : ''} ${isToday ? 'bg-orange-500/[0.05]' : ''}`}
-              style={{ minHeight: 70 }}
+              style={{ minHeight: 110 }}
             >
               <div className={`text-[11px] font-medium mb-1 ${
                 isToday ? 'text-orange-400' : inMonth ? 'text-neutral-300' : 'text-neutral-600'
               }`}>
                 {fmtDayNum(day)}
               </div>
-              <div className="flex flex-wrap gap-0.5">
-                {Object.entries(counts).map(([type, n]) => {
-                  const cfg = EVENT_TYPES[type];
-                  if (!cfg) return null;
+              <div className="space-y-0.5">
+                {visible.map(evt => {
+                  const cfg = EVENT_TYPES[evt.type] || EVENT_TYPES.summary;
                   return (
                     <div
-                      key={type}
-                      className="mono text-[9px] px-1 py-0.5 rounded font-semibold"
-                      style={{ background: cfg.bg, color: cfg.textColor, border: `1px solid ${cfg.border}` }}
-                      title={`${n} ${cfg.label}${n > 1 ? 's' : ''}`}
+                      key={evt.id}
+                      onClick={(e) => { e.stopPropagation(); onEventClick && onEventClick(evt); }}
+                      className={`mono text-[9px] px-1 py-0.5 rounded font-semibold cursor-pointer hover:opacity-80 truncate ${cfg.pulse ? 'pulse-red' : ''}`}
+                      style={{
+                        background: cfg.bg,
+                        color: cfg.textColor,
+                        borderLeft: `2px ${cfg.dashed ? 'dashed' : 'solid'} ${cfg.color}`,
+                      }}
+                      title={evt.title}
                     >
-                      {n}
+                      {evt.title}
                     </div>
                   );
                 })}
+                {overflow > 0 && (
+                  <div className="mono text-[9px] text-neutral-500 px-1 font-semibold">
+                    +{overflow} more
+                  </div>
+                )}
               </div>
             </div>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// EVENT DETAIL MODAL — opens on pill click, shows full event metadata
+// ============================================================================
+
+function EventDetailModal({ event, onClose }) {
+  const cfg = EVENT_TYPES[event.type] || EVENT_TYPES.summary;
+  const Icon = cfg.icon;
+  const start = new Date(event.date);
+  const end = event.endDate ? new Date(event.endDate) : null;
+
+  const fmt = (d) => d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+
+  // Click backdrop to close
+  return (
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-center justify-center p-6"
+      style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(2px)' }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="bg-neutral-900 border border-neutral-800 rounded-lg max-w-md w-full overflow-hidden fade-slide"
+        style={{ borderTop: `3px solid ${cfg.color}` }}
+      >
+        {/* Header */}
+        <div className="px-5 py-4 flex items-start gap-3 border-b border-neutral-800">
+          <div
+            className="w-9 h-9 rounded-md flex items-center justify-center shrink-0"
+            style={{ background: cfg.bg, border: `1px solid ${cfg.border}` }}
+          >
+            <Icon size={16} style={{ color: cfg.color }} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="mono text-[10px] uppercase tracking-widest font-semibold mb-1" style={{ color: cfg.color }}>
+              {cfg.label}
+              {event.priority === 'critical' && <span className="ml-2 text-red-400">· CRITICAL</span>}
+              {event.priority === 'high' && <span className="ml-2 text-amber-400">· HIGH PRIORITY</span>}
+            </div>
+            <div className="text-[15px] font-semibold text-neutral-100 leading-tight">
+              {event.title}
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-7 h-7 rounded bg-neutral-800 border border-neutral-700 flex items-center justify-center text-neutral-400 hover:text-neutral-200 shrink-0"
+          >
+            <X size={14} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="px-5 py-4 space-y-3">
+          {event.detail && (
+            <DetailRow label="Description" value={event.detail} />
+          )}
+          <DetailRow
+            label={end ? 'Date range' : 'Date'}
+            value={end ? `${fmt(start)} → ${fmt(end)}` : fmt(start)}
+          />
+          {event.aircraft && (
+            <DetailRow icon={Plane} label="Aircraft" value={event.aircraft} mono />
+          )}
+          {event.base && (
+            <DetailRow icon={MapPin} label="Base" value={event.base} />
+          )}
+          {event.region && (
+            <DetailRow label="Region" value={event.region} mono />
+          )}
+          {event.crew && (
+            <DetailRow icon={User} label="Crew" value={event.crew} />
+          )}
+          {event.role && (
+            <DetailRow label="Role" value={event.role} />
+          )}
+        </div>
+
+        {/* Footer actions (visual only — demo) */}
+        <div className="px-5 py-3 border-t border-neutral-800 bg-neutral-950/40 flex items-center gap-2 flex-wrap">
+          <button className="px-3 py-1.5 mono text-[10px] uppercase tracking-widest font-semibold bg-orange-500 hover:bg-orange-400 text-black rounded">
+            Open full record
+          </button>
+          <button className="px-3 py-1.5 mono text-[10px] uppercase tracking-widest font-semibold bg-neutral-800 border border-neutral-700 hover:bg-neutral-700 text-neutral-300 rounded">
+            Edit
+          </button>
+          <div className="ml-auto mono text-[10px] text-neutral-600">
+            Click outside to close
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DetailRow({ icon: Icon, label, value, mono }) {
+  return (
+    <div className="flex items-start gap-3">
+      <div className="mono text-[10px] uppercase tracking-widest text-neutral-500 w-20 shrink-0 pt-0.5">
+        {label}
+      </div>
+      <div className="flex items-center gap-1.5 flex-1 min-w-0">
+        {Icon && <Icon size={11} className="text-neutral-500 shrink-0" />}
+        <div className={`text-[12px] text-neutral-200 ${mono ? 'mono' : ''}`}>
+          {value}
+        </div>
       </div>
     </div>
   );

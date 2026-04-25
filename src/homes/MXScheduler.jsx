@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Filter, ArrowRight } from 'lucide-react';
+import { Filter, ArrowRight, Users } from 'lucide-react';
 import { AIRCRAFT, INSPECTIONS_DUE, PENDING_REQUESTS } from '../data';
 import { PageHeader, Card, Metric, StatusDot, BulletinBanner } from '../ui';
 import WeekCalendar from '../shared/WeekCalendar';
 import { getEventsForPersona, getCalendarConfigForPersona } from '../shared/personaCalendarData';
+import CrewSchedulerHome from './CrewScheduler';
 
 export default function MXSchedulerHome({ persona }) {
   const [selectedRegion, setSelectedRegion] = useState('ALL');
@@ -100,6 +101,19 @@ export default function MXSchedulerHome({ persona }) {
           </div>
         </Card>
       </div>
+
+      {/* === Crew Scheduling section — Carla owns this too === */}
+      <div className="mt-10 mb-4 pb-2 border-b border-neutral-800 flex items-center gap-2">
+        <Users size={16} className="text-orange-400" />
+        <h2 className="text-[18px] font-semibold tracking-tight">Crew Scheduling</h2>
+        <span className="mono text-[10px] uppercase tracking-widest text-neutral-500 ml-2">Same desk · open shifts, swaps, certifications</span>
+      </div>
+      <CrewSchedulerHome persona={{
+        ...persona,
+        role: 'CREW_SCHEDULER',
+        roleTitle: 'Crew Scheduling',
+        _embedded: true,
+      }} />
     </>
   );
 }

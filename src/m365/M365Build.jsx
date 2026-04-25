@@ -6,7 +6,6 @@ import PCFScheduler from './screens/PCFScheduler';
 import PCFMap from './screens/PCFMap';
 import TeamsApproval from './screens/TeamsApproval';
 import CapabilityComparison from './screens/CapabilityComparison';
-import CostComparison from './screens/CostComparison';
 
 // ============================================================================
 // M365 BUILD — orchestrator
@@ -33,7 +32,6 @@ export default function M365Build({ persona, setPersonaId }) {
       {activeScreen === 'map' && <PCFMap />}
       {activeScreen === 'teams' && <TeamsApproval />}
       {activeScreen === 'compare' && <CapabilityComparison />}
-      {activeScreen === 'cost' && <CostComparison />}
     </M365Shell>
   );
 }

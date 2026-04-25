@@ -6,15 +6,18 @@ import WeekCalendar from '../shared/WeekCalendar';
 import { getEventsForPersona, getCalendarConfigForPersona } from '../shared/personaCalendarData';
 
 export default function CrewSchedulerHome({ persona }) {
+  const embedded = persona._embedded;
   return (
     <>
-      <PageHeader persona={persona} subtitle="Crew scheduling — flight nurses, paramedics, RTs, pilots. Open shifts, swaps, certifications. Integrated with CompleteFlight for cert currency." />
-      <BulletinBanner />
+      {!embedded && <PageHeader persona={persona} subtitle="Crew scheduling — flight nurses, paramedics, RTs, pilots. Open shifts, swaps, certifications. Integrated with CompleteFlight for cert currency." />}
+      {!embedded && <BulletinBanner />}
 
-      <WeekCalendar
-        events={getEventsForPersona(persona)}
-        {...getCalendarConfigForPersona(persona)}
-      />
+      {!embedded && (
+        <WeekCalendar
+          events={getEventsForPersona(persona)}
+          {...getCalendarConfigForPersona(persona)}
+        />
+      )}
 
       <div className="grid grid-cols-4 gap-3 mb-5">
         <Metric label="Open Shifts" value={OPEN_SHIFTS.length} accent="#ff6b1a" />

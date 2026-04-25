@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   Home, BarChart3, Calendar, Map as MapIcon, MessageSquare, GitCompare,
-  DollarSign, Search, Bell, HelpCircle, Settings, Grid3x3,
+  Search, Bell, HelpCircle, Settings, Grid3x3,
 } from 'lucide-react';
 import { FLUENT, FLUENT_FONT } from './tokens';
 
@@ -12,7 +12,6 @@ const NAV_ITEMS = [
   { id: 'map',      label: 'Live Fleet',          Icon: MapIcon,      section: 'apps', pcf: true },
   { id: 'teams',    label: 'Teams Approvals',     Icon: MessageSquare, section: 'apps' },
   { id: 'compare',  label: 'Capability Compare',  Icon: GitCompare,   section: 'meta' },
-  { id: 'cost',     label: 'Cost @ 1000 Users',   Icon: DollarSign,   section: 'meta' },
 ];
 
 export default function M365Shell({ activeScreen, setActiveScreen, persona, children }) {

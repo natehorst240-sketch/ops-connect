@@ -515,6 +515,21 @@ function MXSchedulerHome({ persona }) {
           })}
         </Card>
       </div>
+
+      {/* === Crew Scheduling section — Carla owns this too === */}
+      <div className="mt-8 mb-3 pb-2 flex items-center gap-2" style={{ borderBottom: `1px solid ${FLUENT.border}` }}>
+        <Users size={16} style={{ color: FLUENT.brand }} />
+        <h2 style={{ fontSize: 16, fontWeight: 600, margin: 0 }}>Crew Scheduling</h2>
+        <span style={{ fontSize: 10, color: FLUENT.textSub, marginLeft: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          Same desk · open shifts, swaps, certifications
+        </span>
+      </div>
+      <CrewSchedulerHome persona={{
+        ...persona,
+        role: 'CREW_SCHEDULER',
+        roleTitle: 'Crew Scheduling',
+        _embedded: true,
+      }} />
     </div>
   );
 }
@@ -524,14 +539,17 @@ function MXSchedulerHome({ persona }) {
 // ============================================================================
 
 function CrewSchedulerHome({ persona }) {
+  const embedded = persona._embedded;
   return (
-    <div className="p-6">
-      <PageHeader persona={persona} subtitle="Crew scheduling · CompleteFlight integration via Power Automate" />
-      <BulletinBar />
-      <WeekCalendar
-        events={getEventsForPersona(persona)}
-        {...getCalendarConfigForPersona(persona)}
-      />
+    <div className={embedded ? '' : 'p-6'}>
+      {!embedded && <PageHeader persona={persona} subtitle="Crew scheduling · CompleteFlight integration via Power Automate" />}
+      {!embedded && <BulletinBar />}
+      {!embedded && (
+        <WeekCalendar
+          events={getEventsForPersona(persona)}
+          {...getCalendarConfigForPersona(persona)}
+        />
+      )}
       <div className="grid grid-cols-4 gap-3 mb-4">
         <MetricTile label="Open Shifts" value={OPEN_SHIFTS.length} color={FLUENT.brand} />
         <MetricTile label="Requests" value={CREW_REQUESTS.length} color={FLUENT.warnAccent} />
