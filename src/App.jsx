@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   Plane, Users, AlertTriangle, Calendar, Wrench, Radio, TrendingUp, Layers,
-  Map as MapIcon, Grid3x3,
+  Map as MapIcon, Grid3x3, Smartphone,
 } from 'lucide-react';
 import { PERSONAS, AIRCRAFT, FLOWS } from './data';
 
@@ -17,6 +17,7 @@ import FlowTab from './tabs/Flow';
 import ArchitectureTab from './tabs/Architecture';
 import RoadmapTab from './tabs/Roadmap';
 import MapTab from './tabs/Map';
+import MobileTab from './tabs/Mobile';
 import M365Build from './m365/M365Build';
 
 const TABS = [
@@ -28,6 +29,7 @@ const TABS = [
   { id: 'flowD', label: 'Flow D · Time Off', Icon: Calendar },
   { id: 'architecture', label: 'Architecture', Icon: Layers },
   { id: 'm365', label: 'M365 Build', Icon: Grid3x3 },
+  { id: 'mobile', label: 'Mobile · Side-by-side', Icon: Smartphone },
   { id: 'roadmap', label: 'Roadmap', Icon: TrendingUp },
 ];
 
@@ -62,6 +64,7 @@ export default function App() {
             {activeTab === 'flowD' && <FlowTab flow={FLOWS.flowD} />}
             {activeTab === 'architecture' && <ArchitectureTab />}
             {activeTab === 'm365' && <M365Build persona={persona} setPersonaId={setPersonaId} />}
+            {activeTab === 'mobile' && <MobileTab />}
             {activeTab === 'roadmap' && <RoadmapTab />}
           </div>
         </div>
@@ -158,6 +161,7 @@ function CurrentTabInfo({ activeTab }) {
     flowC: { title: 'Flow C', subtitle: 'AOG Cascade', text: 'Demonstrates downstream effects when an aircraft goes AOG.' },
     flowD: { title: 'Flow D', subtitle: 'Time Off → Coverage Gap', text: 'Pilot off-duty becomes an open shift automatically.' },
     architecture: { title: 'Architecture', subtitle: 'For Company IT', text: '5-layer stack diagram. Postgres + Supabase + React + Microsoft Graph at the edge.' },
+    mobile: { title: 'Mobile', subtitle: 'Custom vs M365 · Side-by-side', text: 'Same AMT field workflow on the custom React PWA and the Power Apps mobile shell.' },
     roadmap: { title: 'Roadmap', subtitle: 'For Ops Leadership', text: '5-phase plan. ~28–38 weeks to production v1.0 with a small dedicated team.' },
   }[activeTab];
 
