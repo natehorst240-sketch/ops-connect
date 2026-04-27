@@ -46,7 +46,11 @@ body {
 .bg-neutral-800 { background-color: var(--surface-3) !important; }
 .bg-neutral-700 { background-color: var(--surface-4) !important; }
 
+.bg-neutral-900\/95 { background-color: rgba(255, 255, 255, 0.95) !important; }
+.bg-neutral-900\/90 { background-color: rgba(255, 255, 255, 0.92) !important; }
 .bg-neutral-900\/40 { background-color: rgba(255, 255, 255, 0.6) !important; }
+.bg-neutral-900\/20 { background-color: rgba(255, 255, 255, 0.4) !important; }
+.bg-neutral-950\/90 { background-color: rgba(248, 250, 252, 0.92) !important; }
 .bg-neutral-950\/40 { background-color: rgba(248, 250, 252, 0.6) !important; }
 .bg-neutral-950\/50 { background-color: rgba(241, 245, 249, 0.6) !important; }
 .bg-neutral-950\/30 { background-color: rgba(248, 250, 252, 0.4) !important; }
@@ -81,6 +85,7 @@ body {
 .hover\:border-orange-500\/40:hover { border-color: rgba(234, 88, 12, 0.4) !important; }
 
 /* Accent — slightly deepen orange for contrast on light bg */
+.text-orange-300 { color: #c2410c !important; }
 .text-orange-400 { color: #ea580c !important; }
 .text-orange-500 { color: #ea580c !important; }
 

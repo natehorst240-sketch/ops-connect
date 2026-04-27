@@ -6,9 +6,9 @@ import { Plane, X, Wifi, AlertCircle } from 'lucide-react';
 import { BASES, LIVE_FLEET, STATUS_CONFIG, WEATHER_CONFIG } from '../data/bases';
 import { AIRCRAFT } from '../data';
 
-// CARTO Dark Matter — free vector style, no API key required.
+// CARTO Positron — free light vector style, no API key required.
 // For production, swap to a self-hosted MapLibre style or Stadia Maps API.
-const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
+const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
 
 const INITIAL_VIEW = {
   longitude: -111.5,
@@ -133,12 +133,11 @@ export default function MapTab({ persona }) {
         }
         .maplibregl-popup-tip { display: none !important; }
         .maplibregl-ctrl-group {
-          background: #1a1a1d !important;
-          border: 1px solid #2a2a2f !important;
-          box-shadow: none !important;
+          background: #ffffff !important;
+          border: 1px solid #e2e8f0 !important;
+          box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08) !important;
         }
         .maplibregl-ctrl-group button { background: transparent !important; }
-        .maplibregl-ctrl-group button span { filter: invert(0.9); }
         .maplibregl-ctrl-attrib { display: none !important; }
       `}</style>
     </div>
