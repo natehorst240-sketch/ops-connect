@@ -64,7 +64,7 @@ export default function App() {
             {activeTab === 'flowD' && <FlowTab flow={FLOWS.flowD} />}
             {activeTab === 'architecture' && <ArchitectureTab />}
             {activeTab === 'm365' && <M365Build persona={persona} setPersonaId={setPersonaId} />}
-            {activeTab === 'mobile' && <MobileTab />}
+            {activeTab === 'mobile' && <MobileTab persona={persona} />}
             {activeTab === 'roadmap' && <RoadmapTab />}
           </div>
         </div>
@@ -78,7 +78,7 @@ export default function App() {
 // ============================================================================
 
 function DemoSidebar({ persona, setPersonaId, activeTab }) {
-  const showPersonaSwitcher = activeTab === 'app' || activeTab === 'map' || activeTab === 'm365';
+  const showPersonaSwitcher = activeTab === 'app' || activeTab === 'map' || activeTab === 'm365' || activeTab === 'mobile';
   return (
     <div className="w-64 shrink-0 bg-neutral-900/40 border-r border-neutral-800/50 flex flex-col h-screen sticky top-0">
       {/* Demo branding */}
@@ -117,6 +117,8 @@ function DemoSidebar({ persona, setPersonaId, activeTab }) {
                   ? 'Switch personas to filter the map by region. Director sees all; RMM sees just their region.'
                   : activeTab === 'm365'
                   ? 'The M365 Build version of MX Connect — Power Apps + Power BI + 2 PCF controls. Same role views, different platform.'
+                  : activeTab === 'mobile'
+                  ? 'Switch personas to see what each role sees on their phone. Same workflow, two builds — Custom React PWA vs Power Apps mobile.'
                   : 'Switch personas to see role-specific home screens. Each role has different views, actions, and approvals.'}
               </div>
               <div className="mono text-[10px] text-neutral-600 mt-2">
