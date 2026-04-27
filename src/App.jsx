@@ -22,13 +22,13 @@ import M365Build from './m365/M365Build';
 
 const TABS = [
   { id: 'app', label: 'The App', Icon: Radio },
+  { id: 'm365', label: 'M365 Build', Icon: Grid3x3 },
   { id: 'map', label: 'Live Fleet', Icon: MapIcon },
   { id: 'flowA', label: 'Flow A · MX Request', Icon: Wrench },
   { id: 'flowB', label: 'Flow B · Open Shift', Icon: Users },
   { id: 'flowC', label: 'Flow C · AOG Cascade', Icon: AlertTriangle },
   { id: 'flowD', label: 'Flow D · Time Off', Icon: Calendar },
   { id: 'architecture', label: 'Architecture', Icon: Layers },
-  { id: 'm365', label: 'M365 Build', Icon: Grid3x3 },
   { id: 'mobile', label: 'Mobile · Side-by-side', Icon: Smartphone },
   { id: 'roadmap', label: 'Roadmap', Icon: TrendingUp },
 ];
