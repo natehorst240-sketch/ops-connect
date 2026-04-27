@@ -110,9 +110,12 @@ function CustomPhone() {
   return (
     <div
       className="absolute inset-0 flex flex-col"
-      style={{ background: '#f8fafc', color: '#0f172a' }}
+      style={{
+        background: 'linear-gradient(180deg, #fff7ed 0%, #fffaf5 40%, #ffffff 100%)',
+        color: '#1c0f02',
+      }}
     >
-      <StatusBar tint="#0f172a" />
+      <StatusBar tint="#1c0f02" />
 
       {/* App header */}
       <div className="px-5 pt-12 pb-3 flex items-center justify-between shrink-0">
@@ -125,11 +128,11 @@ function CustomPhone() {
           </div>
           <div>
             <div className="text-[15px] font-semibold tracking-tight leading-none">MX Connect</div>
-            <div className="mono text-[9.5px] text-neutral-500 mt-0.5">Aaron Gabel · AMT · GEY</div>
+            <div className="mono text-[9.5px] mt-0.5" style={{ color: '#9a6028' }}>Aaron Gabel · AMT · GEY</div>
           </div>
         </div>
         <div className="relative">
-          <Bell size={18} style={{ color: '#334155' }} />
+          <Bell size={18} style={{ color: '#7c2d12' }} />
           <div
             className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full text-[8px] font-bold flex items-center justify-center text-white"
             style={{ background: '#ea580c' }}
@@ -167,35 +170,37 @@ function CustomPhone() {
         <div
           className="rounded-2xl p-3.5 relative overflow-hidden"
           style={{
-            background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
-            color: '#f8fafc',
+            background: 'linear-gradient(135deg, #ffedd5 0%, #fed7aa 60%, #fdba74 100%)',
+            color: '#431407',
+            border: '1px solid rgba(234,88,12,0.25)',
+            boxShadow: '0 6px 18px rgba(234,88,12,0.18)',
           }}
         >
           <div
-            className="absolute -right-6 -top-6 w-24 h-24 rounded-full opacity-30"
-            style={{ background: '#ea580c', filter: 'blur(28px)' }}
+            className="absolute -right-8 -top-8 w-28 h-28 rounded-full"
+            style={{ background: '#fff7ed', opacity: 0.6, filter: 'blur(20px)' }}
           />
           <div className="relative">
-            <div className="mono text-[9px] uppercase tracking-widest" style={{ color: '#94a3b8' }}>
+            <div className="mono text-[9px] uppercase tracking-widest" style={{ color: '#9a3412' }}>
               My Aircraft
             </div>
             <div className="flex items-baseline gap-2 mt-1">
               <div className="mono text-[20px] font-semibold">N39KM</div>
-              <div className="text-[10px]" style={{ color: '#cbd5e1' }}>AW109SP · Greybull</div>
+              <div className="text-[10px]" style={{ color: '#7c2d12' }}>AW109SP · Greybull</div>
             </div>
             <div className="mt-3 flex items-center gap-3">
               <div>
-                <div className="mono text-[8.5px] uppercase tracking-widest" style={{ color: '#94a3b8' }}>
+                <div className="mono text-[8.5px] uppercase tracking-widest" style={{ color: '#9a3412' }}>
                   Next Due
                 </div>
                 <div className="mono text-[12px] font-semibold mt-0.5">04/30</div>
               </div>
               <div
                 className="self-stretch w-px"
-                style={{ background: 'rgba(148,163,184,0.3)' }}
+                style={{ background: 'rgba(124,45,18,0.25)' }}
               />
               <div>
-                <div className="mono text-[8.5px] uppercase tracking-widest" style={{ color: '#94a3b8' }}>
+                <div className="mono text-[8.5px] uppercase tracking-widest" style={{ color: '#9a3412' }}>
                   Type
                 </div>
                 <div className="mono text-[12px] font-semibold mt-0.5">100-hr</div>
@@ -213,7 +218,7 @@ function CustomPhone() {
 
         {/* Quick action grid */}
         <div>
-          <div className="mono text-[9.5px] uppercase tracking-widest mb-2" style={{ color: '#64748b' }}>
+          <div className="mono text-[9.5px] uppercase tracking-widest mb-2" style={{ color: '#9a3412' }}>
             Submit
           </div>
           <div className="grid grid-cols-3 gap-2">
@@ -230,17 +235,17 @@ function CustomPhone() {
                 className="flex flex-col items-center gap-1.5 py-3 rounded-xl"
                 style={{
                   background: '#fff',
-                  border: '1px solid #e2e8f0',
-                  boxShadow: '0 1px 2px rgba(15,23,42,0.04)',
+                  border: '1px solid #fed7aa',
+                  boxShadow: '0 1px 2px rgba(234,88,12,0.08)',
                 }}
               >
                 <div
                   className="w-8 h-8 rounded-lg flex items-center justify-center"
-                  style={{ background: 'rgba(234,88,12,0.1)' }}
+                  style={{ background: '#fff7ed' }}
                 >
                   <a.Icon size={15} style={{ color: '#ea580c' }} strokeWidth={2.2} />
                 </div>
-                <span className="text-[10px] font-semibold" style={{ color: '#0f172a' }}>
+                <span className="text-[10px] font-semibold" style={{ color: '#431407' }}>
                   {a.label}
                 </span>
               </button>
@@ -250,12 +255,12 @@ function CustomPhone() {
 
         {/* Recent */}
         <div>
-          <div className="mono text-[9.5px] uppercase tracking-widest mb-2" style={{ color: '#64748b' }}>
+          <div className="mono text-[9.5px] uppercase tracking-widest mb-2" style={{ color: '#9a3412' }}>
             My Submissions
           </div>
           <div
             className="rounded-xl overflow-hidden"
-            style={{ background: '#fff', border: '1px solid #e2e8f0' }}
+            style={{ background: '#fff', border: '1px solid #fed7aa' }}
           >
             {[
               { type: 'MX Schedule', detail: 'N39KM 100-hr', status: 'Pending', color: '#ca8a04' },
@@ -265,11 +270,11 @@ function CustomPhone() {
               <div
                 key={i}
                 className="flex items-center gap-2 px-3 py-2.5"
-                style={{ borderBottom: i < arr.length - 1 ? '1px solid #f1f5f9' : 'none' }}
+                style={{ borderBottom: i < arr.length - 1 ? '1px solid #ffedd5' : 'none' }}
               >
                 <div className="flex-1 min-w-0">
                   <div className="text-[11.5px] font-semibold truncate">{s.detail}</div>
-                  <div className="mono text-[9.5px]" style={{ color: '#94a3b8' }}>
+                  <div className="mono text-[9.5px]" style={{ color: '#c2774a' }}>
                     {s.type}
                   </div>
                 </div>
@@ -279,7 +284,7 @@ function CustomPhone() {
                 >
                   {s.status}
                 </span>
-                <ChevronRight size={13} style={{ color: '#cbd5e1' }} />
+                <ChevronRight size={13} style={{ color: '#fdba74' }} />
               </div>
             ))}
           </div>
@@ -290,9 +295,9 @@ function CustomPhone() {
       <div
         className="absolute bottom-0 left-0 right-0 flex items-stretch px-5 pt-2 pb-5 gap-1"
         style={{
-          background: 'rgba(255,255,255,0.95)',
+          background: 'rgba(255,247,237,0.96)',
           backdropFilter: 'blur(8px)',
-          borderTop: '1px solid #e2e8f0',
+          borderTop: '1px solid #fed7aa',
         }}
       >
         {[
@@ -304,11 +309,11 @@ function CustomPhone() {
           <div key={t.label} className="flex-1 flex flex-col items-center gap-0.5 py-1">
             <div
               className="w-5 h-5 rounded"
-              style={{ background: t.active ? '#ea580c' : '#cbd5e1' }}
+              style={{ background: t.active ? '#ea580c' : '#fdba74' }}
             />
             <span
               className="text-[9.5px] font-semibold"
-              style={{ color: t.active ? '#ea580c' : '#94a3b8' }}
+              style={{ color: t.active ? '#ea580c' : '#c2774a' }}
             >
               {t.label}
             </span>
