@@ -1,120 +1,152 @@
-import React, { useState } from 'react';
-import { AlertTriangle, Info, ChevronRight } from 'lucide-react';
+import React from 'react';
+import { AlertTriangle, Info, ChevronRight, CheckCircle2, Clock, Sparkles, Lock } from 'lucide-react';
 
 // ============================================================================
-// ROADMAP — M365 vs MX Connect side-by-side comparison
+// ROADMAP — M365/Teams phased rollout
 // ----------------------------------------------------------------------------
-// Comprehensive view: phase-by-phase breakdown, total time, total cost.
-// Cost data lifted from the previous M365 CostComparison so the M365 tab can
-// stay focused on the "what does it look like" demo, while this tab carries
-// the "what's the actual investment" decision.
+// Phase 1 (greenlit): Request → Approval workflow on stock Power Apps + Power
+//                     Automate + Teams. Ships in 6–8 weeks.
+// Phase 2: Operations layer — read-only Scheduler mirror, stock Fleet Map,
+//          custom connectors to Veryon / CompleteFlight / ProteanHub /
+//          SkyRouter. 10–14 weeks.
+// Phase 3 (gated): Analytics + live tracking via Power BI. Ships once IHC's
+//                  1000 Power BI Pro licenses arrive. 12–16 weeks.
 // ============================================================================
 
 const PHASES = [
   {
-    phase: 'P0', title: 'Demo / Proof of Concept',
-    m365:   { duration: '—', team: '1 dev', scope: 'Power Apps mockup + Power BI report', deliverable: 'Pitch artifact', current: true },
-    custom: { duration: '—', team: '1 dev', scope: 'Interactive React demo (this app)',  deliverable: 'Pitch artifact', current: true },
+    id: 'P1',
+    title: 'Request → Approval',
+    status: 'greenlit',
+    duration: '6–8 weeks',
+    team: '1 Power Platform dev + IHC IT liaison',
+    scope: [
+      'Power Apps canvas form (MX Request)',
+      'Power Automate flow with Adaptive Card to Teams',
+      'Dataverse cr_mx_request schema + audit trail',
+      'Outlook calendar event on approval',
+      'DM notification back to requestor on approve / deny',
+    ],
+    deliverable: 'Production v1.0 — MX Request submitted from phone, approved in Teams in under 2 hours during shift hours.',
+    cost: '$60k – $100k',
+    stack: ['Power Apps', 'Power Automate', 'Teams (Adaptive Card)', 'Dataverse', 'Outlook'],
   },
   {
-    phase: 'P1', title: 'MVP — Core Platform',
-    m365:   { duration: '6–8 wks',  team: '2 devs + IT',          scope: 'Power Apps canvas, Dataverse model, Power BI dashboards, Teams approvals, 1–2 PCF controls', deliverable: 'Pilot to one region' },
-    custom: { duration: '8–12 wks', team: '2 devs + PM + ops SME', scope: 'Auth + RLS, all submission flows, WorksCalendar engine, dashboards, document library',     deliverable: 'Pilot to one region' },
+    id: 'P2',
+    title: 'Operations Layer',
+    status: 'proposed',
+    duration: '10–14 weeks',
+    team: '1–2 Power Platform devs + IT liaison',
+    scope: [
+      'Resource Scheduler — read-only Gantt mirror of CompleteFlight + ProteanHub',
+      'Server-side conflict + coverage gap detection (Power Automate, cached in Dataverse)',
+      'Fleet Map — stock Bing Maps with 15-min SkyRouter refresh',
+      'Custom connectors: Veryon, CompleteFlight, ProteanHub, SkyRouter (API key auth)',
+      'Time-off + open-shift workflows (same pipeline as Phase 1)',
+      'Bulletins + safety reports (forms + Teams)',
+    ],
+    deliverable: 'Operations layer covering daily scheduler + AMT + RMM workflows. Dispatch decisions made in source systems; MX Connect surfaces conflicts and gaps cross-system.',
+    cost: '$120k – $180k',
+    stack: ['Power Apps', 'Power Automate', 'Dataverse', 'Custom connectors', 'Stock Bing Maps'],
   },
   {
-    phase: 'P2', title: 'External Integrations',
-    m365:   { duration: '3–5 wks', team: '2 devs',               scope: 'Power Automate flows, Veryon connector, CompleteFlight via custom connector', deliverable: 'Integrated with IHC systems' },
-    custom: { duration: '4–6 wks', team: '2 devs + IT liaison',  scope: 'Microsoft Graph, Veryon, CompleteFlight, SkyRouter, Entra ID SSO',            deliverable: 'Integrated with IHC systems' },
-  },
-  {
-    phase: 'P3', title: 'Crew Scheduling + Analytics',
-    m365:   { duration: '8–12 wks', team: '2 devs + ops SME', scope: 'Custom PCF for resource scheduler, Power BI cert dashboards, Power Automate fatigue logic',  deliverable: 'Replaces Protean' },
-    custom: { duration: '6–8 wks',  team: '2 devs + ops SME', scope: 'Configure WorksCalendar for crew, integrate fatigue from duty log, mobile PWA polish',     deliverable: 'Replaces Protean' },
-  },
-  {
-    phase: 'P4', title: 'Production Hardening + Rollout',
-    m365:   { duration: '4–6 wks', team: '2 devs + QA', scope: 'UAT, governance review, environment promotion, training, runbook',   deliverable: 'Org-wide v1.0' },
-    custom: { duration: '4–6 wks', team: '2 devs + QA', scope: 'UAT, accessibility (WCAG AA), load testing, staged regional rollout', deliverable: 'Org-wide v1.0' },
+    id: 'P3',
+    title: 'Analytics + Live Tracking',
+    status: 'gated',
+    gate: 'Awaiting 1000 Power BI Pro licenses',
+    duration: '12–16 weeks',
+    team: '1 Power Platform dev + 1 Power BI dev',
+    scope: [
+      'Power BI Fleet Operations report (KPIs, regional drill-down, inspection compliance)',
+      'Live Fleet view — Power BI map visual + streaming dataset (sub-30s refresh)',
+      'Cert dashboards from CompleteFlight',
+      'Self-service slicers + filters for end users',
+      'Exec-friendly PDF / PowerPoint exports',
+    ],
+    deliverable: 'Director / RMM analytics + cinematic live fleet tracking. Replaces ad-hoc Excel reporting and the limited Phase 2 fleet map.',
+    cost: '$100k – $150k',
+    stack: ['Power BI Pro / Premium', 'DirectQuery / streaming dataset', 'ArcGIS or Mapbox visuals'],
   },
 ];
 
-const SCENARIOS = [
-  { id: 'e5',      label: 'IHC on E5',                  sub: 'Best case · Power BI Pro included',          y1: { m365: 260, custom: 485 }, y2: { m365: 60,  custom: 65 }, cross: 'Custom never catches up; M365 stays cheaper indefinitely',     tone: 'good' },
-  { id: 'e3-mid',  label: 'IHC on E3 · negotiated',     sub: 'Realistic mid-case',                         y1: { m365: 340, custom: 525 }, y2: { m365: 130, custom: 70 }, cross: 'Custom wins on TCO around Year 4',                              tone: 'info' },
-  { id: 'e3-list', label: 'IHC on E3 · list price',     sub: 'Worst case · no enterprise negotiation',     y1: { m365: 415, custom: 565 }, y2: { m365: 200, custom: 78 }, cross: 'Custom wins on TCO by Year 3',                                  tone: 'warn' },
+const STATUS_CONFIG = {
+  greenlit: { label: 'Greenlit',                    color: '#107c10', bg: 'rgba(16,124,16,0.1)',  Icon: CheckCircle2 },
+  proposed: { label: 'Proposed',                    color: '#0078d4', bg: 'rgba(0,120,212,0.1)',  Icon: Sparkles },
+  gated:    { label: 'Gated · license dependent',   color: '#ca5010', bg: 'rgba(202,80,16,0.1)',  Icon: Lock },
+};
+
+const Y1_BREAKDOWN = [
+  { label: 'Phase 1 build · Request → Approval',                   range: '$60k – $100k',  note: 'Power Apps form, flow, Adaptive Card, Dataverse schema, Outlook event' },
+  { label: 'Phase 2 build · Operations layer',                     range: '$120k – $180k', note: 'Scheduler mirror, Fleet Map, custom connectors, time-off + bulletins' },
+  { label: 'Power Apps Premium licensing · Phase 2 onward',        range: '$0 – $60k/yr',  note: '~350 active users · Per-App, often negotiated 30–50% off list' },
+  { label: 'Microsoft infrastructure',                              range: '$0',            note: 'Included in M365 tenant; Dataverse capacity sufficient at IHC scale' },
+  { label: 'Year 1 total (Phase 1 + 2)',                            range: '$180k – $340k', total: true },
 ];
 
-const Y1_BREAKDOWN = {
-  m365: [
-    { label: 'Build / configuration',     range: '$200k–$280k', note: 'Smaller team; Power Apps + Power BI config + 2 PCF controls' },
-    { label: 'Power BI licensing',         range: '$0 – $75k',   note: '$0 if E5; ~$75k Premium Capacity if E3' },
-    { label: 'Power Apps Premium',         range: '$0 – $60k',   note: '$0 if E5; ~$60k Per-App at list' },
-    { label: 'Microsoft infrastructure',   range: '$0',          note: 'Included in M365 tenant' },
-    { label: 'Year 1 total',               range: '$260k – $415k', total: true },
-  ],
-  custom: [
-    { label: 'Build / development',         range: '$480k – $560k', note: '2–3 person team · 28–38 weeks · full custom React + Supabase' },
-    { label: 'Licensing',                   range: '$0',            note: 'No per-user platform tax' },
-    { label: 'Infrastructure',              range: '$2k – $3k',     note: 'Supabase + Vercel + edge functions' },
-    { label: 'Microsoft Graph integration', range: '$2k',           note: 'One-way sync to Outlook / Teams' },
-    { label: 'Year 1 total',                range: '$485k – $565k', total: true },
-  ],
-};
+const Y2_BREAKDOWN = [
+  { label: 'Maintenance dev (0.3–0.5 FTE)',                         range: '$60k – $90k',     note: 'Often absorbed by IHC IT once stable' },
+  { label: 'Power Apps Premium (recurring)',                        range: '$0 – $60k/yr',    note: 'Same per-user model carries forward' },
+  { label: 'Microsoft infrastructure',                              range: '$0',              note: 'Included' },
+  { label: 'Year 2+ recurring',                                      range: '$60k – $150k/yr', total: true },
+];
 
-const Y2_BREAKDOWN = {
-  m365: [
-    { label: 'Maintenance dev (0.3–0.5 FTE)', range: '$60k – $90k',   note: 'Often absorbed by IHC IT' },
-    { label: 'Power BI licensing',             range: '$0 – $75k/yr', note: 'Same E5 vs E3 question carries forward' },
-    { label: 'Power Apps Premium',             range: '$0 – $60k/yr', note: 'Recurring forever — the licensing tax' },
-    { label: 'Microsoft infrastructure',       range: '$0',            note: 'Included' },
-    { label: 'Year 2+ recurring',              range: '$60k – $225k/yr', note: 'Scales with user count', total: true },
-  ],
-  custom: [
-    { label: 'Maintenance dev (1.0 FTE)', range: '$60k – $75k',   note: 'One person handles features + ops' },
-    { label: 'Licensing',                  range: '$0',            note: 'Still no platform tax' },
-    { label: 'Infrastructure',             range: '$3k – $4k',     note: 'Scales sub-linearly with user count' },
-    { label: 'Year 2+ recurring',          range: '$63k – $79k/yr', note: 'Flat regardless of user count', total: true },
-  ],
-};
-
-const TONE_COLORS = {
-  good: { border: '#22c55e', bg: 'rgba(34,197,94,0.05)',  text: 'text-green-400' },
-  info: { border: '#3b82f6', bg: 'rgba(59,130,246,0.05)', text: 'text-blue-400' },
-  warn: { border: '#eab308', bg: 'rgba(234,179,8,0.05)',  text: 'text-amber-400' },
-};
+const PHASE3_ADDER = [
+  { label: 'Phase 3 build · Power BI + Live Fleet',                 range: '$100k – $150k', note: 'Ships only after 1000 Power BI Pro licenses arrive · adds to Y1 if same year, otherwise rolls into Y2/3' },
+];
 
 export default function RoadmapTab() {
-  const [scenarioId, setScenarioId] = useState('e3-mid');
-  const scenario = SCENARIOS.find(s => s.id === scenarioId);
-
   return (
-    <div className="p-8 max-w-[1400px] mx-auto fade-slide">
-      <div className="mb-6">
-        <div className="mono text-[11px] text-neutral-500 uppercase tracking-widest mb-1">For Ops Leadership</div>
-        <h1 className="text-[28px] font-semibold tracking-tight mb-2">Roadmap & Cost — Side by Side</h1>
-        <p className="text-[14px] text-neutral-400 max-w-3xl leading-relaxed">
-          Both paths get IHC to the same operational outcome. They differ in time, team, ongoing cost, and platform risk. This page lays out the actual investment decision rather than a sales pitch in either direction.
-        </p>
-      </div>
-
-      <SectionHeader number="1" title="Phase-by-phase comparison" />
-      <PhaseTable />
-
-      <SectionHeader number="2" title="Total timeline" />
-      <TotalsRow />
-
-      <SectionHeader number="3" title="Cost scenarios — pick the licensing context that fits IHC" />
-      <ScenarioPicker scenarios={SCENARIOS} selectedId={scenarioId} onSelect={setScenarioId} />
-      <ScenarioCallout scenario={scenario} />
-
-      <SectionHeader number="4" title="Year 1 cost breakdown" />
-      <CostTable breakdown={Y1_BREAKDOWN} />
-
-      <SectionHeader number="5" title="Year 2+ recurring cost" />
-      <CostTable breakdown={Y2_BREAKDOWN} />
-
-      <SectionHeader number="6" title="Verify with IT before pitch" />
+    <div className="p-8 max-w-[1200px] mx-auto fade-slide">
+      <Header />
+      <CostHero />
+      <SectionHeader number="1" title="Phased rollout" />
+      <PhaseList />
+      <SectionHeader number="2" title="Year 1 cost (Phase 1 + 2)" />
+      <CostTable rows={Y1_BREAKDOWN} />
+      <SectionHeader number="3" title="Year 2+ recurring" />
+      <CostTable rows={Y2_BREAKDOWN} />
+      <SectionHeader number="4" title="Phase 3 adder · when Power BI Pro arrives" />
+      <CostTable rows={PHASE3_ADDER} />
+      <SectionHeader number="5" title="Open questions before proceeding" />
       <VerificationCard />
+    </div>
+  );
+}
+
+function Header() {
+  return (
+    <div className="mb-6">
+      <div className="mono text-[11px] text-neutral-500 uppercase tracking-widest mb-1">For Ops Leadership</div>
+      <h1 className="text-[28px] font-semibold tracking-tight mb-2">M365 / Teams Rollout · 3 Phases</h1>
+      <p className="text-[14px] text-neutral-400 max-w-3xl leading-relaxed">
+        Phase 1 has been greenlit and is the entry point for everything that follows. Phase 2 layers operations on top once the audit and approval surface is proven. Phase 3 unlocks analytics and live tracking when IHC&apos;s 1000 Power BI Pro licenses arrive. Each phase ships independently — no big-bang dependency, no PCF, no third-party platforms.
+      </p>
+    </div>
+  );
+}
+
+function CostHero() {
+  return (
+    <div className="grid grid-cols-3 gap-4 mb-2">
+      <HeroCard label="Phase 1 (greenlit)"      value="$60–100k"   sub="6–8 weeks · production v1.0"          tone="good" />
+      <HeroCard label="Phase 1 + 2 Year 1"       value="$180–340k"  sub="22 weeks · ops layer complete"        tone="info" />
+      <HeroCard label="+ Phase 3 (when gated)"   value="+$100–150k" sub="Power BI Pro + analytics + live fleet" tone="warn" />
+    </div>
+  );
+}
+
+function HeroCard({ label, value, sub, tone }) {
+  const colors = {
+    good: { border: '#107c10' },
+    info: { border: '#0078d4' },
+    warn: { border: '#ca5010' },
+  };
+  const c = colors[tone];
+  return (
+    <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-4" style={{ borderTop: `2px solid ${c.border}` }}>
+      <div className="mono text-[10px] text-neutral-500 uppercase tracking-widest mb-2">{label}</div>
+      <div className="text-[24px] font-semibold leading-none">{value}</div>
+      <div className="text-[11px] text-neutral-400 leading-relaxed mt-2">{sub}</div>
     </div>
   );
 }
@@ -128,155 +160,89 @@ function SectionHeader({ number, title }) {
   );
 }
 
-function PhaseTable() {
+function PhaseList() {
+  return (
+    <div className="space-y-3">
+      {PHASES.map(p => <PhaseCard key={p.id} phase={p} />)}
+    </div>
+  );
+}
+
+function PhaseCard({ phase }) {
+  const status = STATUS_CONFIG[phase.status];
+  return (
+    <div
+      className="bg-neutral-900 border border-neutral-800 rounded-lg overflow-hidden"
+      style={{ borderLeft: `3px solid ${status.color}` }}
+    >
+      <div className="px-5 py-3 flex items-center gap-3" style={{ borderBottom: '1px solid #262626', background: 'rgba(0,0,0,0.2)' }}>
+        <div className="mono text-[12px] font-semibold text-orange-400">{phase.id}</div>
+        <div className="text-[16px] font-semibold flex-1">{phase.title}</div>
+        <div
+          className="flex items-center gap-1.5 px-2 py-0.5 rounded"
+          style={{ background: status.bg, color: status.color, fontSize: 11, fontWeight: 600 }}
+        >
+          <status.Icon size={11} />
+          {status.label}
+        </div>
+      </div>
+
+      <div className="px-5 py-3 grid gap-3" style={{ gridTemplateColumns: '1fr 1fr' }}>
+        <div>
+          <FactRow label="Duration"     value={phase.duration} />
+          <FactRow label="Team"         value={phase.team} />
+          <FactRow label="Cost"         value={phase.cost} mono />
+          {phase.gate && <FactRow label="Gate" value={phase.gate} warn />}
+        </div>
+        <div>
+          <div className="mono text-[10px] text-neutral-500 uppercase tracking-widest mb-1">Stack</div>
+          <div className="flex flex-wrap gap-1.5">
+            {phase.stack.map(s => (
+              <span key={s} className="mono text-[11px] px-2 py-0.5 bg-neutral-800 border border-neutral-700 rounded text-neutral-300">{s}</span>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="px-5 py-3" style={{ borderTop: '1px solid #262626' }}>
+        <div className="mono text-[10px] text-neutral-500 uppercase tracking-widest mb-2">Scope</div>
+        <ul className="space-y-1.5 mb-3">
+          {phase.scope.map(s => (
+            <li key={s} className="flex items-start gap-2 text-[12px] text-neutral-300">
+              <ChevronRight size={12} className="text-orange-400 mt-0.5 shrink-0" />
+              <span>{s}</span>
+            </li>
+          ))}
+        </ul>
+        <div
+          className="rounded p-3"
+          style={{ background: 'rgba(255,107,26,0.05)', border: '1px solid rgba(255,107,26,0.2)' }}
+        >
+          <div className="mono text-[10px] text-orange-400 uppercase tracking-widest mb-1">Deliverable</div>
+          <div className="text-[12px] text-neutral-200 leading-relaxed">{phase.deliverable}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FactRow({ label, value, mono, warn }) {
+  return (
+    <div className="flex items-baseline justify-between mb-1.5">
+      <span className="mono text-[10px] text-neutral-500 uppercase tracking-widest">{label}</span>
+      <span className={`text-[12px] ${mono ? 'mono font-semibold text-orange-400' : warn ? 'text-amber-400' : 'text-neutral-200'}`}>{value}</span>
+    </div>
+  );
+}
+
+function CostTable({ rows }) {
   return (
     <div className="bg-neutral-900 border border-neutral-800 rounded-lg overflow-hidden">
-      <div className="grid grid-cols-[100px_1fr_1fr] border-b border-neutral-800 bg-neutral-950/50">
-        <div className="px-4 py-3 mono text-[10px] text-neutral-500 uppercase tracking-widest">Phase</div>
-        <div className="px-4 py-3 border-l border-neutral-800 flex items-center gap-2">
-          <div className="w-4 h-4 bg-blue-600 rounded-sm flex items-center justify-center"><span className="text-white font-bold text-[10px]">M</span></div>
-          <span className="text-[12px] font-semibold">M365 + Power Apps Build</span>
-        </div>
-        <div className="px-4 py-3 border-l border-neutral-800 flex items-center gap-2">
-          <div className="w-4 h-4 bg-orange-500 rounded-sm flex items-center justify-center"><span className="text-black font-bold text-[10px]">M</span></div>
-          <span className="text-[12px] font-semibold">MX Connect Custom Build</span>
-        </div>
-      </div>
-      {PHASES.map((p, i) => (
-        <PhaseRow key={p.phase} phase={p} last={i === PHASES.length - 1} />
-      ))}
-    </div>
-  );
-}
-
-function PhaseRow({ phase, last }) {
-  return (
-    <div className={`grid grid-cols-[100px_1fr_1fr] ${last ? '' : 'border-b border-neutral-800'}`}>
-      <div className="px-4 py-3 flex flex-col gap-0.5 bg-neutral-950/30">
-        <div className="mono text-[11px] font-semibold text-orange-400">{phase.phase}</div>
-        <div className="text-[12px] text-neutral-300 leading-tight">{phase.title}</div>
-      </div>
-      <PhaseCell d={phase.m365} />
-      <PhaseCell d={phase.custom} />
-    </div>
-  );
-}
-
-function PhaseCell({ d }) {
-  return (
-    <div className="px-4 py-3 border-l border-neutral-800">
-      <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-        <span className="mono text-[11px] font-semibold text-neutral-200">{d.duration}</span>
-        <span className="mono text-[10px] text-neutral-500">·</span>
-        <span className="mono text-[10px] text-neutral-500">{d.team}</span>
-        {d.current && (
-          <span className="mono text-[9px] uppercase tracking-widest font-semibold px-1.5 py-0.5 bg-orange-500/10 text-orange-400 rounded">Current</span>
-        )}
-      </div>
-      <div className="text-[11px] text-neutral-400 leading-snug mb-1.5">{d.scope}</div>
-      <div className="flex items-center gap-1.5 text-[11px] text-neutral-500">
-        <ChevronRight size={11} />
-        <span>{d.deliverable}</span>
-      </div>
-    </div>
-  );
-}
-
-function TotalsRow() {
-  return (
-    <div className="grid grid-cols-2 gap-4">
-      <TotalCard side="M365 path"   duration="21–31 weeks" team="2–3 ppl peak" sub="Smaller team, faster MVP, but PCF dev for the scheduling engine drags Phase 3" color="#3b82f6" />
-      <TotalCard side="Custom path" duration="22–32 weeks" team="2–3 ppl peak" sub="Slower MVP because there's more upfront build, but Phase 3 is much faster (engine already exists)" color="#ff6b1a" />
-    </div>
-  );
-}
-
-function TotalCard({ side, duration, team, sub, color }) {
-  return (
-    <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-4" style={{ borderTop: `2px solid ${color}` }}>
-      <div className="mono text-[10px] text-neutral-500 uppercase tracking-widest mb-2">{side}</div>
-      <div className="flex items-baseline gap-3 mb-1">
-        <div className="text-[24px] font-semibold leading-none">{duration}</div>
-        <div className="mono text-[11px] text-neutral-500">{team}</div>
-      </div>
-      <div className="text-[12px] text-neutral-400 leading-relaxed mt-2">{sub}</div>
-    </div>
-  );
-}
-
-function ScenarioPicker({ scenarios, selectedId, onSelect }) {
-  return (
-    <div className="grid grid-cols-3 gap-3 mb-3">
-      {scenarios.map(s => {
-        const tone = TONE_COLORS[s.tone];
-        const active = s.id === selectedId;
-        return (
-          <button
-            key={s.id}
-            onClick={() => onSelect(s.id)}
-            className={`text-left bg-neutral-900 border rounded-lg p-3 transition-colors ${
-              active ? 'border-orange-500' : 'border-neutral-800 hover:border-neutral-700'
-            }`}
-          >
-            <div className="flex items-center gap-2 mb-1.5">
-              <div className="w-2 h-2 rounded-full" style={{ background: tone.border }} />
-              <div className="text-[13px] font-semibold">{s.label}</div>
-            </div>
-            <div className="text-[11px] text-neutral-500 mb-2">{s.sub}</div>
-            <div className="grid grid-cols-2 gap-2 mono text-[11px]">
-              <Stat label="Y1 M365"       value={`$${s.y1.m365}k`} />
-              <Stat label="Y1 Custom"     value={`$${s.y1.custom}k`} />
-              <Stat label="Y2+ M365/yr"   value={`$${s.y2.m365}k`} />
-              <Stat label="Y2+ Custom/yr" value={`$${s.y2.custom}k`} />
-            </div>
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-function Stat({ label, value }) {
-  return (
-    <div>
-      <div className="text-neutral-600 uppercase text-[9px] tracking-widest">{label}</div>
-      <div className="text-neutral-200 font-semibold">{value}</div>
-    </div>
-  );
-}
-
-function ScenarioCallout({ scenario }) {
-  const tone = TONE_COLORS[scenario.tone];
-  return (
-    <div className="rounded-lg p-4 mb-2" style={{ background: tone.bg, border: `1px solid ${tone.border}55`, borderLeft: `3px solid ${tone.border}` }}>
-      <div className="flex items-center gap-2 mb-1">
-        <Info size={14} style={{ color: tone.border }} />
-        <span className={`text-[12px] font-semibold ${tone.text}`}>{scenario.cross}</span>
-      </div>
-      <div className="text-[12px] text-neutral-400 leading-relaxed">
-        Selected scenario: <strong className="text-neutral-200">{scenario.label}</strong>. Year 1 favors M365 by <strong className="text-neutral-200">${scenario.y1.custom - scenario.y1.m365}k</strong>; ongoing recurring favors {scenario.y2.custom < scenario.y2.m365 ? 'custom' : 'M365'} by <strong className="text-neutral-200">${Math.abs(scenario.y2.m365 - scenario.y2.custom)}k/yr</strong>.
-      </div>
-    </div>
-  );
-}
-
-function CostTable({ breakdown }) {
-  return (
-    <div className="grid grid-cols-2 gap-4">
-      <CostColumn title="M365 path"   color="#3b82f6" rows={breakdown.m365} />
-      <CostColumn title="Custom path" color="#ff6b1a" rows={breakdown.custom} />
-    </div>
-  );
-}
-
-function CostColumn({ title, color, rows }) {
-  return (
-    <div className="bg-neutral-900 border border-neutral-800 rounded-lg overflow-hidden" style={{ borderTop: `2px solid ${color}` }}>
-      <div className="px-4 py-2.5 border-b border-neutral-800 mono text-[11px] uppercase tracking-widest font-semibold" style={{ color }}>
-        {title}
-      </div>
       {rows.map((r, i) => (
-        <div key={i} className={`px-4 py-2.5 ${r.total ? 'bg-neutral-950/50 border-t border-neutral-800' : i < rows.length - 1 ? 'border-b border-neutral-800/60' : ''}`}>
+        <div
+          key={i}
+          className={`px-4 py-3 ${r.total ? 'bg-neutral-950/50 border-t border-neutral-800' : i < rows.length - 1 ? 'border-b border-neutral-800/60' : ''}`}
+        >
           <div className="flex items-baseline justify-between gap-3 mb-0.5">
             <span className={`text-[12px] ${r.total ? 'font-semibold text-neutral-100' : 'text-neutral-300'}`}>{r.label}</span>
             <span className={`mono text-[12px] font-semibold ${r.total ? 'text-orange-400' : 'text-neutral-200'}`}>{r.range}</span>
@@ -290,9 +256,10 @@ function CostColumn({ title, color, rows }) {
 
 function VerificationCard() {
   const items = [
-    { q: 'What M365 SKU does IHC currently have for the users in scope?',                       why: 'E5 includes Power BI Pro; E3 does not. Most important variable in the comparison.', impact: '~$75k/yr Power BI difference' },
-    { q: 'What negotiated rate could IHC get for Power Apps Premium Per-App?',                  why: 'List is $5/user/mo. Hospital systems often negotiate 30–50% lower.',                impact: '~$20–30k/yr Power Apps difference' },
-    { q: 'Does IHC have an in-house React + Postgres engineering team available, or contract?', why: 'Custom path needs ongoing dev capacity. Affects feasibility, not just cost.',       impact: 'Determines whether custom path is realistic at all' },
+    { q: 'What M365 SKU does IHC currently have for the users in scope?',                 why: 'E5 includes Power BI Pro and Premium connector entitlements; E3 does not. Affects Phase 3 timing and Phase 2 connector cost.', impact: 'Drives whether Phase 3 ships in Year 1 or rolls forward' },
+    { q: 'Negotiated rate for Power Apps Premium Per-App at ~350 active users?',          why: 'List is $5/user/mo. Hospital systems typically negotiate 30–50% lower.', impact: 'Y2+ recurring band: $0–$60k/yr' },
+    { q: 'Who owns the IHC IT relationship for environment promotion + DLP review?',       why: 'Phase 1 needs a sandbox + a UAT environment in IHC’s Power Platform tenant; the Phase 1 timeline assumes IT can stand these up in week 1.', impact: 'Slips Phase 1 by 1–2 weeks if the relationship isn’t in place' },
+    { q: 'Are CompleteFlight + ProteanHub + SkyRouter API keys available now?',           why: 'Phase 2 starts integration in week 1 of Phase 2. Procurement of API keys can be 2–4 weeks at the source vendors.', impact: 'Phase 2 entry point is gated on these keys' },
   ];
   return (
     <div className="bg-neutral-900 border border-neutral-800 rounded-lg overflow-hidden">

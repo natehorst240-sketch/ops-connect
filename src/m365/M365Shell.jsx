@@ -1,12 +1,13 @@
 import React from 'react';
 import {
-  Home, BarChart3, Calendar, Map as MapIcon, MessageSquare, Sparkles,
+  Home, BarChart3, Calendar, Map as MapIcon, MessageSquare, Sparkles, Workflow,
   Search, Bell, HelpCircle, Settings, Grid3x3,
 } from 'lucide-react';
 import { FLUENT, FLUENT_FONT } from './tokens';
 
 const NAV_ITEMS = [
-  { id: 'apps',      label: 'Power Apps',         Icon: Home,          section: 'apps' },
+  { id: 'mxRequest', label: 'MX Request',         Icon: Workflow,      section: 'apps', phase1: true },
+  { id: 'apps',      label: 'Power Apps Home',    Icon: Home,          section: 'apps' },
   { id: 'teams',     label: 'Teams Approvals',    Icon: MessageSquare, section: 'apps' },
   { id: 'scheduler', label: 'Resource Scheduler', Icon: Calendar,      section: 'apps' },
   { id: 'fleetMap',  label: 'Fleet Map',          Icon: MapIcon,       section: 'apps' },
@@ -183,6 +184,17 @@ function RailItem({ item, active, onClick }) {
     >
       <Icon size={15} style={{ opacity: active ? 1 : 0.75 }} />
       <span style={{ flex: 1 }}>{item.label}</span>
+      {item.phase1 && (
+        <span
+          style={{
+            fontSize: 9, fontWeight: 700, letterSpacing: 0.5,
+            background: FLUENT.brand, color: '#fff',
+            padding: '1px 5px', borderRadius: 2,
+          }}
+        >
+          P1
+        </span>
+      )}
       {item.phase3 && (
         <span
           style={{
