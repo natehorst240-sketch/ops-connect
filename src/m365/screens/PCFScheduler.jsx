@@ -62,15 +62,28 @@ const SOURCE_BY_TYPE = {
   mission:    { name: 'ProteanHub',     color: '#5c2d91' },
 };
 
-function sourceForEventIds(events, eventIds) {
-  // For multi-event conflicts, return the source that owns the first event.
-  const first = events.find(e => eventIds.includes(e.id));
-  return first ? SOURCE_BY_TYPE[first.type] : { name: 'source system', color: FLUENT.textSub };
+// Resolve the source system for the *actionable* event in a conflict — i.e.,
+// the event the user is being asked to move/edit. Picking the first event
+// in eventIds breaks for cross-system overlaps (e.g., a CompleteFlight
+// inspection overlapping a ProteanHub PR flight where the suggestion is to
+// move the PR flight: the deep-link must go to ProteanHub, not CompleteFlight).
+function sourceForActionableEvent(events, actionableEventId) {
+  const event = actionableEventId
+    ? events.find(e => e.id === actionableEventId)
+    : null;
+  return event
+    ? SOURCE_BY_TYPE[event.type]
+    : { name: 'source system', color: FLUENT.textSub };
 }
 
 // ============================================================================
 // CONFLICT DETECTION — runs in Power Automate, cached in cr_conflict.
 // Mirrored here for the demo; in production this returns from Dataverse.
+//
+// Each conflict carries an explicit `actionableEventId` — the event the user
+// is being asked to change. The "Open in <source>" deep-link routes to that
+// event's source system, not whichever event happened to come first in the
+// detector's pair iteration.
 // ============================================================================
 
 function detectConflicts(events) {
@@ -89,6 +102,7 @@ function detectConflicts(events) {
           type: 'double_booked',
           severity: 'critical',
           eventIds: [a.id, b.id],
+          actionableEventId: b.id, // suggestion is to move b
           title: `${a.tail} double-booked`,
           detail: `${labelOf(a)} overlaps with ${labelOf(b)}`,
           suggestion: `Move ${labelOf(b)} to next available window`,
@@ -110,6 +124,9 @@ function detectConflicts(events) {
         type: 'aog_cascade',
         severity: 'critical',
         eventIds: [aog.id, ...affected.map(e => e.id)],
+        // AOG itself can't be the action; user reassigns the affected events.
+        // Route the deep-link to the first affected event's source.
+        actionableEventId: affected[0].id,
         title: `${aog.tail} AOG cascade · ${affected.length} mission${affected.length > 1 ? 's' : ''} affected`,
         detail: `${affected.length} scheduled item${affected.length > 1 ? 's need' : ' needs'} reassignment`,
         suggestion: `Reassign to N431HC (Logan) — covers same region`,
@@ -124,6 +141,7 @@ function detectConflicts(events) {
       type: 'overdue',
       severity: 'critical',
       eventIds: [e.id],
+      actionableEventId: e.id,
       title: `${e.tail} inspection overdue`,
       detail: `${e.label.replace(' — OVERDUE', '')} passed due date`,
       suggestion: `Schedule immediately or ground aircraft`,
@@ -138,6 +156,7 @@ function detectConflicts(events) {
         type: 'coverage_gap',
         severity: 'warning',
         eventIds: [e.id],
+        actionableEventId: e.id,
         title: `Logan region coverage gap`,
         detail: `${e.tail} on MX leaves Logan with 0 available aircraft for ${e.duration} day${e.duration > 1 ? 's' : ''}`,
         suggestion: `Pre-position N251HC from St. George for coverage`,
@@ -150,6 +169,7 @@ function detectConflicts(events) {
     type: 'resource_conflict',
     severity: 'warning',
     eventIds: ['i3', 'i4'],
+    actionableEventId: 'i4', // the assignment being swapped
     title: `Mechanic Aaron Quitberg double-assigned`,
     detail: `Logan (N431HC inspection) and St. George (N251HC) same day`,
     suggestion: `Assign Robert Guty to N251HC instead`,
@@ -197,7 +217,7 @@ export default function PCFScheduler() {
   const [hoveredEvent, setHoveredEvent] = useState(null);
   const [regionFilter, setRegionFilter] = useState('ALL');
   const [acknowledged, setAcknowledged] = useState(new Set());
-  const [refreshedAt, setRefreshedAt] = useState({ cf: 8, ph: 12 }); // minutes ago, for demo
+  const [refreshedAt, setRefreshedAt] = useState({ cf: 8, ph: 12 });
 
   const allConflicts = useMemo(() => detectConflicts(RAW_EVENTS), []);
   const conflicts = useMemo(
@@ -589,7 +609,7 @@ function ConflictPanel({ conflicts, allEvents, selectedConflict, setSelectedConf
         {conflicts.map(c => {
           const sev = SEVERITY_STYLE[c.severity];
           const isSelected = selectedConflict?.id === c.id;
-          const source = sourceForEventIds(allEvents, c.eventIds);
+          const source = sourceForActionableEvent(allEvents, c.actionableEventId);
           return (
             <div
               key={c.id}
