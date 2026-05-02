@@ -139,7 +139,7 @@ const CATEGORIES = [
   },
   {
     category: 'Integrations',
-    intro: 'Outlook, Teams, Veryon, CompleteFlight, TrooTrax, Entra ID SSO.',
+    intro: 'Outlook, Teams, Veryon, CompleteFlight, SkyRouter, Entra ID SSO.',
     vendors: [
       { name: 'Microsoft Power Automate', product: '1000+ connectors',
         limitations: [
