@@ -37,15 +37,15 @@ export default function ArchitectureTab() {
         <ArchLayer
           title="Integration (Edge Functions)"
           color="#ff6b1a"
-          items={['Microsoft Graph (Outlook + Teams)', 'Veryon sync', 'CompleteFlight sync (cert tracking)', 'TrooTrax sync', 'Email (Resend or Graph sendMail)']}
+          items={['Microsoft Graph (Outlook + Teams)', 'Veryon sync', 'CompleteFlight sync (cert tracking)', 'SkyRouter sync (Iridium tracking)', 'Email (Resend or Graph sendMail)']}
           note="Triggered on row changes — approvals, bulletins, AOG events"
         />
         <Divider />
         <ArchLayer
           title="External Systems"
           color="#a3a3a3"
-          items={['Microsoft 365 (Outlook, Teams)', 'Veryon (Flightdocs)', 'CompleteFlight', 'TrooTrax', 'IHC Entra ID (SSO)']}
-          note="One-way push for approved events; scheduled pull for inspection/cert data"
+          items={['Microsoft 365 (Outlook, Teams)', 'Veryon (Flightdocs)', 'CompleteFlight', 'SkyRouter (Iridium tracking)', 'IHC Entra ID (SSO)']}
+          note="One-way push for approved events; scheduled pull for inspection/cert/position data"
         />
       </div>
 

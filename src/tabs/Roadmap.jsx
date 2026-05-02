@@ -24,7 +24,7 @@ const PHASES = [
   {
     phase: 'P2', title: 'External Integrations',
     m365:   { duration: '3–5 wks', team: '2 devs',               scope: 'Power Automate flows, Veryon connector, CompleteFlight via custom connector', deliverable: 'Integrated with IHC systems' },
-    custom: { duration: '4–6 wks', team: '2 devs + IT liaison',  scope: 'Microsoft Graph, Veryon, CompleteFlight, TrooTrax, Entra ID SSO',             deliverable: 'Integrated with IHC systems' },
+    custom: { duration: '4–6 wks', team: '2 devs + IT liaison',  scope: 'Microsoft Graph, Veryon, CompleteFlight, SkyRouter, Entra ID SSO',            deliverable: 'Integrated with IHC systems' },
   },
   {
     phase: 'P3', title: 'Crew Scheduling + Analytics',
