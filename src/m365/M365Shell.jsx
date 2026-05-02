@@ -1,17 +1,16 @@
 import React from 'react';
 import {
-  Home, BarChart3, Calendar, Map as MapIcon, MessageSquare, GitCompare,
+  Home, BarChart3, Calendar, Map as MapIcon, MessageSquare,
   Search, Bell, HelpCircle, Settings, Grid3x3,
 } from 'lucide-react';
 import { FLUENT, FLUENT_FONT } from './tokens';
 
 const NAV_ITEMS = [
-  { id: 'apps',     label: 'Power Apps',          Icon: Home,         section: 'apps' },
-  { id: 'powerbi',  label: 'Power BI Report',     Icon: BarChart3,    section: 'analytics' },
-  { id: 'scheduler', label: 'Resource Scheduler', Icon: Calendar,     section: 'apps', pcf: true },
-  { id: 'map',      label: 'Live Fleet',          Icon: MapIcon,      section: 'apps', pcf: true },
-  { id: 'teams',    label: 'Teams Approvals',     Icon: MessageSquare, section: 'apps' },
-  { id: 'compare',  label: 'Capability Compare',  Icon: GitCompare,   section: 'meta' },
+  { id: 'apps',      label: 'Power Apps',         Icon: Home,          section: 'apps' },
+  { id: 'teams',     label: 'Teams Approvals',    Icon: MessageSquare, section: 'apps' },
+  { id: 'scheduler', label: 'Resource Scheduler', Icon: Calendar,      section: 'apps' },
+  { id: 'map',       label: 'Live Fleet',         Icon: MapIcon,       section: 'apps' },
+  { id: 'powerbi',   label: 'Power BI Report',    Icon: BarChart3,     section: 'analytics' },
 ];
 
 export default function M365Shell({ activeScreen, setActiveScreen, persona, children }) {
@@ -130,16 +129,6 @@ function LeftRail({ activeScreen, setActiveScreen }) {
         ))}
       </RailGroup>
 
-      <RailGroup label="Decision Materials">
-        {NAV_ITEMS.filter(i => i.section === 'meta').map(item => (
-          <RailItem
-            key={item.id} item={item}
-            active={activeScreen === item.id}
-            onClick={() => setActiveScreen(item.id)}
-          />
-        ))}
-      </RailGroup>
-
       <div className="mt-auto px-4 py-3" style={{ borderTop: `1px solid ${FLUENT.border}` }}>
         <div className="flex items-center gap-2 mb-1">
           <div style={{ width: 6, height: 6, borderRadius: 3, background: FLUENT.good }} />
@@ -193,21 +182,6 @@ function RailItem({ item, active, onClick }) {
     >
       <Icon size={15} style={{ opacity: active ? 1 : 0.75 }} />
       <span style={{ flex: 1 }}>{item.label}</span>
-      {item.pcf && (
-        <span
-          style={{
-            fontSize: 9,
-            fontWeight: 700,
-            letterSpacing: 0.5,
-            background: FLUENT.pcfBadgeSoft,
-            color: FLUENT.pcfBadge,
-            padding: '1px 5px',
-            borderRadius: 2,
-          }}
-        >
-          PCF
-        </span>
-      )}
     </button>
   );
 }
