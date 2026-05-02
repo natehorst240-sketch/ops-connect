@@ -1,21 +1,33 @@
 import React, { useState, useMemo } from 'react';
 import {
-  AlertTriangle, AlertCircle, Info, Wrench, Plane, Zap,
-  ChevronRight, X, ArrowRight, Filter, Code, Calendar as CalIcon,
+  AlertTriangle, AlertCircle, Info, ExternalLink, RefreshCcw,
+  Filter, Calendar as CalIcon, Lock, Database,
 } from 'lucide-react';
 import { FLUENT } from '../tokens';
 import { AIRCRAFT } from '../../data';
 
 // ============================================================================
-// EVENT DATA — what's scheduled across the fleet for the next 7 days
+// RESOURCE SCHEDULER — stock Power Apps, read-only
+// ----------------------------------------------------------------------------
+// Schedule data lives in CompleteFlight (inspections, training) and ProteanHub
+// (missions, MX, AOG, PR). Both expose read-only APIs. Power Automate flows
+// poll every 15 min via API key auth, upsert into Dataverse cr_schedule_event,
+// and trigger a second flow that detects conflicts + coverage gaps server-side
+// and caches results in cr_conflict.
+//
+// This canvas-app screen is READ-ONLY. To make a change, schedulers click
+// "Open in <source>" — the source system makes the edit, the next 15-min
+// sync picks it up.
+//
+// Built entirely with stock Power Apps controls — galleries, containers,
+// buttons, labels, conditional formatting in Power Fx. No PCF, no custom code.
 // ============================================================================
-// Day 0 = today (Apr 25). Days 1-6 = Apr 26 through May 1.
-// Real Veryon inspections + realistic MX/PR/training events sprinkled across.
 
+// Demo data (in production this lives in Dataverse cr_schedule_event,
+// populated by Power Automate from CompleteFlight + ProteanHub).
 const RAW_EVENTS = [
-  // === Inspection events (from real Veryon Due_List) ===
   { id: 'i1', tail: 'N281HC', type: 'inspection', startDay: 0, duration: 1, label: 'O2 bottle exchange', priority: 'high' },
-  { id: 'i2', tail: 'N271HC', type: 'overdue', startDay: -1, duration: 1, label: '90° gearbox oil — OVERDUE', priority: 'critical' },
+  { id: 'i2', tail: 'N271HC', type: 'overdue',    startDay: -1, duration: 1, label: '90° gearbox oil — OVERDUE', priority: 'critical' },
   { id: 'i3', tail: 'N531HC', type: 'inspection', startDay: 4, duration: 2, label: 'Port FX 30-day', priority: 'normal' },
   { id: 'i4', tail: 'N251HC', type: 'inspection', startDay: 5, duration: 1, label: 'Fire ext monthly', priority: 'normal' },
   { id: 'i5', tail: 'N261HC', type: 'inspection', startDay: 5, duration: 1, label: 'Scissors exam', priority: 'normal' },
@@ -23,40 +35,52 @@ const RAW_EVENTS = [
   { id: 'i7', tail: 'N481HC', type: 'inspection', startDay: 5, duration: 1, label: 'LifePort 12-mo', priority: 'normal' },
   { id: 'i8', tail: 'N381HC', type: 'inspection', startDay: 6, duration: 1, label: 'Hydraulic fluid', priority: 'normal' },
 
-  // === Scheduled maintenance ===
   { id: 'mx1', tail: 'N631HC', type: 'mx', startDay: 0, duration: 4, label: 'Scheduled MX', priority: 'normal' },
   { id: 'mx2', tail: 'N431HC', type: 'mx', startDay: 1, duration: 2, label: 'Phase 2 inspection', priority: 'normal', baseId: 'logan' },
 
-  // === AOG (cascade trigger) ===
   { id: 'aog1', tail: 'N291HC', type: 'aog', startDay: 0, duration: 7, label: 'AOG · awaiting parts', priority: 'critical' },
 
-  // === PR flights (one creates a double-book) ===
   { id: 'pr1', tail: 'N281HC', type: 'pr', startDay: 0, duration: 1, label: 'Media flight', priority: 'normal' },
   { id: 'pr2', tail: 'N431HC', type: 'pr', startDay: 2, duration: 1, label: 'Public relations', priority: 'normal' },
 
-  // === Pilot training ===
   { id: 't1', tail: 'N731HC', type: 'training', startDay: 1, duration: 2, label: 'Pilot recurrent', priority: 'normal' },
   { id: 't2', tail: 'N281HC', type: 'training', startDay: 3, duration: 1, label: 'NVG training', priority: 'normal' },
 
-  // === Pre-existing missions on the AOG aircraft (cascade conflicts) ===
   { id: 'm1', tail: 'N291HC', type: 'mission', startDay: 1, duration: 1, label: 'IFT scheduled', priority: 'high' },
   { id: 'm2', tail: 'N291HC', type: 'mission', startDay: 2, duration: 1, label: 'IFT scheduled', priority: 'high' },
   { id: 'm3', tail: 'N291HC', type: 'mission', startDay: 3, duration: 1, label: 'IFT scheduled', priority: 'high' },
 ];
 
+// Source-of-truth mapping. Determines which deep-link a conflict resolution opens.
+const SOURCE_BY_TYPE = {
+  inspection: { name: 'CompleteFlight', color: '#0078d4' },
+  overdue:    { name: 'CompleteFlight', color: '#0078d4' },
+  training:   { name: 'CompleteFlight', color: '#0078d4' },
+  mx:         { name: 'ProteanHub',     color: '#5c2d91' },
+  aog:        { name: 'ProteanHub',     color: '#5c2d91' },
+  pr:         { name: 'ProteanHub',     color: '#5c2d91' },
+  mission:    { name: 'ProteanHub',     color: '#5c2d91' },
+};
+
+function sourceForEventIds(events, eventIds) {
+  // For multi-event conflicts, return the source that owns the first event.
+  const first = events.find(e => eventIds.includes(e.id));
+  return first ? SOURCE_BY_TYPE[first.type] : { name: 'source system', color: FLUENT.textSub };
+}
+
 // ============================================================================
-// CONFLICT DETECTION — the actual logic, not just visual flair
+// CONFLICT DETECTION — runs in Power Automate, cached in cr_conflict.
+// Mirrored here for the demo; in production this returns from Dataverse.
 // ============================================================================
 
 function detectConflicts(events) {
   const conflicts = [];
 
-  // --- Double-booking: two events on same tail with overlapping days ---
   for (let i = 0; i < events.length; i++) {
     for (let j = i + 1; j < events.length; j++) {
       const a = events[i], b = events[j];
       if (a.tail !== b.tail) continue;
-      if (a.type === 'aog' || b.type === 'aog') continue;  // AOG handled separately
+      if (a.type === 'aog' || b.type === 'aog') continue;
       const aEnd = a.startDay + a.duration;
       const bEnd = b.startDay + b.duration;
       if (a.startDay < bEnd && b.startDay < aEnd) {
@@ -67,13 +91,12 @@ function detectConflicts(events) {
           eventIds: [a.id, b.id],
           title: `${a.tail} double-booked`,
           detail: `${labelOf(a)} overlaps with ${labelOf(b)}`,
-          resolution: `Move ${labelOf(b)} to next available window`,
+          suggestion: `Move ${labelOf(b)} to next available window`,
         });
       }
     }
   }
 
-  // --- AOG cascade: AOG events overlap with missions on same tail ---
   const aogs = events.filter(e => e.type === 'aog');
   for (const aog of aogs) {
     const aogEnd = aog.startDay + aog.duration;
@@ -89,12 +112,11 @@ function detectConflicts(events) {
         eventIds: [aog.id, ...affected.map(e => e.id)],
         title: `${aog.tail} AOG cascade · ${affected.length} mission${affected.length > 1 ? 's' : ''} affected`,
         detail: `${affected.length} scheduled item${affected.length > 1 ? 's need' : ' needs'} reassignment`,
-        resolution: `Reassign to N431HC (Logan) — covers same region`,
+        suggestion: `Reassign to N431HC (Logan) — covers same region`,
       });
     }
   }
 
-  // --- Overdue: events with negative startDay still unresolved ---
   const overdue = events.filter(e => e.type === 'overdue');
   for (const e of overdue) {
     conflicts.push({
@@ -104,14 +126,12 @@ function detectConflicts(events) {
       eventIds: [e.id],
       title: `${e.tail} inspection overdue`,
       detail: `${e.label.replace(' — OVERDUE', '')} passed due date`,
-      resolution: `Schedule immediately or ground aircraft`,
+      suggestion: `Schedule immediately or ground aircraft`,
     });
   }
 
-  // --- Coverage gap: MX scheduled on only-available aircraft at single-aircraft base ---
   const mxEvents = events.filter(e => e.type === 'mx' && e.baseId);
   for (const e of mxEvents) {
-    // Logan demo: only N431HC at Logan, MX leaves zero coverage
     if (e.baseId === 'logan' && e.tail === 'N431HC') {
       conflicts.push({
         id: `gap-${e.id}`,
@@ -120,12 +140,11 @@ function detectConflicts(events) {
         eventIds: [e.id],
         title: `Logan region coverage gap`,
         detail: `${e.tail} on MX leaves Logan with 0 available aircraft for ${e.duration} day${e.duration > 1 ? 's' : ''}`,
-        resolution: `Pre-position N251HC from St. George for coverage`,
+        suggestion: `Pre-position N251HC from St. George for coverage`,
       });
     }
   }
 
-  // --- Resource conflict: same mechanic assigned to two locations same day (annotated) ---
   conflicts.push({
     id: 'tech-conflict-1',
     type: 'resource_conflict',
@@ -133,7 +152,7 @@ function detectConflicts(events) {
     eventIds: ['i3', 'i4'],
     title: `Mechanic Aaron Quitberg double-assigned`,
     detail: `Logan (N431HC inspection) and St. George (N251HC) same day`,
-    resolution: `Assign Robert Guty to N251HC instead`,
+    suggestion: `Assign Robert Guty to N251HC instead`,
   });
 
   return conflicts;
@@ -144,7 +163,7 @@ function labelOf(e) {
     inspection: 'inspection', mx: 'scheduled MX', pr: 'PR flight',
     training: 'training', mission: 'mission', aog: 'AOG',
   }[e.type] || e.type;
-  return `${e.label.toLowerCase().includes(typeLabel.toLowerCase()) ? e.label : `${typeLabel} (${e.label})`}`;
+  return e.label.toLowerCase().includes(typeLabel.toLowerCase()) ? e.label : `${typeLabel} (${e.label})`;
 }
 
 // ============================================================================
@@ -162,9 +181,9 @@ const EVENT_COLORS = {
 };
 
 const SEVERITY_STYLE = {
-  critical: { color: FLUENT.bad,    bg: FLUENT.badSoft,  Icon: AlertCircle },
+  critical: { color: FLUENT.bad,        bg: FLUENT.badSoft,  Icon: AlertCircle },
   warning:  { color: FLUENT.warnAccent, bg: FLUENT.warnSoft, Icon: AlertTriangle },
-  info:     { color: FLUENT.info,   bg: FLUENT.infoSoft, Icon: Info },
+  info:     { color: FLUENT.info,       bg: FLUENT.infoSoft, Icon: Info },
 };
 
 const DAY_LABELS = ['Today · Fri 4/25', 'Sat 4/26', 'Sun 4/27', 'Mon 4/28', 'Tue 4/29', 'Wed 4/30', 'Thu 5/1'];
@@ -177,17 +196,20 @@ export default function PCFScheduler() {
   const [selectedConflict, setSelectedConflict] = useState(null);
   const [hoveredEvent, setHoveredEvent] = useState(null);
   const [regionFilter, setRegionFilter] = useState('ALL');
+  const [acknowledged, setAcknowledged] = useState(new Set());
+  const [refreshedAt, setRefreshedAt] = useState({ cf: 8, ph: 12 }); // minutes ago, for demo
 
-  const conflicts = useMemo(() => detectConflicts(RAW_EVENTS), []);
+  const allConflicts = useMemo(() => detectConflicts(RAW_EVENTS), []);
+  const conflicts = useMemo(
+    () => allConflicts.filter(c => !acknowledged.has(c.id)),
+    [allConflicts, acknowledged]
+  );
 
   const aircraftList = useMemo(() => {
-    const list = regionFilter === 'ALL'
-      ? AIRCRAFT
-      : AIRCRAFT.filter(a => a.region === regionFilter);
-    return list.slice(0, 14);  // Cap rows so the timeline fits cleanly
+    const list = regionFilter === 'ALL' ? AIRCRAFT : AIRCRAFT.filter(a => a.region === regionFilter);
+    return list.slice(0, 14);
   }, [regionFilter]);
 
-  // Map of event -> conflict IDs it participates in
   const eventConflicts = useMemo(() => {
     const m = {};
     conflicts.forEach(c => c.eventIds.forEach(eid => {
@@ -199,34 +221,46 @@ export default function PCFScheduler() {
 
   const criticalCount = conflicts.filter(c => c.severity === 'critical').length;
   const warningCount = conflicts.filter(c => c.severity === 'warning').length;
+  const highlightedEventIds = selectedConflict ? new Set(selectedConflict.eventIds) : null;
 
-  const highlightedEventIds = selectedConflict
-    ? new Set(selectedConflict.eventIds)
-    : null;
+  const handleRefresh = () => setRefreshedAt({ cf: 0, ph: 0 });
+  const handleAcknowledge = (id) => {
+    setAcknowledged(prev => new Set(prev).add(id));
+    setSelectedConflict(null);
+  };
 
   return (
     <div className="p-6">
-      {/* PCF annotation banner */}
-      <PCFAnnotation />
+      <SourceAnnotation />
 
-      {/* Page title */}
       <div className="flex items-center gap-2 mb-1">
         <CalIcon size={20} style={{ color: FLUENT.brand }} />
         <h1 style={{ fontSize: 22, fontWeight: 600, margin: 0 }}>Resource Scheduler</h1>
+        <span
+          className="flex items-center gap-1"
+          style={{
+            fontSize: 10, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase',
+            background: FLUENT.bgAlt, color: FLUENT.textSub,
+            padding: '2px 8px', borderRadius: 2, marginLeft: 6,
+            border: `1px solid ${FLUENT.border}`,
+          }}
+        >
+          <Lock size={10} /> Read-only
+        </span>
       </div>
       <div style={{ fontSize: 13, color: FLUENT.textSub, marginBottom: 16 }}>
-        Drag to reschedule · Click events to inspect · Conflicts auto-detect on every change
+        Mirrors schedules from CompleteFlight + ProteanHub · Edits made at source · 15-min refresh
       </div>
 
-      {/* Toolbar */}
       <Toolbar
         criticalCount={criticalCount}
         warningCount={warningCount}
         regionFilter={regionFilter}
         setRegionFilter={setRegionFilter}
+        refreshedAt={refreshedAt}
+        onRefresh={handleRefresh}
       />
 
-      {/* Main grid: timeline + conflict panel */}
       <div className="flex gap-4 mt-3">
         <Timeline
           aircraftList={aircraftList}
@@ -238,13 +272,15 @@ export default function PCFScheduler() {
         />
         <ConflictPanel
           conflicts={conflicts}
+          allEvents={RAW_EVENTS}
           selectedConflict={selectedConflict}
           setSelectedConflict={setSelectedConflict}
+          onAcknowledge={handleAcknowledge}
         />
       </div>
 
-      {/* Legend */}
       <Legend />
+      <DataSourcesFooter />
     </div>
   );
 }
@@ -253,40 +289,40 @@ export default function PCFScheduler() {
 // SUBCOMPONENTS
 // ============================================================================
 
-function PCFAnnotation() {
+function SourceAnnotation() {
   return (
     <div
       className="flex items-center gap-3 mb-4 px-3 py-2"
       style={{
-        background: FLUENT.pcfBadgeSoft,
-        border: `1px solid ${FLUENT.pcfBadge}33`,
-        borderLeft: `3px solid ${FLUENT.pcfBadge}`,
+        background: FLUENT.infoSoft,
+        border: `1px solid ${FLUENT.info}33`,
+        borderLeft: `3px solid ${FLUENT.info}`,
         borderRadius: 2,
       }}
     >
-      <Code size={16} style={{ color: FLUENT.pcfBadge }} />
+      <Database size={16} style={{ color: FLUENT.info }} />
       <div className="flex-1">
-        <div style={{ fontSize: 12, fontWeight: 600, color: FLUENT.pcfBadge }}>
-          Custom PCF Component · Resource Scheduler with Conflict Detection
+        <div style={{ fontSize: 12, fontWeight: 600, color: FLUENT.info }}>
+          Stock Power Apps · Read-only mirror · No PCF, no custom code
         </div>
         <div style={{ fontSize: 11, color: FLUENT.textSub, marginTop: 1 }}>
-          React + TypeScript · ~3,200 LOC · Hosted in Power Apps · Reads from Dataverse · Power Automate writes
+          Power Automate polls CompleteFlight + ProteanHub via API key every 15 min · Conflict detection runs server-side and caches to <span style={{ fontFamily: 'ui-monospace, monospace' }}>cr_conflict</span> · Canvas app reads only
         </div>
       </div>
       <span
         style={{
           fontSize: 10, fontWeight: 700, letterSpacing: 0.5,
-          background: FLUENT.pcfBadge, color: '#fff',
+          background: FLUENT.info, color: '#fff',
           padding: '2px 6px', borderRadius: 2,
         }}
       >
-        PCF
+        STOCK
       </span>
     </div>
   );
 }
 
-function Toolbar({ criticalCount, warningCount, regionFilter, setRegionFilter }) {
+function Toolbar({ criticalCount, warningCount, regionFilter, setRegionFilter, refreshedAt, onRefresh }) {
   return (
     <div
       className="flex items-center px-3 py-2"
@@ -298,6 +334,7 @@ function Toolbar({ criticalCount, warningCount, regionFilter, setRegionFilter })
       }}
     >
       <button
+        onClick={onRefresh}
         style={{
           background: FLUENT.brand, color: '#fff',
           border: 'none', padding: '5px 12px',
@@ -305,8 +342,11 @@ function Toolbar({ criticalCount, warningCount, regionFilter, setRegionFilter })
           display: 'flex', alignItems: 'center', gap: 6,
         }}
       >
-        + New event
+        <RefreshCcw size={12} /> Refresh now
       </button>
+
+      <FreshnessIndicator refreshedAt={refreshedAt} />
+
       <div style={{ width: 1, height: 18, background: FLUENT.border }} />
 
       <div className="flex items-center gap-2">
@@ -333,37 +373,44 @@ function Toolbar({ criticalCount, warningCount, regionFilter, setRegionFilter })
 
       <div className="flex-1" />
 
-      {/* Conflict counters */}
       {criticalCount > 0 && (
         <div
           className="flex items-center gap-1.5 px-2 py-1"
-          style={{
-            background: FLUENT.badSoft,
-            border: `1px solid ${FLUENT.bad}40`,
-            borderRadius: 2,
-          }}
+          style={{ background: FLUENT.badSoft, border: `1px solid ${FLUENT.bad}40`, borderRadius: 2 }}
         >
           <AlertCircle size={13} style={{ color: FLUENT.bad }} />
           <span style={{ fontSize: 11, fontWeight: 600, color: FLUENT.bad }}>
-            {criticalCount} critical conflict{criticalCount !== 1 ? 's' : ''}
+            {criticalCount} critical
           </span>
         </div>
       )}
       {warningCount > 0 && (
         <div
           className="flex items-center gap-1.5 px-2 py-1"
-          style={{
-            background: FLUENT.warnSoft,
-            border: `1px solid ${FLUENT.warnAccent}40`,
-            borderRadius: 2,
-          }}
+          style={{ background: FLUENT.warnSoft, border: `1px solid ${FLUENT.warnAccent}40`, borderRadius: 2 }}
         >
           <AlertTriangle size={13} style={{ color: FLUENT.warnAccent }} />
           <span style={{ fontSize: 11, fontWeight: 600, color: FLUENT.warnAccent }}>
-            {warningCount} warning{warningCount !== 1 ? 's' : ''}
+            {warningCount} warning
           </span>
         </div>
       )}
+    </div>
+  );
+}
+
+function FreshnessIndicator({ refreshedAt }) {
+  const fmt = (m) => m === 0 ? 'just now' : m === 1 ? '1 min ago' : `${m} min ago`;
+  return (
+    <div className="flex items-center gap-3" style={{ fontSize: 10.5, color: FLUENT.textSub }}>
+      <div className="flex items-center gap-1.5">
+        <div style={{ width: 6, height: 6, borderRadius: 3, background: '#0078d4' }} />
+        <span>CompleteFlight: <strong style={{ color: FLUENT.text, fontWeight: 600 }}>{fmt(refreshedAt.cf)}</strong></span>
+      </div>
+      <div className="flex items-center gap-1.5">
+        <div style={{ width: 6, height: 6, borderRadius: 3, background: '#5c2d91' }} />
+        <span>ProteanHub: <strong style={{ color: FLUENT.text, fontWeight: 600 }}>{fmt(refreshedAt.ph)}</strong></span>
+      </div>
     </div>
   );
 }
@@ -374,7 +421,6 @@ function Timeline({ aircraftList, events, eventConflicts, highlightedEventIds, h
       className="flex-1 overflow-hidden"
       style={{ background: FLUENT.surface, border: `1px solid ${FLUENT.border}`, borderRadius: 2 }}
     >
-      {/* Day header */}
       <div className="flex" style={{ borderBottom: `1px solid ${FLUENT.border}`, background: FLUENT.bgAlt }}>
         <div
           className="shrink-0 px-3 py-2"
@@ -387,11 +433,8 @@ function Timeline({ aircraftList, events, eventConflicts, highlightedEventIds, h
             <div
               key={i}
               style={{
-                flex: 1,
-                padding: '6px 8px',
-                textAlign: 'center',
-                fontSize: 11,
-                fontWeight: i === 0 ? 700 : 500,
+                flex: 1, padding: '6px 8px', textAlign: 'center',
+                fontSize: 11, fontWeight: i === 0 ? 700 : 500,
                 color: i === 0 ? FLUENT.brand : FLUENT.textSub,
                 borderLeft: i > 0 ? `1px solid ${FLUENT.border}` : 'none',
                 background: i === 0 ? FLUENT.brandSoft : 'transparent',
@@ -403,7 +446,6 @@ function Timeline({ aircraftList, events, eventConflicts, highlightedEventIds, h
         </div>
       </div>
 
-      {/* Aircraft rows */}
       <div style={{ maxHeight: 460, overflowY: 'auto' }}>
         {aircraftList.map(ac => {
           const acEvents = events.filter(e => e.tail === ac.tail);
@@ -445,7 +487,6 @@ function AircraftRow({ aircraft, events, eventConflicts, highlightedEventIds, ho
         </div>
       </div>
       <div className="flex flex-1 relative">
-        {/* Day grid lines */}
         {DAY_LABELS.map((_, i) => (
           <div
             key={i}
@@ -457,7 +498,6 @@ function AircraftRow({ aircraft, events, eventConflicts, highlightedEventIds, ho
           />
         ))}
 
-        {/* Events */}
         {events.map(e => (
           <EventBar
             key={e.id}
@@ -479,11 +519,8 @@ function EventBar({ event, conflicts, highlighted, dimmed, onHover, isHovered })
   const hasConflict = conflicts.length > 0;
   const isCritical = conflicts.some(c => c.severity === 'critical');
 
-  // Negative startDay = overdue/past — render in a special "before today" position
   const visualStart = Math.max(event.startDay, 0);
-  const trimmedDuration = event.startDay < 0
-    ? event.duration + event.startDay   // shrink so overdue marker hugs the left edge
-    : event.duration;
+  const trimmedDuration = event.startDay < 0 ? event.duration + event.startDay : event.duration;
   const leftPct = (visualStart / 7) * 100;
   const widthPct = Math.max((trimmedDuration / 7) * 100, 4);
 
@@ -493,27 +530,19 @@ function EventBar({ event, conflicts, highlighted, dimmed, onHover, isHovered })
       onMouseLeave={() => onHover(null)}
       style={{
         position: 'absolute',
-        top: 5,
-        bottom: 5,
+        top: 5, bottom: 5,
         left: `calc(${leftPct}% + 2px)`,
         width: `calc(${widthPct}% - 4px)`,
         background: color.bg,
         borderLeft: `3px solid ${color.border}`,
-        borderTop: hasConflict ? `1px solid ${color.border}` : 'none',
-        borderRight: hasConflict ? `1px solid ${color.border}` : 'none',
-        borderBottom: hasConflict ? `1px solid ${color.border}` : 'none',
         outline: hasConflict ? `2px solid ${isCritical ? FLUENT.bad : FLUENT.warnAccent}` : 'none',
         outlineOffset: hasConflict ? -2 : 0,
         opacity: dimmed ? 0.3 : 1,
-        transform: highlighted ? 'scale(1.02)' : 'none',
         zIndex: highlighted ? 10 : isHovered ? 9 : 1,
-        transition: 'all 0.15s',
-        cursor: 'pointer',
+        transition: 'opacity 0.15s, outline 0.15s',
+        cursor: 'default',
         display: 'flex', alignItems: 'center',
-        padding: '0 6px',
-        gap: 4,
-        boxShadow: highlighted ? `0 4px 12px ${isCritical ? FLUENT.bad : FLUENT.warnAccent}66` : 'none',
-        // Diagonal stripe pattern for conflicts
+        padding: '0 6px', gap: 4,
         backgroundImage: hasConflict
           ? `repeating-linear-gradient(45deg, transparent, transparent 4px, ${color.border}22 4px, ${color.border}22 8px), linear-gradient(${color.bg}, ${color.bg})`
           : undefined,
@@ -532,7 +561,7 @@ function EventBar({ event, conflicts, highlighted, dimmed, onHover, isHovered })
   );
 }
 
-function ConflictPanel({ conflicts, selectedConflict, setSelectedConflict }) {
+function ConflictPanel({ conflicts, allEvents, selectedConflict, setSelectedConflict, onAcknowledge }) {
   return (
     <div
       style={{
@@ -548,10 +577,10 @@ function ConflictPanel({ conflicts, selectedConflict, setSelectedConflict }) {
       <div className="px-4 py-3 flex items-center" style={{ borderBottom: `1px solid ${FLUENT.border}`, background: FLUENT.bgAlt }}>
         <div className="flex-1">
           <div style={{ fontSize: 11, fontWeight: 600, color: FLUENT.textSub, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-            Live Conflict Detection
+            Detected Conflicts & Gaps
           </div>
           <div style={{ fontSize: 14, fontWeight: 600, marginTop: 1 }}>
-            {conflicts.length} issue{conflicts.length !== 1 ? 's' : ''} detected
+            {conflicts.length} issue{conflicts.length !== 1 ? 's' : ''} flagged
           </div>
         </div>
       </div>
@@ -560,6 +589,7 @@ function ConflictPanel({ conflicts, selectedConflict, setSelectedConflict }) {
         {conflicts.map(c => {
           const sev = SEVERITY_STYLE[c.severity];
           const isSelected = selectedConflict?.id === c.id;
+          const source = sourceForEventIds(allEvents, c.eventIds);
           return (
             <div
               key={c.id}
@@ -578,25 +608,17 @@ function ConflictPanel({ conflicts, selectedConflict, setSelectedConflict }) {
               <div className="flex items-start gap-2 mb-1.5">
                 <div
                   className="flex items-center justify-center shrink-0"
-                  style={{
-                    width: 22, height: 22, borderRadius: 2,
-                    background: sev.bg, color: sev.color, marginTop: 1,
-                  }}
+                  style={{ width: 22, height: 22, borderRadius: 2, background: sev.bg, color: sev.color, marginTop: 1 }}
                 >
                   <sev.Icon size={13} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 2 }}>
-                    {c.title}
-                  </div>
-                  <div style={{ fontSize: 11, color: FLUENT.textSub, lineHeight: 1.4 }}>
-                    {c.detail}
-                  </div>
+                  <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 2 }}>{c.title}</div>
+                  <div style={{ fontSize: 11, color: FLUENT.textSub, lineHeight: 1.4 }}>{c.detail}</div>
                 </div>
                 <span
                   style={{
-                    fontSize: 9, fontWeight: 700, letterSpacing: 0.4,
-                    textTransform: 'uppercase',
+                    fontSize: 9, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase',
                     background: sev.bg, color: sev.color,
                     padding: '2px 5px', borderRadius: 2, flexShrink: 0,
                   }}
@@ -610,24 +632,31 @@ function ConflictPanel({ conflicts, selectedConflict, setSelectedConflict }) {
                   <div style={{ fontSize: 10, fontWeight: 600, color: FLUENT.textSub, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 4 }}>
                     Suggested Resolution
                   </div>
-                  <div style={{ fontSize: 11, color: FLUENT.text, lineHeight: 1.5, marginBottom: 8 }}>
-                    {c.resolution}
+                  <div style={{ fontSize: 11, color: FLUENT.text, lineHeight: 1.5, marginBottom: 10 }}>
+                    {c.suggestion}
+                  </div>
+                  <div style={{ fontSize: 10, color: FLUENT.textSub, lineHeight: 1.5, marginBottom: 8, fontStyle: 'italic' }}>
+                    Edits made in {source.name}, not here. Next sync (≤15 min) will reflect the change.
                   </div>
                   <div className="flex gap-1.5">
-                    <button
+                    <a
+                      href="#"
+                      onClick={e => e.preventDefault()}
                       style={{
-                        background: FLUENT.brand, color: '#fff', border: 'none',
-                        padding: '4px 10px', fontSize: 11, fontWeight: 600, cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', gap: 4,
+                        background: source.color, color: '#fff', textDecoration: 'none',
+                        padding: '4px 10px', fontSize: 11, fontWeight: 600,
+                        display: 'flex', alignItems: 'center', gap: 4, borderRadius: 2,
                       }}
                     >
-                      Apply fix <ArrowRight size={11} />
-                    </button>
+                      <ExternalLink size={11} /> Open in {source.name}
+                    </a>
                     <button
+                      onClick={e => { e.stopPropagation(); onAcknowledge(c.id); }}
                       style={{
                         background: FLUENT.surface, color: FLUENT.text,
                         border: `1px solid ${FLUENT.borderStrong}`,
                         padding: '4px 10px', fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                        borderRadius: 2,
                       }}
                     >
                       Acknowledge
@@ -641,13 +670,13 @@ function ConflictPanel({ conflicts, selectedConflict, setSelectedConflict }) {
 
         {conflicts.length === 0 && (
           <div className="p-4 text-center" style={{ fontSize: 12, color: FLUENT.textSub }}>
-            No conflicts detected
+            No conflicts detected · clear board
           </div>
         )}
       </div>
 
       <div className="px-4 py-2" style={{ background: FLUENT.bgAlt, borderTop: `1px solid ${FLUENT.border}`, fontSize: 10, color: FLUENT.textSub }}>
-        Conflicts re-evaluated on every event change · Powered by PCF logic
+        Acknowledgements stored locally in <span style={{ fontFamily: 'ui-monospace, monospace' }}>cr_conflict_ack</span> · do not propagate to source
       </div>
     </div>
   );
@@ -677,6 +706,34 @@ function Legend() {
         <div style={{ width: 12, height: 12, background: '#fff', border: `2px solid ${FLUENT.bad}`, borderRadius: 2 }} />
         <span style={{ fontSize: 11, color: FLUENT.textSub }}>Outlined = conflict</span>
       </div>
+    </div>
+  );
+}
+
+function DataSourcesFooter() {
+  return (
+    <div
+      className="mt-3 px-3 py-2 flex items-center gap-3 flex-wrap"
+      style={{
+        background: FLUENT.bgAlt,
+        border: `1px solid ${FLUENT.border}`,
+        borderRadius: 2,
+        fontSize: 10.5, color: FLUENT.textSub,
+      }}
+    >
+      <strong style={{ color: FLUENT.text, fontWeight: 600 }}>Data sources:</strong>
+      <div className="flex items-center gap-1.5">
+        <div style={{ width: 6, height: 6, borderRadius: 3, background: '#0078d4' }} />
+        CompleteFlight (inspections, training)
+      </div>
+      <div className="flex items-center gap-1.5">
+        <div style={{ width: 6, height: 6, borderRadius: 3, background: '#5c2d91' }} />
+        ProteanHub (missions, MX, AOG, PR)
+      </div>
+      <span style={{ color: FLUENT.textDim }}>·</span>
+      <span>Refresh: every 15 min via Power Automate · API key auth</span>
+      <span style={{ color: FLUENT.textDim }}>·</span>
+      <span>Conflict detection: server-side · cached in <span style={{ fontFamily: 'ui-monospace, monospace' }}>cr_conflict</span></span>
     </div>
   );
 }
