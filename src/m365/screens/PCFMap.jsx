@@ -1,11 +1,24 @@
 import React, { useState, useMemo } from 'react';
 import Map, { Marker, Popup, NavigationControl } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { Code, Plane, MapPin, Info, ChevronRight } from 'lucide-react';
+import { BarChart3, Plane, MapPin, Info, Sparkles } from 'lucide-react';
 import { FLUENT } from '../tokens';
 import { BASES, LIVE_FLEET, STATUS_CONFIG, WEATHER_CONFIG } from '../../data/bases';
 
-const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';   // Lighter style — closer to Bing Maps Power Apps default
+// ============================================================================
+// LIVE FLEET — Phase 3 future preview (Power BI live view)
+// ----------------------------------------------------------------------------
+// This is the cinematic future state, not the Phase 2 deliverable. Renders
+// what real-time fleet tracking will look like once IHC's 1000 Power BI Pro
+// licenses arrive: Power BI map visual + streaming dataset (or DirectQuery
+// auto-refresh) + custom basemap + bearing-rotated aircraft markers + weather
+// halos + per-base status overlays.
+//
+// For the Phase 2 reality (stock Power Apps map, 15-min refresh, basic pins)
+// see the "Fleet Map" screen.
+// ============================================================================
+
+const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
 const INITIAL_VIEW = { longitude: -111.5, latitude: 39.5, zoom: 5.2 };
 
 export default function PCFMap() {
@@ -21,54 +34,29 @@ export default function PCFMap() {
 
   return (
     <div className="p-6 h-full flex flex-col" style={{ background: FLUENT.bg }}>
-      {/* PCF annotation */}
-      <div
-        className="flex items-center gap-3 mb-3 px-3 py-2"
-        style={{
-          background: FLUENT.pcfBadgeSoft, border: `1px solid ${FLUENT.pcfBadge}33`,
-          borderLeft: `3px solid ${FLUENT.pcfBadge}`, borderRadius: 2,
-        }}
-      >
-        <Code size={16} style={{ color: FLUENT.pcfBadge }} />
-        <div className="flex-1">
-          <div style={{ fontSize: 12, fontWeight: 600, color: FLUENT.pcfBadge }}>
-            Custom PCF Component · Live Fleet Map (nice-to-have)
-          </div>
-          <div style={{ fontSize: 11, color: FLUENT.textSub, marginTop: 1 }}>
-            React + MapLibre GL JS · ~1,800 LOC · Power Apps could ship without this; SkyRouter integration would still be possible via Power BI map visual
-          </div>
-        </div>
-        <span
-          style={{
-            fontSize: 10, fontWeight: 700, letterSpacing: 0.5,
-            background: FLUENT.pcfBadge, color: '#fff',
-            padding: '2px 6px', borderRadius: 2,
-          }}
-        >
-          P2 NICE-TO-HAVE
-        </span>
-      </div>
+      <Phase3Banner />
 
       <div className="flex items-center gap-2 mb-1">
         <MapPin size={20} style={{ color: FLUENT.brand }} />
         <h1 style={{ fontSize: 22, fontWeight: 600, margin: 0 }}>Live Fleet</h1>
+        <span
+          className="flex items-center gap-1"
+          style={{
+            fontSize: 10, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase',
+            background: '#f2c81120', color: '#7a6500',
+            padding: '2px 8px', borderRadius: 2, marginLeft: 6,
+            border: '1px solid #f2c81160',
+          }}
+        >
+          <Sparkles size={10} /> Phase 3 · Power BI
+        </span>
       </div>
       <div style={{ fontSize: 12, color: FLUENT.textSub, marginBottom: 12 }}>
-        Real-time aircraft positions from SkyRouter · Base status + weather indicators
+        Real-time aircraft tracking from SkyRouter · Power BI map visual + streaming dataset · Sub-30s update cadence
       </div>
 
-      {/* Decision callout — why this is lower priority than the scheduler PCF */}
-      <div
-        className="p-3 mb-3 flex items-start gap-3"
-        style={{ background: FLUENT.infoSoft, border: `1px solid ${FLUENT.info}33`, borderRadius: 2 }}
-      >
-        <Info size={14} style={{ color: FLUENT.info, marginTop: 2, flexShrink: 0 }} />
-        <div style={{ fontSize: 11, color: FLUENT.text, lineHeight: 1.5 }}>
-          <strong>Phasing recommendation:</strong> Resource Scheduler PCF is the must-have — it solves daily friction for the maintenance scheduler. Live Fleet PCF is a Phase 2 nice-to-have. A simpler version using Power BI's map visual could ship in Phase 1 if SkyRouter integration is needed earlier; full custom PCF (shown here) only if leadership prioritizes the operational dashboard experience.
-        </div>
-      </div>
+      <Phase3Callout />
 
-      {/* Map area */}
       <div
         className="flex-1 relative"
         style={{ background: '#fff', border: `1px solid ${FLUENT.border}`, borderRadius: 2, overflow: 'hidden', minHeight: 400 }}
@@ -119,7 +107,6 @@ export default function PCFMap() {
           )}
         </Map>
 
-        {/* Stats overlay (Fluent style) */}
         <div
           className="absolute top-3 left-3 p-3"
           style={{
@@ -145,6 +132,51 @@ export default function PCFMap() {
         .maplibregl-ctrl-attrib { display: none !important; }
         .maplibregl-ctrl-group { background: ${FLUENT.surface} !important; border: 1px solid ${FLUENT.border} !important; }
       `}</style>
+    </div>
+  );
+}
+
+function Phase3Banner() {
+  return (
+    <div
+      className="flex items-center gap-3 mb-3 px-3 py-2"
+      style={{
+        background: '#f2c81115', border: '1px solid #f2c81144',
+        borderLeft: '3px solid #f2c811', borderRadius: 2,
+      }}
+    >
+      <BarChart3 size={16} style={{ color: '#7a6500' }} />
+      <div className="flex-1">
+        <div style={{ fontSize: 12, fontWeight: 600, color: '#7a6500' }}>
+          Phase 3 future preview · Power BI live tracking
+        </div>
+        <div style={{ fontSize: 11, color: FLUENT.textSub, marginTop: 1 }}>
+          Ships when IHC's 1000 Power BI Pro licenses arrive · Streaming dataset + ArcGIS / Mapbox map visual · Sub-30s auto-refresh
+        </div>
+      </div>
+      <span
+        style={{
+          fontSize: 10, fontWeight: 700, letterSpacing: 0.5,
+          background: '#f2c811', color: '#3a2f00',
+          padding: '2px 6px', borderRadius: 2,
+        }}
+      >
+        FUTURE
+      </span>
+    </div>
+  );
+}
+
+function Phase3Callout() {
+  return (
+    <div
+      className="p-3 mb-3 flex items-start gap-3"
+      style={{ background: FLUENT.infoSoft, border: `1px solid ${FLUENT.info}33`, borderRadius: 2 }}
+    >
+      <Info size={14} style={{ color: FLUENT.info, marginTop: 2, flexShrink: 0 }} />
+      <div style={{ fontSize: 11, color: FLUENT.text, lineHeight: 1.5 }}>
+        <strong>Phase 2 reality vs Phase 3 destination.</strong> The Phase 2 deliverable is a stock Power Apps map with 15-min refresh, basic pins, click-for-detail — see the <strong>Fleet Map</strong> screen. This screen is the cinematic Phase 3 destination: live position updates, bearing-rotated icons, custom basemap, weather halos. It only ships once 1000 Power BI Pro licenses are available; until then, schedulers use the Fleet Map.
+      </div>
     </div>
   );
 }

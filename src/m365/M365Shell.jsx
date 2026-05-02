@@ -1,17 +1,17 @@
 import React from 'react';
 import {
-  Home, BarChart3, Calendar, Map as MapIcon, MessageSquare, GitCompare,
+  Home, BarChart3, Calendar, Map as MapIcon, MessageSquare, Sparkles,
   Search, Bell, HelpCircle, Settings, Grid3x3,
 } from 'lucide-react';
 import { FLUENT, FLUENT_FONT } from './tokens';
 
 const NAV_ITEMS = [
-  { id: 'apps',     label: 'Power Apps',          Icon: Home,         section: 'apps' },
-  { id: 'powerbi',  label: 'Power BI Report',     Icon: BarChart3,    section: 'analytics' },
-  { id: 'scheduler', label: 'Resource Scheduler', Icon: Calendar,     section: 'apps', pcf: true },
-  { id: 'map',      label: 'Live Fleet',          Icon: MapIcon,      section: 'apps', pcf: true },
-  { id: 'teams',    label: 'Teams Approvals',     Icon: MessageSquare, section: 'apps' },
-  { id: 'compare',  label: 'Capability Compare',  Icon: GitCompare,   section: 'meta' },
+  { id: 'apps',      label: 'Power Apps',         Icon: Home,          section: 'apps' },
+  { id: 'teams',     label: 'Teams Approvals',    Icon: MessageSquare, section: 'apps' },
+  { id: 'scheduler', label: 'Resource Scheduler', Icon: Calendar,      section: 'apps' },
+  { id: 'fleetMap',  label: 'Fleet Map',          Icon: MapIcon,       section: 'apps' },
+  { id: 'liveFleet', label: 'Live Fleet',         Icon: MapIcon,       section: 'future', phase3: true },
+  { id: 'powerbi',   label: 'Power BI Report',    Icon: BarChart3,     section: 'future', phase3: true },
 ];
 
 export default function M365Shell({ activeScreen, setActiveScreen, persona, children }) {
@@ -110,7 +110,7 @@ function LeftRail({ activeScreen, setActiveScreen }) {
         <div style={{ fontSize: 13, fontWeight: 600, marginTop: 2 }}>MX Connect</div>
       </div>
 
-      <RailGroup label="Apps">
+      <RailGroup label="Apps (Phase 1–2)">
         {NAV_ITEMS.filter(i => i.section === 'apps').map(item => (
           <RailItem
             key={item.id} item={item}
@@ -120,18 +120,8 @@ function LeftRail({ activeScreen, setActiveScreen }) {
         ))}
       </RailGroup>
 
-      <RailGroup label="Analytics">
-        {NAV_ITEMS.filter(i => i.section === 'analytics').map(item => (
-          <RailItem
-            key={item.id} item={item}
-            active={activeScreen === item.id}
-            onClick={() => setActiveScreen(item.id)}
-          />
-        ))}
-      </RailGroup>
-
-      <RailGroup label="Decision Materials">
-        {NAV_ITEMS.filter(i => i.section === 'meta').map(item => (
+      <RailGroup label="Phase 3 · Future">
+        {NAV_ITEMS.filter(i => i.section === 'future').map(item => (
           <RailItem
             key={item.id} item={item}
             active={activeScreen === item.id}
@@ -193,19 +183,16 @@ function RailItem({ item, active, onClick }) {
     >
       <Icon size={15} style={{ opacity: active ? 1 : 0.75 }} />
       <span style={{ flex: 1 }}>{item.label}</span>
-      {item.pcf && (
+      {item.phase3 && (
         <span
           style={{
-            fontSize: 9,
-            fontWeight: 700,
-            letterSpacing: 0.5,
-            background: FLUENT.pcfBadgeSoft,
-            color: FLUENT.pcfBadge,
-            padding: '1px 5px',
-            borderRadius: 2,
+            fontSize: 9, fontWeight: 700, letterSpacing: 0.5,
+            background: '#f2c81120', color: '#7a6500',
+            padding: '1px 5px', borderRadius: 2,
+            display: 'flex', alignItems: 'center', gap: 3,
           }}
         >
-          PCF
+          <Sparkles size={9} /> P3
         </span>
       )}
     </button>
