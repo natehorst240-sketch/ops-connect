@@ -4,13 +4,14 @@ import PowerAppsHome from './screens/PowerAppsHome';
 import PowerBIDashboard from './screens/PowerBIDashboard';
 import PCFScheduler from './screens/PCFScheduler';
 import PCFMap from './screens/PCFMap';
+import FleetMap from './screens/FleetMap';
 import TeamsApproval from './screens/TeamsApproval';
 
 // ============================================================================
 // M365 BUILD — orchestrator
 // ----------------------------------------------------------------------------
-// Renders the M365 Power Platform shell with internal navigation between the
-// 5 screens that make up the M365 build of MX Connect.
+// Renders the M365 Power Platform shell with internal navigation across the
+// 6 screens that make up the M365 build of MX Connect.
 // ============================================================================
 
 export default function M365Build({ persona, setPersonaId }) {
@@ -25,10 +26,11 @@ export default function M365Build({ persona, setPersonaId }) {
       {activeScreen === 'apps' && (
         <PowerAppsHome persona={persona} setPersonaId={setPersonaId} />
       )}
-      {activeScreen === 'powerbi' && <PowerBIDashboard />}
-      {activeScreen === 'scheduler' && <PCFScheduler />}
-      {activeScreen === 'map' && <PCFMap />}
       {activeScreen === 'teams' && <TeamsApproval />}
+      {activeScreen === 'scheduler' && <PCFScheduler />}
+      {activeScreen === 'fleetMap' && <FleetMap />}
+      {activeScreen === 'liveFleet' && <PCFMap />}
+      {activeScreen === 'powerbi' && <PowerBIDashboard />}
     </M365Shell>
   );
 }
