@@ -21,8 +21,8 @@ import MobileTab from './tabs/Mobile';
 import M365Build from './m365/M365Build';
 
 const TABS = [
-  { id: 'app', label: 'The App', Icon: Radio },
   { id: 'm365', label: 'M365 Build', Icon: Grid3x3 },
+  { id: 'app', label: 'The App', Icon: Radio },
   { id: 'map', label: 'Live Fleet', Icon: MapIcon },
   { id: 'flowA', label: 'Flow A · MX Request', Icon: Wrench },
   { id: 'flowB', label: 'Flow B · Open Shift', Icon: Users },
@@ -34,7 +34,7 @@ const TABS = [
 ];
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('app');
+  const [activeTab, setActiveTab] = useState('m365');
   const [personaId, setPersonaId] = useState('director');
   const persona = PERSONAS.find(p => p.id === personaId);
 
@@ -116,7 +116,7 @@ function DemoSidebar({ persona, setPersonaId, activeTab }) {
                 {activeTab === 'map'
                   ? 'Switch personas to filter the map by region. Director sees all; RMM sees just their region.'
                   : activeTab === 'm365'
-                  ? 'The M365 Build version of MX Connect — Power Apps + Power BI + 2 PCF controls. Same role views, different platform.'
+                  ? 'Phase 1 deliverable starts here — MX Request → Approval. Switch personas to see what each role experiences. No PCF, no Power BI, no third-party.'
                   : activeTab === 'mobile'
                   ? 'Switch personas to see what each role sees on their phone. Same workflow, two builds — Custom React PWA vs Power Apps mobile.'
                   : 'Switch personas to see role-specific home screens. Each role has different views, actions, and approvals.'}
@@ -138,7 +138,7 @@ function DemoSidebar({ persona, setPersonaId, activeTab }) {
                 Demo note
               </div>
               <div className="text-[11px] text-neutral-400 leading-relaxed">
-                Return to <span className="text-orange-400">The App</span> tab to switch personas and explore role views.
+                Return to <span className="text-orange-400">M365 Build</span> for the Phase 1 hero, or <span className="text-orange-400">The App</span> to explore role views.
               </div>
             </div>
           </>
@@ -162,9 +162,9 @@ function CurrentTabInfo({ activeTab }) {
     flowB: { title: 'Flow B', subtitle: 'Open Shift Claim', text: 'Shows the crew scheduling loop — publish, claim, sync to payroll.' },
     flowC: { title: 'Flow C', subtitle: 'AOG Cascade', text: 'Demonstrates downstream effects when an aircraft goes AOG.' },
     flowD: { title: 'Flow D', subtitle: 'Time Off → Coverage Gap', text: 'Pilot off-duty becomes an open shift automatically.' },
-    architecture: { title: 'Architecture', subtitle: 'For Company IT', text: '5-layer stack diagram. Postgres + Supabase + React + Microsoft Graph at the edge.' },
+    architecture: { title: 'Architecture', subtitle: 'For Company IT', text: '5-layer M365 stack: Power Apps + Power Automate + Dataverse + Microsoft Graph + external systems. Inherits tenant DLP, Purview, Entra ID.' },
     mobile: { title: 'Mobile', subtitle: 'Custom vs M365 · Side-by-side', text: 'Same AMT field workflow on the custom React PWA and the Power Apps mobile shell.' },
-    roadmap: { title: 'Roadmap', subtitle: 'For Ops Leadership', text: '5-phase plan. ~28–38 weeks to production v1.0 with a small dedicated team.' },
+    roadmap: { title: 'Roadmap', subtitle: 'For Ops Leadership', text: '3-phase M365 rollout. Phase 1 (greenlit) ships in 6–8 weeks; Phase 3 gated on 1000 Power BI Pro licenses.' },
   }[activeTab];
 
   if (!info) return null;
