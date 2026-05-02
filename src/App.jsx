@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   Plane, Users, AlertTriangle, Calendar, Wrench, Radio, TrendingUp, Layers,
-  Map as MapIcon, Grid3x3, Smartphone,
+  Map as MapIcon, Grid3x3, Smartphone, GitBranch,
 } from 'lucide-react';
 import { PERSONAS, FLOWS } from './data';
 
@@ -16,12 +16,14 @@ import NurseHome from './homes/Nurse';
 import FlowTab from './tabs/Flow';
 import ArchitectureTab from './tabs/Architecture';
 import RoadmapTab from './tabs/Roadmap';
+import PhaseFlowTab from './tabs/PhaseFlow';
 import MapTab from './tabs/Map';
 import MobileTab from './tabs/Mobile';
 import M365Build from './m365/M365Build';
 
 const TABS = [
   { id: 'm365', label: 'M365 Build', Icon: Grid3x3 },
+  { id: 'phaseFlow', label: 'Phase Flow', Icon: GitBranch },
   { id: 'app', label: 'The App', Icon: Radio },
   { id: 'map', label: 'Live Fleet', Icon: MapIcon },
   { id: 'flowA', label: 'Flow A · MX Request', Icon: Wrench },
@@ -50,6 +52,7 @@ export default function App() {
           {activeTab === 'flowC' && <FlowTab flow={FLOWS.flowC} />}
           {activeTab === 'flowD' && <FlowTab flow={FLOWS.flowD} />}
           {activeTab === 'architecture' && <ArchitectureTab />}
+          {activeTab === 'phaseFlow' && <PhaseFlowTab />}
           {activeTab === 'm365' && <M365Build persona={persona} setPersonaId={setPersonaId} />}
           {activeTab === 'mobile' && <MobileTab persona={persona} />}
           {activeTab === 'roadmap' && <RoadmapTab />}
