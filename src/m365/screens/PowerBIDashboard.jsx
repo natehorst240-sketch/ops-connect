@@ -153,7 +153,7 @@ function ReportCanvas() {
       </div>
 
       <div className="mt-4 flex items-center gap-3" style={{ fontSize: 11, color: FLUENT.textSub }}>
-        <span>Data sources: Veryon, CompleteFlight, TrooTrax, Dataverse</span>
+        <span>Data sources: Veryon, CompleteFlight, SkyRouter, Dataverse</span>
         <span>·</span>
         <span>Refresh schedule: every 15 min</span>
         <span>·</span>
@@ -206,7 +206,6 @@ function KpiCard({ label, value, sub, trend, trendValue, color, pulse }) {
 }
 
 function FleetByRegionCard() {
-  // Bar chart by region
   const regions = ['109 UT', 'WY/MT', 'ID/NV', 'CO/NM', 'UT/AZ', 'PAGE', 'SLC FW', 'NC'];
   const data = regions.map(r => {
     const list = AIRCRAFT.filter(a => a.region === r);
@@ -256,7 +255,6 @@ function StatusDonutCard({ inService, aog, mx }) {
     { label: 'Maintenance', value: mx, color: FLUENT.warnAccent },
   ];
 
-  // SVG donut
   const radius = 50, stroke = 18, circ = 2 * Math.PI * radius;
   let cumulative = 0;
 
@@ -296,12 +294,11 @@ function StatusDonutCard({ inService, aog, mx }) {
 }
 
 function AvailabilityTrendCard() {
-  // 30-day line trend
   const days = 30;
   const points = Array.from({ length: days }, (_, i) => {
     const base = 92;
     const variance = Math.sin(i * 0.4) * 3 + Math.cos(i * 0.7) * 2;
-    return Math.round(base + variance + (i > 25 ? -3 : 0));   // dip at end for AOG
+    return Math.round(base + variance + (i > 25 ? -3 : 0));
   });
   const min = Math.min(...points) - 2;
   const max = Math.max(...points) + 2;
@@ -328,7 +325,6 @@ function AvailabilityTrendCard() {
             <path d={areaPath} fill="url(#trend-grad)" />
             <polyline points={pointsAttr} fill="none" stroke={FLUENT.brand} strokeWidth="0.6" vectorEffect="non-scaling-stroke" />
           </svg>
-          {/* y-axis labels */}
           <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 28, fontSize: 9, color: FLUENT.textSub }}>
             <div style={{ position: 'absolute', top: 0 }}>{max}%</div>
             <div style={{ position: 'absolute', bottom: 0 }}>{min}%</div>
