@@ -15,7 +15,6 @@ export default function PhaseFlow() {
     <div className="p-8 max-w-[1400px] mx-auto fade-slide">
       <Header />
       <DiagramFrame />
-      <Totals />
       <SourceFooter />
     </div>
   );
@@ -46,50 +45,6 @@ function DiagramFrame() {
         className="w-full h-auto"
         style={{ minWidth: 1100 }}
       />
-    </div>
-  );
-}
-
-function Totals() {
-  return (
-    <div className="mt-8 grid grid-cols-3 gap-4">
-      <TotalCard
-        label="Phase 1 (greenlit)"
-        value="$60–100k"
-        sub="6–8 wks · production v1.0"
-        tone="good"
-      />
-      <TotalCard
-        label="Phase 1 + 2 Year 1"
-        value="$180–340k"
-        sub="22 wks · ops layer complete"
-        tone="info"
-      />
-      <TotalCard
-        label="+ Phase 3 (when gated)"
-        value="+$100–150k"
-        sub="Power BI Pro + analytics + live fleet"
-        tone="warn"
-      />
-    </div>
-  );
-}
-
-function TotalCard({ label, value, sub, tone }) {
-  const colors = {
-    good: { border: '#22c55e' },
-    info: { border: '#3b82f6' },
-    warn: { border: '#eab308' },
-  };
-  const c = colors[tone];
-  return (
-    <div
-      className="bg-neutral-900 border border-neutral-800 rounded-lg p-4"
-      style={{ borderTop: `2px solid ${c.border}` }}
-    >
-      <div className="mono text-[10px] text-neutral-500 uppercase tracking-widest mb-2">{label}</div>
-      <div className="text-[24px] font-semibold leading-none">{value}</div>
-      <div className="text-[11px] text-neutral-400 leading-relaxed mt-2">{sub}</div>
     </div>
   );
 }

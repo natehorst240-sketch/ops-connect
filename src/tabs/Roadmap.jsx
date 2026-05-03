@@ -1,16 +1,16 @@
 import React from 'react';
-import { AlertTriangle, Info, ChevronRight, CheckCircle2, Clock, Sparkles, Lock } from 'lucide-react';
+import { AlertTriangle, ChevronRight, CheckCircle2, Sparkles, Lock } from 'lucide-react';
 
 // ============================================================================
 // ROADMAP — M365/Teams phased rollout
 // ----------------------------------------------------------------------------
 // Phase 1 (greenlit): Request → Approval workflow on stock Power Apps + Power
-//                     Automate + Teams. Ships in 6–8 weeks.
+//                     Automate + Teams.
 // Phase 2: Operations layer — read-only Scheduler mirror, stock Fleet Map,
 //          custom connectors to Veryon / CompleteFlight / ProteanHub /
-//          SkyRouter. 10–14 weeks.
+//          SkyRouter.
 // Phase 3 (gated): Analytics + live tracking via Power BI. Ships once IHC's
-//                  1000 Power BI Pro licenses arrive. 12–16 weeks.
+//                  1000 Power BI Pro licenses arrive.
 // ============================================================================
 
 const PHASES = [
@@ -28,7 +28,6 @@ const PHASES = [
       'DM notification back to requestor on approve / deny',
     ],
     deliverable: 'Production v1.0 — MX Request submitted from phone, approved in Teams in under 2 hours during shift hours.',
-    cost: '$60k – $100k',
     stack: ['Power Apps', 'Power Automate', 'Teams (Adaptive Card)', 'Dataverse', 'Outlook'],
   },
   {
@@ -46,7 +45,6 @@ const PHASES = [
       'Bulletins + safety reports (forms + Teams)',
     ],
     deliverable: 'Operations layer covering daily scheduler + AMT + RMM workflows. Dispatch decisions made in source systems; MX Connect surfaces conflicts and gaps cross-system.',
-    cost: '$120k – $180k',
     stack: ['Power Apps', 'Power Automate', 'Dataverse', 'Custom connectors', 'Stock Bing Maps'],
   },
   {
@@ -64,7 +62,6 @@ const PHASES = [
       'Exec-friendly PDF / PowerPoint exports',
     ],
     deliverable: 'Director / RMM analytics + cinematic live fleet tracking. Replaces ad-hoc Excel reporting and the limited Phase 2 fleet map.',
-    cost: '$100k – $150k',
     stack: ['Power BI Pro / Premium', 'DirectQuery / streaming dataset', 'ArcGIS or Mapbox visuals'],
   },
 ];
@@ -75,39 +72,13 @@ const STATUS_CONFIG = {
   gated:    { label: 'Gated · license dependent',   color: '#ca5010', bg: 'rgba(202,80,16,0.1)',  Icon: Lock },
 };
 
-const Y1_BREAKDOWN = [
-  { label: 'Phase 1 build · Request → Approval',                   range: '$60k – $100k',  note: 'Power Apps form, flow, Adaptive Card, Dataverse schema, Outlook event' },
-  { label: 'Phase 2 build · Operations layer',                     range: '$120k – $180k', note: 'Scheduler mirror, Fleet Map, custom connectors, time-off + bulletins' },
-  { label: 'Power Apps Premium licensing · Phase 2 onward',        range: '$0 – $60k/yr',  note: '~350 active users · Per-App, often negotiated 30–50% off list' },
-  { label: 'Microsoft infrastructure',                              range: '$0',            note: 'Included in M365 tenant; Dataverse capacity sufficient at IHC scale' },
-  { label: 'Year 1 total (Phase 1 + 2)',                            range: '$180k – $340k', total: true },
-];
-
-const Y2_BREAKDOWN = [
-  { label: 'Maintenance dev (0.3–0.5 FTE)',                         range: '$60k – $90k',     note: 'Often absorbed by IHC IT once stable' },
-  { label: 'Power Apps Premium (recurring)',                        range: '$0 – $60k/yr',    note: 'Same per-user model carries forward' },
-  { label: 'Microsoft infrastructure',                              range: '$0',              note: 'Included' },
-  { label: 'Year 2+ recurring',                                      range: '$60k – $150k/yr', total: true },
-];
-
-const PHASE3_ADDER = [
-  { label: 'Phase 3 build · Power BI + Live Fleet',                 range: '$100k – $150k', note: 'Ships only after 1000 Power BI Pro licenses arrive · adds to Y1 if same year, otherwise rolls into Y2/3' },
-];
-
 export default function RoadmapTab() {
   return (
     <div className="p-8 max-w-[1200px] mx-auto fade-slide">
       <Header />
-      <CostHero />
       <SectionHeader number="1" title="Phased rollout" />
       <PhaseList />
-      <SectionHeader number="2" title="Year 1 cost (Phase 1 + 2)" />
-      <CostTable rows={Y1_BREAKDOWN} />
-      <SectionHeader number="3" title="Year 2+ recurring" />
-      <CostTable rows={Y2_BREAKDOWN} />
-      <SectionHeader number="4" title="Phase 3 adder · when Power BI Pro arrives" />
-      <CostTable rows={PHASE3_ADDER} />
-      <SectionHeader number="5" title="Open questions before proceeding" />
+      <SectionHeader number="2" title="Open questions before proceeding" />
       <VerificationCard />
     </div>
   );
@@ -121,32 +92,6 @@ function Header() {
       <p className="text-[14px] text-neutral-400 max-w-3xl leading-relaxed">
         Phase 1 has been greenlit and is the entry point for everything that follows. Phase 2 layers operations on top once the audit and approval surface is proven. Phase 3 unlocks analytics and live tracking when IHC&apos;s 1000 Power BI Pro licenses arrive. Each phase ships independently — no big-bang dependency, no PCF, no third-party platforms.
       </p>
-    </div>
-  );
-}
-
-function CostHero() {
-  return (
-    <div className="grid grid-cols-3 gap-4 mb-2">
-      <HeroCard label="Phase 1 (greenlit)"      value="$60–100k"   sub="6–8 weeks · production v1.0"          tone="good" />
-      <HeroCard label="Phase 1 + 2 Year 1"       value="$180–340k"  sub="22 weeks · ops layer complete"        tone="info" />
-      <HeroCard label="+ Phase 3 (when gated)"   value="+$100–150k" sub="Power BI Pro + analytics + live fleet" tone="warn" />
-    </div>
-  );
-}
-
-function HeroCard({ label, value, sub, tone }) {
-  const colors = {
-    good: { border: '#107c10' },
-    info: { border: '#0078d4' },
-    warn: { border: '#ca5010' },
-  };
-  const c = colors[tone];
-  return (
-    <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-4" style={{ borderTop: `2px solid ${c.border}` }}>
-      <div className="mono text-[10px] text-neutral-500 uppercase tracking-widest mb-2">{label}</div>
-      <div className="text-[24px] font-semibold leading-none">{value}</div>
-      <div className="text-[11px] text-neutral-400 leading-relaxed mt-2">{sub}</div>
     </div>
   );
 }
@@ -191,7 +136,6 @@ function PhaseCard({ phase }) {
         <div>
           <FactRow label="Duration"     value={phase.duration} />
           <FactRow label="Team"         value={phase.team} />
-          <FactRow label="Cost"         value={phase.cost} mono />
           {phase.gate && <FactRow label="Gate" value={phase.gate} warn />}
         </div>
         <div>
@@ -226,40 +170,37 @@ function PhaseCard({ phase }) {
   );
 }
 
-function FactRow({ label, value, mono, warn }) {
+function FactRow({ label, value, warn }) {
   return (
     <div className="flex items-baseline justify-between mb-1.5">
       <span className="mono text-[10px] text-neutral-500 uppercase tracking-widest">{label}</span>
-      <span className={`text-[12px] ${mono ? 'mono font-semibold text-orange-400' : warn ? 'text-amber-400' : 'text-neutral-200'}`}>{value}</span>
-    </div>
-  );
-}
-
-function CostTable({ rows }) {
-  return (
-    <div className="bg-neutral-900 border border-neutral-800 rounded-lg overflow-hidden">
-      {rows.map((r, i) => (
-        <div
-          key={i}
-          className={`px-4 py-3 ${r.total ? 'bg-neutral-950/50 border-t border-neutral-800' : i < rows.length - 1 ? 'border-b border-neutral-800/60' : ''}`}
-        >
-          <div className="flex items-baseline justify-between gap-3 mb-0.5">
-            <span className={`text-[12px] ${r.total ? 'font-semibold text-neutral-100' : 'text-neutral-300'}`}>{r.label}</span>
-            <span className={`mono text-[12px] font-semibold ${r.total ? 'text-orange-400' : 'text-neutral-200'}`}>{r.range}</span>
-          </div>
-          {r.note && !r.total && <div className="text-[11px] text-neutral-500 leading-snug">{r.note}</div>}
-        </div>
-      ))}
+      <span className={`text-[12px] ${warn ? 'text-amber-400' : 'text-neutral-200'}`}>{value}</span>
     </div>
   );
 }
 
 function VerificationCard() {
   const items = [
-    { q: 'What M365 SKU does IHC currently have for the users in scope?',                 why: 'E5 includes Power BI Pro and Premium connector entitlements; E3 does not. Affects Phase 3 timing and Phase 2 connector cost.', impact: 'Drives whether Phase 3 ships in Year 1 or rolls forward' },
-    { q: 'Negotiated rate for Power Apps Premium Per-App at ~350 active users?',          why: 'List is $5/user/mo. Hospital systems typically negotiate 30–50% lower.', impact: 'Y2+ recurring band: $0–$60k/yr' },
-    { q: 'Who owns the IHC IT relationship for environment promotion + DLP review?',       why: 'Phase 1 needs a sandbox + a UAT environment in IHC’s Power Platform tenant; the Phase 1 timeline assumes IT can stand these up in week 1.', impact: 'Slips Phase 1 by 1–2 weeks if the relationship isn’t in place' },
-    { q: 'Are CompleteFlight + ProteanHub + SkyRouter API keys available now?',           why: 'Phase 2 starts integration in week 1 of Phase 2. Procurement of API keys can be 2–4 weeks at the source vendors.', impact: 'Phase 2 entry point is gated on these keys' },
+    {
+      q: 'Who owns the IHC IT relationship for environment promotion + DLP review?',
+      why: 'Phase 1 needs a sandbox + a UAT environment in IHC&rsquo;s Power Platform tenant; the Phase 1 timeline assumes IT can stand these up in week 1.',
+      impact: 'Slips Phase 1 by 1–2 weeks if the relationship isn&rsquo;t in place',
+    },
+    {
+      q: 'Are CompleteFlight + ProteanHub + SkyRouter API keys available now?',
+      why: 'Phase 2 starts integration in week 1 of Phase 2. Procurement of API keys can be 2–4 weeks at the source vendors.',
+      impact: 'Phase 2 entry point is gated on these keys',
+    },
+    {
+      q: 'Which region pilots Phase 1 first, and who is the named approver?',
+      why: 'Phase 1 ships to one region for UAT before org-wide rollout. Logan is the default per the demo personas.',
+      impact: 'Affects channel ID / approver mapping in flow env vars',
+    },
+    {
+      q: 'When are the 1000 Power BI Pro licenses expected to arrive?',
+      why: 'Phase 3 is the only phase blocked by license availability. Knowing the ETA lets us schedule the Power BI dev and the report build window.',
+      impact: 'Drives whether Phase 3 ships in Year 1 or rolls forward',
+    },
   ];
   return (
     <div className="bg-neutral-900 border border-neutral-800 rounded-lg overflow-hidden">
