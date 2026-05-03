@@ -9,7 +9,7 @@ via the companion CSV (`PhaseFlow.lucidchart.csv`).
 
 ```mermaid
 flowchart TB
-    subgraph P1["Phase 1 · Greenlit · 6-8 wks · $60-100k"]
+    subgraph P1["Phase 1 · Greenlit · 6-8 wks"]
         P1A[AMT submits from phone\nPower Apps Mobile]
         P1B[Dataverse cr_mx_request\n+ cr_audit + security roles]
         P1C[Power Automate flow\nmxr-approval-flow-v2]
@@ -20,7 +20,7 @@ flowchart TB
         P1D --> P1F
     end
 
-    subgraph P2["Phase 2 · Proposed · 10-14 wks · $120-180k"]
+    subgraph P2["Phase 2 · Proposed · 10-14 wks"]
         P2A[4 custom connectors\nVeryon + CompleteFlight + ProteanHub + SkyRouter]
         P2B[Read-only Scheduler\n7-day Gantt mirror]
         P2C[Stock Fleet Map\nBing pins · 15-min refresh]
@@ -33,7 +33,7 @@ flowchart TB
         P2C --> P2D
     end
 
-    subgraph P3["Phase 3 · Gated on 1000 PBI Pro licenses · 12-16 wks · $100-150k"]
+    subgraph P3["Phase 3 · Gated on 1000 PBI Pro licenses · 12-16 wks"]
         P3A[Power BI semantic model\nDirectQuery + imports]
         P3B[4 static reports\nFleet · Inspections · Utilization · Compliance]
         P3C[Streaming dataset\nSkyRouter → Azure Fn → PBI push]
