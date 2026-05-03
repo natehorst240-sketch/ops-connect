@@ -133,7 +133,7 @@ function Home({ persona }) {
     case 'DIRECTOR': return <DirectorHome persona={persona} />;
     case 'RMM': return <RMMHome persona={persona} />;
     case 'AMT': return <AMTHome persona={persona} />;
-    case 'QA': return <QAHome persona={persona} />;
+    case 'ADOM': return <QAHome persona={persona} />;
     case 'MX_SCHEDULER': return <MXSchedulerHome persona={persona} />;
     case 'CREW_SCHEDULER': return <CrewSchedulerHome persona={persona} />;
     case 'FLIGHT_NURSE': return <NurseHome persona={persona} />;
