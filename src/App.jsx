@@ -31,7 +31,7 @@ const TABS = [
   { id: 'flowC', label: 'Flow C · AOG Cascade', Icon: AlertTriangle },
   { id: 'flowD', label: 'Flow D · Time Off', Icon: Calendar },
   { id: 'architecture', label: 'Architecture', Icon: Layers },
-  { id: 'mobile', label: 'Mobile · Side-by-side', Icon: Smartphone },
+  { id: 'mobile', label: 'Mobile · See How It Looks on a Phone', Icon: Smartphone },
   { id: 'roadmap', label: 'Roadmap', Icon: TrendingUp },
 ];
 
