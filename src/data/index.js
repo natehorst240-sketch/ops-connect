@@ -67,7 +67,7 @@ export const PERSONAS = [
   { id: 'director', name: 'Billy Ortega', initials: 'BO', role: 'DIRECTOR', roleTitle: 'Director of Maintenance Operations', base: 'SLC', region: 'ALL', onShift: true },
   { id: 'rmm', name: 'Tevita Silatolu', initials: 'TS', role: 'RMM', roleTitle: 'Regional Maintenance Manager', base: 'Billings, MT', region: 'WY/MT', onShift: true },
   { id: 'amt', name: 'Nathan Anderson', initials: 'NA', role: 'AMT', roleTitle: 'Aviation Maintenance Technician', base: 'Greybull IH-23', region: 'WY/MT', onShift: true },
-  { id: 'qa', name: 'Ryan Taul', initials: 'RT', role: 'QA', roleTitle: 'Assistant Director of Maintenance Operations', base: 'SLC', region: 'ALL', onShift: true },
+  { id: 'qa', name: 'Ryan Taul', initials: 'RT', role: 'ADOM', roleTitle: 'Assistant Director of Maintenance Operations', base: 'SLC', region: 'ALL', onShift: true },
   { id: 'mx_sched', name: 'Carla Weir', initials: 'CW', role: 'MX_SCHEDULER', roleTitle: 'Maintenance Scheduler', base: 'SLC', region: 'ALL', onShift: true },
   { id: 'nurse', name: 'M. Bryce', initials: 'MB', role: 'FLIGHT_NURSE', roleTitle: 'Flight Nurse — Urban', base: 'Cedar City Hospital', region: '109 UT', onShift: false },
 ];
