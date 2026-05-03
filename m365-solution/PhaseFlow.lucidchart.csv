@@ -1,7 +1,7 @@
 Id,Name,Shape Library,Page ID,Contained By,Line Source,Line Destination,Source Arrow,Destination Arrow,Status,Comments
-1,Phase 1 · Request → Approval,Containers,1,,,,,,greenlit,6–8 weeks · $60–100k · Stock Power Apps + Power Automate + Teams + Dataverse + Outlook
-2,Phase 2 · Operations Layer,Containers,1,,,,,,proposed,10–14 weeks · $120–180k · Read-only Scheduler + Fleet Map + 4 custom connectors
-3,Phase 3 · Analytics + Live Tracking,Containers,1,,,,,,gated,12–16 weeks · $100–150k · Gated on 1000 Power BI Pro licenses
+1,Phase 1 · Request → Approval,Containers,1,,,,,,greenlit,6–8 weeks · Stock Power Apps + Power Automate + Teams + Dataverse + Outlook
+2,Phase 2 · Operations Layer,Containers,1,,,,,,proposed,10–14 weeks · Read-only Scheduler + Fleet Map + 4 custom connectors
+3,Phase 3 · Analytics + Live Tracking,Containers,1,,,,,,gated,12–16 weeks · Gated on 1000 Power BI Pro licenses
 10,AMT submits from phone,Flowchart Shapes,1,1,,,,,,Power Apps Mobile canvas form
 11,Dataverse cr_mx_request,Flowchart Shapes,1,1,,,,,,16-column schema + cr_audit
 12,Power Automate flow,Process Diagram Shapes,1,1,,,,,,mxr-approval-flow-v2

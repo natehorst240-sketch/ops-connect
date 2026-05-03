@@ -11,9 +11,9 @@ Gated on 1000 Power BI Pro licenses. Don't start without them.
 - [ ] Power BI Pro licenses assigned to all ~350 active users
 - [ ] Power BI workspace `MX Connect` created in the Power BI service
 - [ ] DAX-fluent dev identified
-- [ ] Map visual decision: **ArcGIS** (free, included with Pro) vs
-      **Mapbox** (paid, better styling). Default: ArcGIS.
-- [ ] Streaming push decision: **Azure Function** (cheaper) vs
+- [ ] Map visual decision: **ArcGIS** (included with Pro) vs
+      **Mapbox** (richer styling). Default: ArcGIS.
+- [ ] Streaming push decision: **Azure Function** (lower latency) vs
       **Power Automate** (M365-only). Default: Azure Function for the
       <30s latency.
 
@@ -64,9 +64,9 @@ plus a `pushed_at` timestamp.
 Build whichever push mechanism you picked in pre-flight:
 
 - **Azure Function (recommended)** — timer trigger every 30s, pulls
-  SkyRouter, pushes to Power BI streaming dataset. ~$10–30/mo Azure
-  cost. The same Function can also keep `cr_fleet_position` fresh, so
-  Phase 2's stock map gets the lower-latency data for free.
+  SkyRouter, pushes to Power BI streaming dataset. The same Function
+  can also keep `cr_fleet_position` fresh, so Phase 2's stock map gets
+  the lower-latency data for free.
 - **Power Automate** — same pattern, but every 1 min (Power Automate has
   a 1-min minimum trigger frequency). Premium connector.
 

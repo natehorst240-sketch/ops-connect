@@ -6,7 +6,6 @@ systems that hold the actual schedule and the live fleet position data.
 
 **Status:** Proposed. Starts after Phase 1 acceptance criteria are met.
 **Estimated effort:** 10–14 weeks, 1–2 Power Platform devs + IT liaison.
-**Cost:** $120k–$180k.
 
 ## What ships in Phase 2
 

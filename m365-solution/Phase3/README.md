@@ -5,7 +5,6 @@ analytics surface and the cinematic real-time fleet view.
 
 **Status:** Gated on Power BI Pro licensing.
 **Estimated effort:** 12–16 weeks, 1 Power Platform dev + 1 Power BI dev.
-**Cost:** $100k–$150k.
 
 ## What ships in Phase 3
 
@@ -14,7 +13,6 @@ analytics surface and the cinematic real-time fleet view.
   - Inspections (upcoming + overdue, drill to tail)
   - Utilization (hours flown vs available, trend)
   - Compliance (cert + training + DLP posture)
-  - Cost Analysis (Phase 2 ops cost rollup)
 - **Live Fleet view** — Power BI map visual (ArcGIS Maps for Power BI or
   Mapbox custom visual) reading from a streaming dataset. Sub-30s refresh
   cadence. Bearing-rotated icons. Custom basemap.
@@ -34,7 +32,7 @@ analytics surface and the cinematic real-time fleet view.
   `cr_fleet_position` polling becomes the source for the streaming push)
 - An Azure Function (timer-triggered) to push streaming data — OR a
   Power Automate flow with the Power BI streaming connector. Both work;
-  Azure Function is cheaper at scale.
+  Azure Function is the lower-latency option.
 - Either ArcGIS Maps for Power BI or Mapbox Power BI custom visual
 
 ## Dependencies on Phase 2
@@ -42,7 +40,7 @@ analytics surface and the cinematic real-time fleet view.
 - All 4 Dataverse tables (`cr_aircraft`, `cr_schedule_event`,
   `cr_fleet_position`, `cr_conflict`) populated from source systems
 - Audit trail (`cr_audit`) for the compliance report
-- `cr_mx_request` history (Phase 1) for the cost / volume metrics
+- `cr_mx_request` history (Phase 1) for the volume / throughput metrics
 
 ## What's here
 
@@ -56,7 +54,7 @@ analytics surface and the cinematic real-time fleet view.
       Without it, you're back to Phase 2 fidelity.
 - [ ] Power BI workspace stood up (dedicated, not personal)
 - [ ] At least one Power BI dev with DAX experience available
-- [ ] Decision on map visual: ArcGIS Maps for Power BI (free, included)
-      vs Mapbox custom visual (paid, better styling)
+- [ ] Decision on map visual: ArcGIS Maps for Power BI (included with
+      Pro) vs Mapbox custom visual (richer styling)
 - [ ] Decision on streaming dataset push mechanism: Azure Function
-      (cheaper, lower latency) vs Power Automate (Microsoft-only stack)
+      (lower latency) vs Power Automate (Microsoft-only stack)
