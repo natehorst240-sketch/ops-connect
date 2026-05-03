@@ -23,8 +23,67 @@
       "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
       "contentVersion": "1.0.0.0",
       "parameters": {
-        "$connections":     { "defaultValue": {}, "type": "Object" },
-        "$authentication":  { "defaultValue": {}, "type": "SecureObject" }
+        "$connections":            { "defaultValue": {}, "type": "Object" },
+        "$authentication":         { "defaultValue": {}, "type": "SecureObject" },
+
+        "_comment_environment_variables": "The seven mx_* parameters below are bound to Dataverse environment variables at solution-import time. Default values here are dev-environment fallbacks; the real values are set per-environment in Solutions > MXConnect > Environment variables. The bound env-var schema names are listed in metadata/schemaName for each.",
+
+        "mx_approver_team_id": {
+          "defaultValue": "",
+          "type":         "String",
+          "metadata": {
+            "schemaName":  "cr_mx_approver_team_id",
+            "description": "Microsoft Teams Team ID where Adaptive Cards are posted (e.g., 19:abc123...@thread.tacv2)"
+          }
+        },
+        "mx_approver_channel_id": {
+          "defaultValue": "",
+          "type":         "String",
+          "metadata": {
+            "schemaName":  "cr_mx_approver_channel_id",
+            "description": "Channel ID within the approver Team where cards are posted (e.g., Logan RMM channel)"
+          }
+        },
+        "mx_outlook_calendar": {
+          "defaultValue": "",
+          "type":         "String",
+          "metadata": {
+            "schemaName":  "cr_mx_outlook_calendar",
+            "description": "Shared Outlook calendar name or ID for approved MX events (e.g., 'Logan MX Calendar')"
+          }
+        },
+        "mx_request_timeout_hours": {
+          "defaultValue": 24,
+          "type":         "Int",
+          "metadata": {
+            "schemaName":  "cr_mx_request_timeout_hours",
+            "description": "Hours to wait for RMM decision before auto-escalating to Director"
+          }
+        },
+        "mx_audit_retention_days": {
+          "defaultValue": 2555,
+          "type":         "Int",
+          "metadata": {
+            "schemaName":  "cr_mx_audit_retention_days",
+            "description": "Days to retain cr_audit rows (default 2555 = 7 years per HIPAA)"
+          }
+        },
+        "mx_app_deeplink_base": {
+          "defaultValue": "https://make.powerapps.com/",
+          "type":         "String",
+          "metadata": {
+            "schemaName":  "cr_mx_app_deeplink_base",
+            "description": "URL prefix for deep-links from Outlook events / Teams messages back into MX Connect"
+          }
+        },
+        "mx_director_email": {
+          "defaultValue": "",
+          "type":         "String",
+          "metadata": {
+            "schemaName":  "cr_mx_director_email",
+            "description": "Director-group email address for timeout escalations (e.g., directors@ihc.org)"
+          }
+        }
       },
       "triggers": {
         "When_a_row_is_added": {
@@ -73,7 +132,7 @@
               "item/cr_subject_id":       "@{triggerOutputs()?['body/cr_mx_requestid']}",
               "item/cr_correlation":      "@{variables('vAuditCorrelation')}",
               "item/cr_metadata":         "@{string(triggerOutputs()?['body'])}",
-              "item/cr_retention_until":  "@{addDays(utcNow(), int(parameters('mx_audit_retention_days')))}"
+              "item/cr_retention_until":  "@{addDays(utcNow(), parameters('mx_audit_retention_days'))}"
             }
           },
           "runAfter": { "Initialize_audit_correlation": ["Succeeded"] }
@@ -118,6 +177,9 @@
 
         "Post_card_and_wait": {
           "type": "OpenApiConnectionWebhook",
+          "limit": {
+            "timeout": "PT24H"
+          },
           "inputs": {
             "host": {
               "connectionName": "shared_teams",
@@ -134,7 +196,7 @@
             }
           },
           "runAfter": { "Compose_card_body": ["Succeeded"] },
-          "_comment": "Wait for response timeout: configure via Settings -> Timeout -> PT24H (or env var). On timeout, the action errors and the Configure_run_after on Audit_escalated should catch it."
+          "_comment": "Hard-coded 24h timeout matches the default mx_request_timeout_hours. If the env var is changed, the limit.timeout here must be updated to match (Logic Apps doesn't allow @parameters() inside limit blocks). Below: TimedOut and Failed states are caught by the Update_request_escalated branch."
         },
 
         "Decision": {
@@ -234,7 +296,7 @@
                       "item/cr_correlation":      "@{variables('vAuditCorrelation')}",
                       "item/cr_comment":          "@{outputs('Post_card_and_wait')?['body/data/comment']}",
                       "item/cr_metadata":         "@{string(outputs('Post_card_and_wait')?['body'])}",
-                      "item/cr_retention_until":  "@{addDays(utcNow(), int(parameters('mx_audit_retention_days')))}"
+                      "item/cr_retention_until":  "@{addDays(utcNow(), parameters('mx_audit_retention_days'))}"
                     }
                   },
                   "runAfter": { "DM_requestor_approved": ["Succeeded"] }
@@ -299,7 +361,7 @@
                       "item/cr_correlation":      "@{variables('vAuditCorrelation')}",
                       "item/cr_comment":          "@{outputs('Post_card_and_wait')?['body/data/comment']}",
                       "item/cr_metadata":         "@{string(outputs('Post_card_and_wait')?['body'])}",
-                      "item/cr_retention_until":  "@{addDays(utcNow(), int(parameters('mx_audit_retention_days')))}"
+                      "item/cr_retention_until":  "@{addDays(utcNow(), parameters('mx_audit_retention_days'))}"
                     }
                   },
                   "runAfter": { "DM_requestor_denied": ["Succeeded"] }
@@ -309,6 +371,68 @@
           },
           "default": { "actions": {} },
           "runAfter": { "Post_card_and_wait": ["Succeeded"] }
+        },
+
+        "_comment_escalation_branch": "The three actions below catch the TimedOut and Failed states of Post_card_and_wait. They run in parallel to (not after) Decision — Decision runs only on Succeeded; this branch runs only when the approver didn't respond in time or the Teams post itself errored.",
+
+        "Update_request_escalated": {
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "connectionName": "shared_commondataserviceforapps",
+              "operationId": "UpdateRecord",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "entityName": "cr_mx_requests",
+              "recordId":   "@{triggerOutputs()?['body/cr_mx_requestid']}",
+              "item/cr_decision_comment": "@{concat('Auto-escalated to Director after ', parameters('mx_request_timeout_hours'), 'h without RMM decision.')}"
+            }
+          },
+          "runAfter": { "Post_card_and_wait": ["TimedOut", "Failed"] }
+        },
+
+        "Email_director_escalation": {
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "connectionName": "shared_office365",
+              "operationId": "SendEmailV2",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365"
+            },
+            "parameters": {
+              "emailMessage/To":      "@{parameters('mx_director_email')}",
+              "emailMessage/Subject": "@{concat('[MX Connect Escalation] ', triggerOutputs()?['body/cr_request_number'], ' · ', triggerOutputs()?['body/cr_aircraft_tail'], ' awaiting decision')}",
+              "emailMessage/Body":    "<p>The following MX request has been awaiting RMM decision for over @{parameters('mx_request_timeout_hours')} hours and has been auto-escalated.</p><p><strong>Request:</strong> @{triggerOutputs()?['body/cr_request_number']}<br><strong>Aircraft:</strong> @{triggerOutputs()?['body/cr_aircraft_tail']} · @{triggerOutputs()?['body/cr_aircraft_type']}<br><strong>Type:</strong> @{triggerOutputs()?['body/cr_request_type@OData.Community.Display.V1.FormattedValue']}<br><strong>Window:</strong> @{formatDateTime(triggerOutputs()?['body/cr_window_start'], 'ddd MMM d · HH:mm')} → @{formatDateTime(triggerOutputs()?['body/cr_window_end'], 'ddd MMM d · HH:mm')}<br><strong>Base:</strong> @{triggerOutputs()?['body/cr_base']}<br><strong>Requestor:</strong> @{triggerOutputs()?['body/cr_requested_by@OData.Community.Display.V1.FormattedValue']}</p><p><a href='@{parameters('mx_app_deeplink_base')}@{triggerOutputs()?['body/cr_mx_requestid']}'>Open in MX Connect</a></p>",
+              "emailMessage/Importance":  "High",
+              "emailMessage/Body_Type":   "HTML"
+            }
+          },
+          "runAfter": { "Update_request_escalated": ["Succeeded"] }
+        },
+
+        "Audit_escalated": {
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "connectionName": "shared_commondataserviceforapps",
+              "operationId": "CreateRecord",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "entityName": "cr_audits",
+              "item/cr_event_at":         "@{utcNow()}",
+              "item/cr_actor_role":       "System",
+              "item/cr_action":           5,
+              "item/cr_subject_table":    "cr_mx_request",
+              "item/cr_subject_id":       "@{triggerOutputs()?['body/cr_mx_requestid']}",
+              "item/cr_correlation":      "@{variables('vAuditCorrelation')}",
+              "item/cr_comment":          "@{concat('Auto-escalated after ', parameters('mx_request_timeout_hours'), 'h without RMM decision; email sent to ', parameters('mx_director_email'))}",
+              "item/cr_metadata":         "@{string(outputs('Post_card_and_wait'))}",
+              "item/cr_retention_until":  "@{addDays(utcNow(), parameters('mx_audit_retention_days'))}"
+            }
+          },
+          "runAfter": { "Email_director_escalation": ["Succeeded"] }
         }
       }
     }
