@@ -241,20 +241,17 @@ export default function MobileTab({ persona }) {
           Mobile · {persona?.roleTitle || 'Field View'}
         </div>
         <div className="text-[20px] font-semibold tracking-tight">
-          Same workflow, two builds
+          Same workflow in mobile
         </div>
         <div className="text-[12.5px] text-neutral-400 mt-1 max-w-[640px]">
           What {persona?.name?.split(' ')[0] || 'this role'} sees on their phone.
-          The custom build is a React PWA installed to the home screen; the M365
+          the M365
           build is the Power Apps mobile shell loading the same Dataverse tables.
           Switch personas in the left rail to see other roles.
         </div>
       </div>
 
       <div className="px-7 pb-10 flex items-start justify-center gap-10 flex-wrap">
-        <PhoneColumn label="Custom" sub="MX Connect · React PWA">
-          <CustomPhone spec={spec} persona={persona} />
-        </PhoneColumn>
         <PhoneColumn label="M365" sub="Power Apps mobile">
           <M365Phone spec={spec} persona={persona} />
         </PhoneColumn>
