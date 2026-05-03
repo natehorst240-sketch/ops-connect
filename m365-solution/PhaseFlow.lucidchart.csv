@@ -1,0 +1,24 @@
+Id,Name,Shape Library,Page ID,Contained By,Line Source,Line Destination,Source Arrow,Destination Arrow,Status,Comments
+1,Phase 1 · Request → Approval,Containers,1,,,,,,greenlit,6–8 weeks · $60–100k · Stock Power Apps + Power Automate + Teams + Dataverse + Outlook
+2,Phase 2 · Operations Layer,Containers,1,,,,,,proposed,10–14 weeks · $120–180k · Read-only Scheduler + Fleet Map + 4 custom connectors
+3,Phase 3 · Analytics + Live Tracking,Containers,1,,,,,,gated,12–16 weeks · $100–150k · Gated on 1000 Power BI Pro licenses
+10,AMT submits from phone,Flowchart Shapes,1,1,,,,,,Power Apps Mobile canvas form
+11,Dataverse cr_mx_request,Flowchart Shapes,1,1,,,,,,16-column schema + cr_audit
+12,Power Automate flow,Process Diagram Shapes,1,1,,,,,,mxr-approval-flow-v2
+13,Adaptive Card in Teams,Flowchart Shapes,1,1,,,,,,RMM approves/denies w/ comment
+14,Outlook calendar event,Flowchart Shapes,1,1,,,,,,Created on approval
+15,DM + audit log,Flowchart Shapes,1,1,,,,,,Requestor notified
+20,4 custom connectors,Process Diagram Shapes,1,2,,,,,,Veryon + CompleteFlight + ProteanHub + SkyRouter
+21,Read-only Scheduler,Flowchart Shapes,1,2,,,,,,7-day Gantt mirror
+22,Stock Fleet Map,Flowchart Shapes,1,2,,,,,,Bing pins · 15-min refresh
+23,Conflict detection flow,Process Diagram Shapes,1,2,,,,,,Server-side · cached in cr_conflict
+24,Time-off + open-shift workflows,Flowchart Shapes,1,2,,,,,,Reuses Phase 1 pipeline
+25,Bulletins + safety reports,Flowchart Shapes,1,2,,,,,,Lightweight forms + Teams broadcast
+30,Power BI semantic model,Flowchart Shapes,1,3,,,,,,DirectQuery + imported aggregations + DAX measures
+31,4 static reports,Flowchart Shapes,1,3,,,,,,Fleet Overview + Inspections + Utilization + Compliance
+32,Streaming dataset,Process Diagram Shapes,1,3,,,,,,SkyRouter → Azure Function → Power BI push
+33,Live Fleet map,Flowchart Shapes,1,3,,,,,,ArcGIS or Mapbox · sub-30s refresh
+34,Self-service slicers,Flowchart Shapes,1,3,,,,,,RLS by region
+35,PDF / PPT exports,Flowchart Shapes,1,3,,,,,,Scheduled weekly to exec leadership
+100,Phase 1 enables Phase 2,,,,1,2,Open,Solid,,Phase 1 audit + approval surface required for Phase 2
+101,Phase 2 enables Phase 3,,,,2,3,Open,Solid,,Phase 2 Dataverse tables required for Phase 3 reports

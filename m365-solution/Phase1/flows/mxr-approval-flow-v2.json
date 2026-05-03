@@ -1,0 +1,440 @@
+{
+  "_comment": "Power Automate cloud flow definition for mxr-approval-flow-v2. This is the shape the flow takes when exported from a solution via `pac solution export`. To import: unpack the parent solution.zip, drop this file under Workflows/, repack, and import. To build manually instead, follow the action sequence as a recipe in Power Automate Studio. Token replacements: `cr_` -> your tenant publisher prefix; `@parameters('$connections')['shared_commondataserviceforapps']['connectionId']` -> your Dataverse connection reference id.",
+
+  "properties": {
+    "connectionReferences": {
+      "shared_commondataserviceforapps": {
+        "runtimeSource": "embedded",
+        "connection": { "connectionReferenceLogicalName": "cr_DataverseConnection" },
+        "api": { "name": "shared_commondataserviceforapps" }
+      },
+      "shared_teams": {
+        "runtimeSource": "embedded",
+        "connection": { "connectionReferenceLogicalName": "cr_TeamsConnection" },
+        "api": { "name": "shared_teams" }
+      },
+      "shared_office365": {
+        "runtimeSource": "embedded",
+        "connection": { "connectionReferenceLogicalName": "cr_OutlookConnection" },
+        "api": { "name": "shared_office365" }
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$connections":            { "defaultValue": {}, "type": "Object" },
+        "$authentication":         { "defaultValue": {}, "type": "SecureObject" },
+
+        "_comment_environment_variables": "The seven mx_* parameters below are bound to Dataverse environment variables at solution-import time. Default values here are dev-environment fallbacks; the real values are set per-environment in Solutions > MXConnect > Environment variables. The bound env-var schema names are listed in metadata/schemaName for each.",
+
+        "mx_approver_team_id": {
+          "defaultValue": "",
+          "type":         "String",
+          "metadata": {
+            "schemaName":  "cr_mx_approver_team_id",
+            "description": "Microsoft Teams Team ID where Adaptive Cards are posted (e.g., 19:abc123...@thread.tacv2)"
+          }
+        },
+        "mx_approver_channel_id": {
+          "defaultValue": "",
+          "type":         "String",
+          "metadata": {
+            "schemaName":  "cr_mx_approver_channel_id",
+            "description": "Channel ID within the approver Team where cards are posted (e.g., Logan RMM channel)"
+          }
+        },
+        "mx_outlook_calendar": {
+          "defaultValue": "",
+          "type":         "String",
+          "metadata": {
+            "schemaName":  "cr_mx_outlook_calendar",
+            "description": "Shared Outlook calendar name or ID for approved MX events (e.g., 'Logan MX Calendar')"
+          }
+        },
+        "mx_request_timeout_hours": {
+          "defaultValue": 24,
+          "type":         "Int",
+          "metadata": {
+            "schemaName":  "cr_mx_request_timeout_hours",
+            "description": "Hours to wait for RMM decision before auto-escalating to Director"
+          }
+        },
+        "mx_audit_retention_days": {
+          "defaultValue": 2555,
+          "type":         "Int",
+          "metadata": {
+            "schemaName":  "cr_mx_audit_retention_days",
+            "description": "Days to retain cr_audit rows (default 2555 = 7 years per HIPAA)"
+          }
+        },
+        "mx_app_deeplink_base": {
+          "defaultValue": "https://make.powerapps.com/",
+          "type":         "String",
+          "metadata": {
+            "schemaName":  "cr_mx_app_deeplink_base",
+            "description": "URL prefix for deep-links from Outlook events / Teams messages back into MX Connect"
+          }
+        },
+        "mx_director_email": {
+          "defaultValue": "",
+          "type":         "String",
+          "metadata": {
+            "schemaName":  "cr_mx_director_email",
+            "description": "Director-group email address for timeout escalations (e.g., directors@ihc.org)"
+          }
+        }
+      },
+      "triggers": {
+        "When_a_row_is_added": {
+          "type": "OpenApiConnectionWebhook",
+          "inputs": {
+            "host": {
+              "connectionName": "shared_commondataserviceforapps",
+              "operationId": "SubscribeWebhookTrigger",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "subscriptionRequest/message":       1,
+              "subscriptionRequest/entityname":    "cr_mx_request",
+              "subscriptionRequest/scope":         4,
+              "subscriptionRequest/filteringattributes": "cr_status",
+              "subscriptionRequest/filterexpression": "cr_status eq 1"
+            }
+          },
+          "_comment": "scope 4 = Organization. cr_status eq 1 = Submitted. Filtering attributes ensures the trigger only fires on Submitted-state rows, not every Approve/Deny update."
+        }
+      },
+      "actions": {
+        "Initialize_audit_correlation": {
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [{ "name": "vAuditCorrelation", "type": "string", "value": "@{triggerOutputs()?['body/cr_audit_correlation']}" }]
+          },
+          "runAfter": {}
+        },
+
+        "Audit_submitted": {
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "connectionName": "shared_commondataserviceforapps",
+              "operationId": "CreateRecord",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "entityName": "cr_audits",
+              "item/cr_event_at":         "@{utcNow()}",
+              "item/cr_actor@odata.bind": "systemusers(@{triggerOutputs()?['body/_cr_requested_by_value']})",
+              "item/cr_actor_role":       "AMT",
+              "item/cr_action":           1,
+              "item/cr_subject_table":    "cr_mx_request",
+              "item/cr_subject_id":       "@{triggerOutputs()?['body/cr_mx_requestid']}",
+              "item/cr_correlation":      "@{variables('vAuditCorrelation')}",
+              "item/cr_metadata":         "@{string(triggerOutputs()?['body'])}",
+              "item/cr_retention_until":  "@{addDays(utcNow(), parameters('mx_audit_retention_days'))}"
+            }
+          },
+          "runAfter": { "Initialize_audit_correlation": ["Succeeded"] }
+        },
+
+        "Compose_card_body": {
+          "type": "Compose",
+          "inputs": {
+            "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+            "type": "AdaptiveCard",
+            "version": "1.5",
+            "_comment": "This compose embeds the approval-card.json template with token substitution. In production, store the template in a Dataverse environment variable or SharePoint, fetch it, and string-replace.",
+            "body": [
+              {
+                "type": "Container", "style": "emphasis", "bleed": true,
+                "items": [
+                  { "type": "TextBlock", "text": "MX REQUEST · APPROVAL NEEDED", "weight": "Bolder", "color": "Accent" },
+                  { "type": "TextBlock", "text": "@{triggerOutputs()?['body/cr_aircraft_tail']} · @{triggerOutputs()?['body/cr_request_type@OData.Community.Display.V1.FormattedValue']}", "weight": "Bolder", "size": "Large" },
+                  { "type": "TextBlock", "text": "Request @{triggerOutputs()?['body/cr_request_number']} · Priority: @{triggerOutputs()?['body/cr_priority@OData.Community.Display.V1.FormattedValue']}", "size": "Small", "isSubtle": true }
+                ]
+              },
+              {
+                "type": "FactSet",
+                "facts": [
+                  { "title": "Aircraft",  "value": "@{triggerOutputs()?['body/cr_aircraft_tail']} · @{triggerOutputs()?['body/cr_aircraft_type']}" },
+                  { "title": "Window",    "value": "@{formatDateTime(triggerOutputs()?['body/cr_window_start'], 'ddd MMM d · HH:mm')} → @{formatDateTime(triggerOutputs()?['body/cr_window_end'], 'ddd MMM d · HH:mm')}" },
+                  { "title": "Base",      "value": "@{triggerOutputs()?['body/cr_base']}" },
+                  { "title": "Requestor", "value": "@{triggerOutputs()?['body/cr_requested_by@OData.Community.Display.V1.FormattedValue']}" }
+                ]
+              },
+              { "type": "TextBlock", "text": "Reason", "weight": "Bolder", "spacing": "Medium" },
+              { "type": "TextBlock", "text": "@{triggerOutputs()?['body/cr_reason']}", "wrap": true },
+              { "type": "Input.Text", "id": "comment", "label": "Comment (optional, attached to audit log)", "placeholder": "Add a note before deciding…", "maxLength": 500 }
+            ],
+            "actions": [
+              { "type": "Action.Submit", "title": "✅ Approve", "data": { "action": "approve", "requestId": "@{triggerOutputs()?['body/cr_mx_requestid']}" }, "style": "positive" },
+              { "type": "Action.Submit", "title": "❌ Deny",    "data": { "action": "deny",    "requestId": "@{triggerOutputs()?['body/cr_mx_requestid']}" }, "style": "destructive" }
+            ]
+          },
+          "runAfter": { "Audit_submitted": ["Succeeded"] }
+        },
+
+        "Post_card_and_wait": {
+          "type": "OpenApiConnectionWebhook",
+          "limit": {
+            "timeout": "PT24H"
+          },
+          "inputs": {
+            "host": {
+              "connectionName": "shared_teams",
+              "operationId": "PostAdaptiveCardAndWaitForResponse",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams"
+            },
+            "parameters": {
+              "poster":     "Flow bot",
+              "location":   "Channel",
+              "messageBody": "@{outputs('Compose_card_body')}",
+              "recipient/groupId":   "@{parameters('mx_approver_team_id')}",
+              "recipient/channelId": "@{parameters('mx_approver_channel_id')}",
+              "updateMessage":       "Decision recorded."
+            }
+          },
+          "runAfter": { "Compose_card_body": ["Succeeded"] },
+          "_comment": "Hard-coded 24h timeout matches the default mx_request_timeout_hours. If the env var is changed, the limit.timeout here must be updated to match (Logic Apps doesn't allow @parameters() inside limit blocks). Below: TimedOut and Failed states are caught by the Update_request_escalated branch."
+        },
+
+        "Decision": {
+          "type": "Switch",
+          "expression": "@outputs('Post_card_and_wait')?['body/data/action']",
+          "cases": {
+            "Approve": {
+              "case": "approve",
+              "actions": {
+                "Update_request_approved": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "UpdateRecord",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "entityName": "cr_mx_requests",
+                      "recordId":   "@{triggerOutputs()?['body/cr_mx_requestid']}",
+                      "item/cr_status":           2,
+                      "item/cr_decided_at":       "@{utcNow()}",
+                      "item/cr_decision_comment": "@{outputs('Post_card_and_wait')?['body/data/comment']}",
+                      "item/cr_approver@odata.bind": "systemusers(@{outputs('Post_card_and_wait')?['body/responder/objectId']})"
+                    }
+                  }
+                },
+                "Create_outlook_event": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_office365",
+                      "operationId": "V4CalendarPostItem",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365"
+                    },
+                    "parameters": {
+                      "calendar": "@{parameters('mx_outlook_calendar')}",
+                      "event/subject":  "@{triggerOutputs()?['body/cr_aircraft_tail']} · @{triggerOutputs()?['body/cr_request_type@OData.Community.Display.V1.FormattedValue']}",
+                      "event/body":     "<a href='@{parameters('mx_app_deeplink_base')}@{triggerOutputs()?['body/cr_mx_requestid']}'>Open in MX Connect</a>",
+                      "event/start":    "@{triggerOutputs()?['body/cr_window_start']}",
+                      "event/end":      "@{triggerOutputs()?['body/cr_window_end']}",
+                      "event/timeZone": "Mountain Standard Time"
+                    }
+                  },
+                  "runAfter": { "Update_request_approved": ["Succeeded"] }
+                },
+                "Save_outlook_event_id": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "UpdateRecord",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "entityName": "cr_mx_requests",
+                      "recordId":   "@{triggerOutputs()?['body/cr_mx_requestid']}",
+                      "item/cr_outlook_event_id": "@{outputs('Create_outlook_event')?['body/id']}"
+                    }
+                  },
+                  "runAfter": { "Create_outlook_event": ["Succeeded"] }
+                },
+                "DM_requestor_approved": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_teams",
+                      "operationId": "PostMessageToConversation",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams"
+                    },
+                    "parameters": {
+                      "poster":     "Flow bot",
+                      "location":   "Chat with Flow bot",
+                      "recipient":  "@{triggerOutputs()?['body/_cr_requested_by_value']}",
+                      "messageBody/content": "✅ Your MX request **@{triggerOutputs()?['body/cr_request_number']}** for **@{triggerOutputs()?['body/cr_aircraft_tail']}** was **approved** by **@{outputs('Post_card_and_wait')?['body/responder/displayName']}**.@{if(empty(outputs('Post_card_and_wait')?['body/data/comment']), '', concat('\\n\\nComment: ', outputs('Post_card_and_wait')?['body/data/comment']))}",
+                      "messageBody/contentType": "html"
+                    }
+                  },
+                  "runAfter": { "Save_outlook_event_id": ["Succeeded"] }
+                },
+                "Audit_approved": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "CreateRecord",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "entityName": "cr_audits",
+                      "item/cr_event_at":         "@{utcNow()}",
+                      "item/cr_actor@odata.bind": "systemusers(@{outputs('Post_card_and_wait')?['body/responder/objectId']})",
+                      "item/cr_actor_role":       "RMM",
+                      "item/cr_action":           2,
+                      "item/cr_subject_table":    "cr_mx_request",
+                      "item/cr_subject_id":       "@{triggerOutputs()?['body/cr_mx_requestid']}",
+                      "item/cr_correlation":      "@{variables('vAuditCorrelation')}",
+                      "item/cr_comment":          "@{outputs('Post_card_and_wait')?['body/data/comment']}",
+                      "item/cr_metadata":         "@{string(outputs('Post_card_and_wait')?['body'])}",
+                      "item/cr_retention_until":  "@{addDays(utcNow(), parameters('mx_audit_retention_days'))}"
+                    }
+                  },
+                  "runAfter": { "DM_requestor_approved": ["Succeeded"] }
+                }
+              }
+            },
+            "Deny": {
+              "case": "deny",
+              "actions": {
+                "Update_request_denied": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "UpdateRecord",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "entityName": "cr_mx_requests",
+                      "recordId":   "@{triggerOutputs()?['body/cr_mx_requestid']}",
+                      "item/cr_status":           3,
+                      "item/cr_decided_at":       "@{utcNow()}",
+                      "item/cr_decision_comment": "@{outputs('Post_card_and_wait')?['body/data/comment']}",
+                      "item/cr_approver@odata.bind": "systemusers(@{outputs('Post_card_and_wait')?['body/responder/objectId']})"
+                    }
+                  }
+                },
+                "DM_requestor_denied": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_teams",
+                      "operationId": "PostMessageToConversation",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams"
+                    },
+                    "parameters": {
+                      "poster":     "Flow bot",
+                      "location":   "Chat with Flow bot",
+                      "recipient":  "@{triggerOutputs()?['body/_cr_requested_by_value']}",
+                      "messageBody/content": "❌ Your MX request **@{triggerOutputs()?['body/cr_request_number']}** was **denied** by **@{outputs('Post_card_and_wait')?['body/responder/displayName']}**.@{if(empty(outputs('Post_card_and_wait')?['body/data/comment']), '', concat('\\n\\nReason: ', outputs('Post_card_and_wait')?['body/data/comment']))}",
+                      "messageBody/contentType": "html"
+                    }
+                  },
+                  "runAfter": { "Update_request_denied": ["Succeeded"] }
+                },
+                "Audit_denied": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "CreateRecord",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "entityName": "cr_audits",
+                      "item/cr_event_at":         "@{utcNow()}",
+                      "item/cr_actor@odata.bind": "systemusers(@{outputs('Post_card_and_wait')?['body/responder/objectId']})",
+                      "item/cr_actor_role":       "RMM",
+                      "item/cr_action":           3,
+                      "item/cr_subject_table":    "cr_mx_request",
+                      "item/cr_subject_id":       "@{triggerOutputs()?['body/cr_mx_requestid']}",
+                      "item/cr_correlation":      "@{variables('vAuditCorrelation')}",
+                      "item/cr_comment":          "@{outputs('Post_card_and_wait')?['body/data/comment']}",
+                      "item/cr_metadata":         "@{string(outputs('Post_card_and_wait')?['body'])}",
+                      "item/cr_retention_until":  "@{addDays(utcNow(), parameters('mx_audit_retention_days'))}"
+                    }
+                  },
+                  "runAfter": { "DM_requestor_denied": ["Succeeded"] }
+                }
+              }
+            }
+          },
+          "default": { "actions": {} },
+          "runAfter": { "Post_card_and_wait": ["Succeeded"] }
+        },
+
+        "_comment_escalation_branch": "The three actions below catch the TimedOut and Failed states of Post_card_and_wait. They run in parallel to (not after) Decision — Decision runs only on Succeeded; this branch runs only when the approver didn't respond in time or the Teams post itself errored.",
+
+        "Update_request_escalated": {
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "connectionName": "shared_commondataserviceforapps",
+              "operationId": "UpdateRecord",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "entityName": "cr_mx_requests",
+              "recordId":   "@{triggerOutputs()?['body/cr_mx_requestid']}",
+              "item/cr_decision_comment": "@{concat('Auto-escalated to Director after ', parameters('mx_request_timeout_hours'), 'h without RMM decision.')}"
+            }
+          },
+          "runAfter": { "Post_card_and_wait": ["TimedOut", "Failed"] }
+        },
+
+        "Email_director_escalation": {
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "connectionName": "shared_office365",
+              "operationId": "SendEmailV2",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365"
+            },
+            "parameters": {
+              "emailMessage/To":      "@{parameters('mx_director_email')}",
+              "emailMessage/Subject": "@{concat('[MX Connect Escalation] ', triggerOutputs()?['body/cr_request_number'], ' · ', triggerOutputs()?['body/cr_aircraft_tail'], ' awaiting decision')}",
+              "emailMessage/Body":    "<p>The following MX request has been awaiting RMM decision for over @{parameters('mx_request_timeout_hours')} hours and has been auto-escalated.</p><p><strong>Request:</strong> @{triggerOutputs()?['body/cr_request_number']}<br><strong>Aircraft:</strong> @{triggerOutputs()?['body/cr_aircraft_tail']} · @{triggerOutputs()?['body/cr_aircraft_type']}<br><strong>Type:</strong> @{triggerOutputs()?['body/cr_request_type@OData.Community.Display.V1.FormattedValue']}<br><strong>Window:</strong> @{formatDateTime(triggerOutputs()?['body/cr_window_start'], 'ddd MMM d · HH:mm')} → @{formatDateTime(triggerOutputs()?['body/cr_window_end'], 'ddd MMM d · HH:mm')}<br><strong>Base:</strong> @{triggerOutputs()?['body/cr_base']}<br><strong>Requestor:</strong> @{triggerOutputs()?['body/cr_requested_by@OData.Community.Display.V1.FormattedValue']}</p><p><a href='@{parameters('mx_app_deeplink_base')}@{triggerOutputs()?['body/cr_mx_requestid']}'>Open in MX Connect</a></p>",
+              "emailMessage/Importance":  "High",
+              "emailMessage/Body_Type":   "HTML"
+            }
+          },
+          "runAfter": { "Update_request_escalated": ["Succeeded"] }
+        },
+
+        "Audit_escalated": {
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "connectionName": "shared_commondataserviceforapps",
+              "operationId": "CreateRecord",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "entityName": "cr_audits",
+              "item/cr_event_at":         "@{utcNow()}",
+              "item/cr_actor_role":       "System",
+              "item/cr_action":           5,
+              "item/cr_subject_table":    "cr_mx_request",
+              "item/cr_subject_id":       "@{triggerOutputs()?['body/cr_mx_requestid']}",
+              "item/cr_correlation":      "@{variables('vAuditCorrelation')}",
+              "item/cr_comment":          "@{concat('Auto-escalated after ', parameters('mx_request_timeout_hours'), 'h without RMM decision; email sent to ', parameters('mx_director_email'))}",
+              "item/cr_metadata":         "@{string(outputs('Post_card_and_wait'))}",
+              "item/cr_retention_until":  "@{addDays(utcNow(), parameters('mx_audit_retention_days'))}"
+            }
+          },
+          "runAfter": { "Email_director_escalation": ["Succeeded"] }
+        }
+      }
+    }
+  }
+}

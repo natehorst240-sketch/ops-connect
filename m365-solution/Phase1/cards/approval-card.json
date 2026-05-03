@@ -1,0 +1,101 @@
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "type": "AdaptiveCard",
+  "version": "1.5",
+  "msteams": {
+    "width": "Full"
+  },
+  "body": [
+    {
+      "type": "Container",
+      "style": "emphasis",
+      "bleed": true,
+      "items": [
+        {
+          "type": "TextBlock",
+          "text": "MX REQUEST · APPROVAL NEEDED",
+          "wrap": true,
+          "size": "Small",
+          "weight": "Bolder",
+          "color": "Accent",
+          "spacing": "None"
+        },
+        {
+          "type": "TextBlock",
+          "text": "${tail} · ${requestType}",
+          "wrap": true,
+          "size": "Large",
+          "weight": "Bolder",
+          "spacing": "Small"
+        },
+        {
+          "type": "TextBlock",
+          "text": "Request ${requestNumber} · Priority: ${priority}",
+          "wrap": true,
+          "size": "Small",
+          "isSubtle": true,
+          "spacing": "None"
+        }
+      ]
+    },
+    {
+      "type": "FactSet",
+      "spacing": "Medium",
+      "facts": [
+        { "title": "Aircraft",   "value": "${tail} · ${aircraftType}" },
+        { "title": "Window",     "value": "${windowStart} → ${windowEnd}" },
+        { "title": "Base",       "value": "${base}" },
+        { "title": "Requestor",  "value": "${requestorName} (${requestorRole})" }
+      ]
+    },
+    {
+      "type": "TextBlock",
+      "text": "Reason",
+      "wrap": true,
+      "size": "Small",
+      "weight": "Bolder",
+      "spacing": "Medium"
+    },
+    {
+      "type": "TextBlock",
+      "text": "${reason}",
+      "wrap": true,
+      "size": "Small",
+      "spacing": "Small"
+    },
+    {
+      "type": "Input.Text",
+      "id": "comment",
+      "label": "Comment (optional, attached to the audit log)",
+      "placeholder": "Add a note before deciding…",
+      "isMultiline": false,
+      "maxLength": 500,
+      "spacing": "Medium"
+    }
+  ],
+  "actions": [
+    {
+      "type": "Action.Submit",
+      "title": "✅ Approve",
+      "data": {
+        "action": "approve",
+        "requestId": "${requestId}"
+      },
+      "style": "positive"
+    },
+    {
+      "type": "Action.Submit",
+      "title": "❌ Deny",
+      "data": {
+        "action": "deny",
+        "requestId": "${requestId}"
+      },
+      "style": "destructive"
+    },
+    {
+      "type": "Action.OpenUrl",
+      "title": "Open in MX Connect",
+      "url": "${appDeepLink}"
+    }
+  ]
+}
