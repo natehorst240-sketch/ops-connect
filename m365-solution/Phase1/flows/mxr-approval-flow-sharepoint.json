@@ -1,5 +1,5 @@
 {
-  "_comment": "Power Automate cloud flow for Phase 1 (SharePoint Lists data layer). Token replacements at import: ${SITE_URL} -> SharePoint site absolute URL (e.g. https://ihc.sharepoint.com/sites/MXConnect); ${LIST_MX_REQUESTS} -> GUID of the 'MX Requests' list; ${LIST_AUDIT_LOG} -> GUID of the 'Audit Log' list; ${LIST_AIRCRAFT} -> GUID of the 'Aircraft' list. The seven mx_* parameters are filled in via Solution > Environment variables (Phase 2) or hard-coded into the flow at import time (Phase 1, since SharePoint-only deployments can skip the Dataverse env-var feature).",
+  "_comment": "**DEPRECATED — SharePoint Lists fallback only.** Phase 1 now ships on Dataverse. The canonical Phase 1 flow is `mxr-approval-flow-v2.json` in this same directory (Dataverse-bound, 4-decision matrix, per-channel routing). This SharePoint variant only handles 2 decisions (Approve/Deny) and lacks Request Info / Escalate / Scheduler routing. Use only if your tenant has no Dataverse capacity and you must fall back to SharePoint Lists. Token replacements at import: ${SITE_URL} -> SharePoint site absolute URL; ${LIST_MX_REQUESTS} / ${LIST_AUDIT_LOG} / ${LIST_AIRCRAFT} -> list GUIDs.",
 
   "properties": {
     "connectionReferences": {
