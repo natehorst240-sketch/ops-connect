@@ -1,0 +1,6 @@
+Title,Event ID,Source System,Source Event ID,Aircraft Tail,Event Type,Label,Window Start,Window End,Priority,Base,Source URL,Last Synced At
+EVT-000001,EVT-000001,CompleteFlight,CF-12345,N281HC,inspection,O2 bottle exchange,5/4/2026 07:00,5/4/2026 11:00,Normal,"IMED Hangar, UT",https://app.completeflight.com/inspections/CF-12345,5/2/2026 09:00
+EVT-000002,EVT-000002,ProteanHub,PH-67890,N631HC,mx,Scheduled MX float coverage,5/2/2026 07:00,5/9/2026 17:00,Normal,Unassigned,https://protean.hub/maintenance/PH-67890,5/2/2026 09:00
+EVT-000003,EVT-000003,ProteanHub,PH-67891,N291HC,aog,AOG awaiting parts,5/2/2026 00:00,5/9/2026 23:59,Critical,"McKay Dee, UT",https://protean.hub/aog/PH-67891,5/2/2026 09:00
+EVT-000004,EVT-000004,CompleteFlight,CF-12346,N431HC,training,Pilot recurrent training,5/6/2026 08:00,5/7/2026 17:00,Normal,"Logan, UT",https://app.completeflight.com/training/CF-12346,5/2/2026 09:00
+EVT-000005,EVT-000005,ProteanHub,PH-67892,N407FC,mx,Gearbox oil change,5/3/2026 06:00,5/3/2026 18:00,High,"Lander, WY",https://protean.hub/maintenance/PH-67892,5/2/2026 09:00

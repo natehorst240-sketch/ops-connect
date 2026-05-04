@@ -1,0 +1,45 @@
+Title,City,State,Primary Region,Operations,Has Maintenance Office,Notes
+"Logan, UT",Logan,UT,109 UT,RW,Yes,N431HC
+"McKay Dee, UT",Ogden,UT,109 UT,RW,Yes,Hospital base — N291HC
+"IMED Hangar, UT",Murray,UT,109 UT,RW,Yes,Intermountain Medical Center hangar — N281HC
+"Provo, UT",Provo,UT,109 UT,RW,Yes,N531HC
+"Roosevelt, UT",Roosevelt,UT,109 UT,RW,Yes,N271HC
+"Cedar City, UT",Cedar City,UT,109 UT,RW,Yes,N261HC — source had typo "Cedary City" in one row
+"St. George, UT",St. George,UT,109 UT + SLC FW,RW + FW,Yes,N251HC (RW) + N481HC (FW)
+"(FW) SLC, UT",Salt Lake City,UT,SLC FW,FW,Yes,Fixed-wing hangar — N301HC N346CC N381HC N581HC N681HC N781HC N981HC
+"(RW) SLC, UT",Salt Lake City,UT,109 UT,RW,Yes,Rotor-wing hangar
+"SLC HQ, UT",Salt Lake City,UT,SLC,Office,Yes,QA / Scheduler / Parts / DOM offices
+"Bountiful, UT",Bountiful,UT,WOODSCROSS,RW + Office,Yes,Woodscross maintenance facility — N206SG
+"Burley, ID",Burley,ID,ID/NV,RW,Yes,N407BY
+"Cortez, CO",Cortez,CO,CO/NM,RW + FW,Yes,N407SL + N315NG
+"Elko, NV",Elko,NV,ID/NV,RW + FW,Yes,N469JX + N775CC
+"Ely, NV",Ely,NV,ID/NV,RW,Yes,N407PW
+"Fort Mohave, AZ",Fort Mohave,AZ,UT/AZ,RW,Yes,N407CZ
+"Glenwood Springs, CO",Glenwood Springs,CO,CO/NM,RW,Yes,N407LP
+"Greybull, WY",Greybull,WY,WY/MT,RW,Yes,N39KM
+"Kingman, AZ",Kingman,AZ,UT/AZ,RW,Yes,N407FM
+"Lander, WY",Lander,WY,WY/MT,RW,Yes,N407FC
+"Las Vegas, NV",Las Vegas,NV,ID/NV,Coverage,No,Coverage area only — no aircraft assigned
+"Los Alamos, NM",Los Alamos,NM,CO/NM,RW,Yes,N407MZ + N862YB
+"Moab, UT",Moab,UT,UT/AZ,RW,Yes,N407TH
+"Page, AZ",Page,AZ,PAGE,RW + FW,Yes,N407CH N407NW + N868PE N90HG
+"Pagosa Springs, CO",Pagosa Springs,CO,CO/NM,FW,Yes,N207NX
+"Rawlins, WY",Rawlins,WY,WY/MT,RW,Yes,N407TK
+"Rexburg, ID",Rexburg,ID,ID/NV,RW,Yes,N407CN
+"Richfield, UT",Richfield,UT,UT/AZ,RW,Yes,N407RU
+"Riverton, WY",Riverton,WY,WY/MT,FW,Yes,N904KS
+"Steamboat Springs, CO",Steamboat Springs,CO,CO/NM,RW,Yes,N407ZM
+"Vernal, UT",Vernal,UT,WY/MT,FW,Yes,N241H
+"Winnemucca, NV",Winnemucca,NV,ID/NV,RW,Yes,N466GH
+"Billings, MT",Billings,MT,WY/MT,Coverage,No,Coverage area only — no aircraft assigned
+"Concord, NC",Concord,NC,NC Region,RW,Yes,
+"Davidson County, NC",Davidson County,NC,NC Region,RW,Yes,
+"Hickory, NC",Hickory,NC,NC Region,RW,Yes,Source had typo "Hickery"
+"Martinsville, VA",Martinsville,VA,NC Region,RW,Yes,
+"Rock Hill, SC",Rock Hill,SC,NC Region,RW,Yes,Source had typo "Rockhill"
+"Wadesboro, NC",Wadesboro,NC,NC Region,RW,Yes,
+"Wilkesboro, NC",Wilkesboro,NC,NC Region,RW,Yes,
+"Burlington, WI",Burlington,WI,WI Region,RW,Yes,
+"Hartford, WI",Hartford,WI,WI Region,RW,Yes,
+"Waukesha, WI",Waukesha,WI,WI Region,RW,Yes,
+Spare,Various,—,—,Storage,No,Spare aircraft rotation
