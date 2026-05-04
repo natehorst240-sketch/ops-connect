@@ -8,7 +8,7 @@ Gordon Mabey,Gordon,Mabey,Gordon.Mabey@imail.org,801-918-1313,AMT,109 UT,"IMED H
 Alec Overton,Alec,Overton,Alec.Overton@imail.org,801-660-7640,AMT,109 UT,"Logan, UT","Logan, UT; McKay Dee, UT",Nate Horstmeier,Yes,
 Mac Paye,Mac,Paye,Mac.Paye@imail.org,916-871-6135,AMT,109 UT,"Logan, UT","Logan, UT; McKay Dee, UT",Nate Horstmeier,Yes,
 Andrew Piegzik,Andrew,Piegzik,Andrew.Piegzik@imail.org,717-421-5997,AMT,109 UT,"(FW) SLC, UT",,Nate Horstmeier,Yes,Cross-region
-Sergey Khoroshenko,Sergey,Khoroshenko,Sergey.Khoroshenko@imail.org,215-310-8339,AMT,109 UT,"(RW) SLC, UT",,Nate Horstmeier,Yes,Source listed twice; deduped
+Sergey Khoroshenko,Sergey,Khoroshenko,Sergey.Khoroshenko@imail.org,215-310-8339,AMT,109 UT,"(RW) SLC, UT",,Nate Horstmeier,Yes,
 Sean Tito-Agustin,Sean,Tito-Agustin,Sean.Tito-Agustin@imail.org,808-722-3113,AMT,109 UT,"Provo, UT","Provo, UT; Roosevelt, UT",Nate Horstmeier,Yes,
 Steve Wilstead,Steve,Wilstead,Steve.Wilstead@imail.org,,AMT,109 UT,"Cedar City, UT","Cedar City, UT; St. George, UT",Nate Horstmeier,Yes,Phone missing in source
 Nate Horstmeier,Nate,Horstmeier,Nathan.Horstmeier@imail.org,208-319-4448,RMM,109 UT,"Logan, UT","Logan, UT; McKay Dee, UT; IMED Hangar, UT; Provo, UT; Roosevelt, UT; Cedar City, UT; St. George, UT; (RW) SLC, UT",Ryan Taul,Yes,
@@ -36,13 +36,13 @@ Jeremiah Maestrejuian,Jeremiah,Maestrejuian,Jeremiah.Maestrejuian@imail.org,775-
 Peter VanHook,Peter,VanHook,Peter.VanHook@imail.org,320-295-0058,AMT,ID/NV,"Winnemucca, NV",,John Cutright,Yes,
 John Cutright,John,Cutright,John.Cutright@imail.org,559-367-7390,RMM,ID/NV,"Burley, ID","Burley, ID; Elko, NV; Ely, NV; Winnemucca, NV; Rexburg, ID; Las Vegas, NV",Pete Robotham,Yes,
 Casey Stockall,Casey,Stockall,Casey.Stockall@imail.org,,RMM,NC Region,"Concord, NC","Rock Hill, SC; Hickory, NC; Concord, NC; Davidson County, NC; Martinsville, VA; Wilkesboro, NC; Wadesboro, NC",Billy Ortega,Yes,Phone missing in source
-Sean Brown,Sean,Brown,Sean.Brown@imail.org,928-640-1082,Supervisor / RMM,PAGE,"Page, AZ","Page, AZ",Dwight Brooks,Yes,Personnel list shows Coby.Brown@imail.org as alternate; Aircraft list treats him as PAGE RMM
-Fred Bistline,Fred,Bistline,Fredrick.Bistline@imail.org,435-233-8177,AMT,PAGE,"Page, AZ",,Dwight Brooks,Yes,
-Denton Siebrecht,Denton,Siebrecht,Denton.Siebrecht@imail.org,928-640-1840,AMT,PAGE,"Page, AZ",,Dwight Brooks,Yes,
-Joel Redman,Joel,Redman,Joel.Redman@imail.org,254-338-0593,AMT,PAGE,"Page, AZ",,Dwight Brooks,Yes,
-Joshua Williams,Joshua,Williams,Joshua.Williams@imail.org,615-390-0795,AMT,PAGE,"Page, AZ",,Dwight Brooks,Yes,
+Sean Brown,Sean,Brown,Sean.Brown@imail.org,928-640-1082,Supervisor,PAGE,"Page, AZ","Page, AZ",Pete Robotham,Yes,PAGE Supervisor reporting to DOM (Pete Robotham); Aircraft list shows him in RMM column functionally; Personnel list has Coby.Brown@imail.org as alternate
+Fred Bistline,Fred,Bistline,Fredrick.Bistline@imail.org,435-233-8177,AMT,PAGE,"Page, AZ",,Sean Brown,Yes,Reports to Sean Brown (PAGE Supervisor); per source row Leader was "Dwight Brooks" but corrected to local supervisor
+Denton Siebrecht,Denton,Siebrecht,Denton.Siebrecht@imail.org,928-640-1840,AMT,PAGE,"Page, AZ",,Sean Brown,Yes,Reports to Sean Brown (PAGE Supervisor)
+Joel Redman,Joel,Redman,Joel.Redman@imail.org,254-338-0593,AMT,PAGE,"Page, AZ",,Sean Brown,Yes,Reports to Sean Brown (PAGE Supervisor)
+Joshua Williams,Joshua,Williams,Joshua.Williams@imail.org,615-390-0795,AMT,PAGE,"Page, AZ",,Sean Brown,Yes,Reports to Sean Brown (PAGE Supervisor)
 Rachel Kihn,Rachel,Kihn,Rachel.Kihn@imail.org,910-546-6850,AMT (Rover),RW Rover,Rover,"Rexburg, ID; Burley, ID",John Cutright,Yes,
-Steven Harvey,Steven,Harvey,Steven.Harvey@imail.org,8001-946-2497,AMT (Rover),RW Rover,Rover,"Lander, WY; Rawlins, WY",Tevita Silatolu,Yes,Phone may be typo (8001 not a valid area code)
+Steven Harvey,Steven,Harvey,Steven.Harvey@imail.org,801-946-2497,AMT (Rover),RW Rover,Rover,"Lander, WY; Rawlins, WY",Tevita Silatolu,Yes,
 Steven Niederkorn,Steven,Niederkorn,Steven.Niederkorn@imail.org,970-690-8908,AMT (Rover),RW Rover,Rover,"Glenwood Springs, CO",Chris Gibson,Yes,
 Taylor Sermon,Taylor,Sermon,Taylor.Sermon@imail.org,801-857-9757,QA,SLC,"SLC HQ, UT",,Joe Sparto,Yes,
 Edwin Meza,Edwin,Meza,Edwin.Meza@imail.org,801-574-7929,QA,SLC,"SLC HQ, UT",,Joe Sparto,Yes,
@@ -65,7 +65,7 @@ Jon Hankins,Jon,Hankins,Jon.Hankins@imail.org,702-824-8755,AMT,UT/AZ,"Fort Mohav
 Casey Vaughn,Casey,Vaughn,Casey.Vaughn@imail.org,760-828-0011,AMT,UT/AZ,"Fort Mohave, AZ",,Dwight Brooks,Yes,
 Jerrimiah Turman,Jerrimiah,Turman,Jerrimiah.Turman@imail.org,970-201-4874,AMT,UT/AZ,"Moab, UT",,Dwight Brooks,Yes,Note: "Jerrimiah" spelling matches source; family member "Brandon Turman" appears in crew list
 Brian Hyland,Brian,Hyland,Brian.Hyland@imail.org,801-842-9086,AMT,UT/AZ,"Richfield, UT",,Dwight Brooks,Yes,
-Dwight Brooks,Dwight,Brooks,Dwight.Brooks@imail.org,208-919-4740,RMM,UT/AZ,"Richfield, UT","Richfield, UT; Moab, UT; Page, AZ; Fort Mohave, AZ; Kingman, AZ",Pete Robotham,Yes,Source listed Dwight as own leader (likely typo); set to Pete Robotham — verify
+Dwight Brooks,Dwight,Brooks,Dwight.Brooks@imail.org,208-919-4740,RMM,UT/AZ,"Richfield, UT","Richfield, UT; Moab, UT; Page, AZ; Fort Mohave, AZ; Kingman, AZ",Pete Robotham,Yes,
 Chris Eells,Chris,Eells,Chris.Eells@imail.org,,RMM,WI Region,"Waukesha, WI","Waukesha, WI; Burlington, WI; Hartford, WI",Billy Ortega,Yes,Phone missing in source
 Abraham Zenger,Abraham,Zenger,Abraham.Zenger@imail.org,801-842-3127,AMT,WOODSCROSS,"Bountiful, UT",,Martin Hodo,Yes,
 Michael Whipple,Michael,Whipple,Michael.Whipple@imail.org,435-669-9151,AMT,WOODSCROSS,"Bountiful, UT",,Martin Hodo,Yes,
