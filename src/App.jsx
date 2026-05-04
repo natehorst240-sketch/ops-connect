@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   Plane, Users, AlertTriangle, Calendar, Wrench, Radio, TrendingUp, Layers,
-  Map as MapIcon, Grid3x3, Smartphone, GitBranch,
+  Map as MapIcon, Grid3x3, Smartphone, GitBranch, MessageCircleQuestion,
 } from 'lucide-react';
 import { PERSONAS, FLOWS } from './data';
 
@@ -28,7 +28,7 @@ const TABS = [
   { id: 'map', label: 'Live Fleet', Icon: MapIcon },
   { id: 'flowA', label: 'Flow A · MX Request', Icon: Wrench },
   { id: 'flowB', label: 'Flow B · Open Shift', Icon: Users },
-  { id: 'flowC', label: 'Flow C · AOG Cascade', Icon: AlertTriangle },
+  { id: 'flowC', label: 'Flow C · Ask Leadership', Icon: MessageCircleQuestion },
   { id: 'flowD', label: 'Flow D · Time Off', Icon: Calendar },
   { id: 'architecture', label: 'Architecture', Icon: Layers },
   { id: 'mobile', label: 'Mobile · See How It Looks on a Phone', Icon: Smartphone },
