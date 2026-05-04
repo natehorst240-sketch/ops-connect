@@ -1,19 +1,43 @@
-# Canvas App Build Guide — MX Connect Dashboard
+# Canvas App Build Guide — MX Connect Dashboard (Dataverse)
 
 A single Power Apps canvas app that hosts the full Phase 1 workflow:
 role-based home, all 8 application modules, in-app approval inbox, plus
-the simple MX Request submission form. Phone form factor (Tablet works
-too with minor padding tweaks).
+the universal MX Request submission form. Phone form factor (Tablet works
+with minor padding tweaks).
 
-This guide is sequential. Build the app in the order below — every
-section depends on the previous one's variables and screens.
+**Backing data layer: Dataverse.** The app binds to the 15 Dataverse
+tables in `../tables/`. SharePoint Lists are the deprecated fallback —
+not covered here.
+
+This guide is sequential. Build in the order below — every section
+depends on the previous's variables and screens.
 
 ## Companion docs
 
 - `../roles-capability-matrix.md` — who can do what
 - `../application-modules.md` — what each module does
-- `../../sharepoint-lists/phase1-blank-templates/README.md` — list schemas
-- `../flows/mxr-approval-flow-sharepoint.json` — the approval flow
+- `../tables/README.md` — Dataverse table index + build order
+- `../flows/mxr-approval-flow-v2.json` — the approval flow
+- `../connections.md` — connection references + Dataverse roles
+
+## Dataverse vs SharePoint syntax cheat sheet
+
+If you're porting from a SharePoint version of this app, here are the
+Power Fx differences:
+
+| Concept              | SharePoint                                         | Dataverse                                  |
+| -------------------- | -------------------------------------------------- | ------------------------------------------ |
+| Lookup column write  | `{ Id: rec.ID, Value: rec.Title }`                 | `rec` (just the record itself)             |
+| Person/Group write   | `varCurrentUser` (works on both, but…)             | `varCurrentUser` (cleaner — native)        |
+| Person field read    | `record.'Posted By'.DisplayName`                   | `record.'Posted By'.'Full Name'`           |
+| Choice column        | `{ Value: "Approved" }` (read: `.Value`)           | Same write shape; read via `.Value` works  |
+| Filter on Choice     | `Status.Value = "Submitted"`                       | Same                                       |
+| Internal column name | `Status` becomes `Status_x0020_x` server-side      | `cr_status` — but display names work in Power Fx |
+| Auto-ID              | Manual (`Last(...).ID + 1`)                        | Native Autonumber                          |
+| User natural key     | `Email`                                            | `Email` (display name) or `cr_email`       |
+
+This doc uses display names throughout (e.g., `Status`, `Aircraft Tail`)
+because Power Apps Studio resolves them to logical names automatically.
 
 ## Naming conventions
 
@@ -55,28 +79,30 @@ File → Settings → Theme → Custom
 
 # 2. Add data sources
 
-Add all 14 SharePoint lists from
-`m365-solution/sharepoint-lists/phase1-blank-templates/` plus the
-SharePoint connector itself.
+Add the 15 Dataverse tables from the `MXConnect` solution.
 
 ```
-View → Data → + Add data → SharePoint → MXConnect site →
-   ☑ Regions
-   ☑ Bases
-   ☑ Aircraft Types
-   ☑ Aircraft
-   ☑ Personnel — Maintenance
-   ☑ Personnel — Crew                    (Phase 2 prep, but read-only here)
-   ☑ MX Requests
-   ☑ MX Request Comments
-   ☑ Audit Log
-   ☑ Operational Bulletins
-   ☑ Safety Reports
-   ☑ Aircraft Status Log
-   ☑ Personnel Status Log
-   ☑ User Filter Preferences
-   ☑ Office 365 Users                    (separate connector — for current-user lookups)
+View → Data → + Add data → Dataverse → MXConnect environment →
+   ☑ MX Request                       (cr_mx_request)
+   ☑ MX Audit                         (cr_audit)
+   ☑ Operational Bulletin             (cr_operational_bulletin)
+   ☑ Safety Report                    (cr_safety_report)
+   ☑ Aircraft                         (cr_aircraft)
+   ☑ Aircraft Type                    (cr_aircraft_type)
+   ☑ Aircraft Status Log              (cr_aircraft_status_log)
+   ☑ Personnel — Maintenance          (cr_personnel_maintenance)
+   ☑ Personnel — Crew                 (cr_personnel_crew)
+   ☑ Personnel Status Log             (cr_personnel_status_log)
+   ☑ MX Request Comment               (cr_mx_request_comment)
+   ☑ Schedule Event                   (cr_schedule_event)
+   ☑ User Filter Preference           (cr_user_filter_pref)
+   ☑ Region                           (cr_region)
+   ☑ Base                             (cr_base)
 ```
+
+Power Apps surfaces tables by display name in formulas (e.g.,
+`'Personnel — Maintenance'`). The `cr_*` logical names are visible in the
+data pane but you don't reference them in Power Fx.
 
 # 3. App-level state
 
@@ -90,20 +116,20 @@ the most recent bulletins. Fires once per session.
 Set(varCurrentUser, User());
 Set(varUserPersonnel,
     LookUp(
-        'Personnel - Maintenance',
+        'Personnel — Maintenance',
         Email = varCurrentUser.Email
     )
 );
 
 // --- Role detection ---
-//   The user's Personnel.Role drives every visibility check.
-//   Payroll users don't have a Personnel row → fall through to "Payroll" if their email is in the Payroll Entra group (resolved server-side via flow on first sign-in; for Phase 1 we'll hard-code the list below).
+//   Personnel.Role drives every visibility check.
+//   Pilot fallback checks Personnel — Crew.
+//   Payroll users have no Personnel row → fall through via Entra group lookup.
 Set(varRole,
     Coalesce(
-        varUserPersonnel.Role.Value,
-        // Crew / Pilot fallback — check Personnel - Crew
-        LookUp('Personnel - Crew', Email = varCurrentUser.Email).Role.Value,
-        // Payroll fallback (replace with Entra group membership in Phase 2)
+        varUserPersonnel.Role,
+        LookUp('Personnel — Crew', Email = varCurrentUser.Email).Role,
+        // Payroll fallback (Phase 2: replace with Entra group membership lookup)
         If(
             varCurrentUser.Email in [
                 "payroll@ihc.org",
@@ -122,8 +148,8 @@ Set(varCan,
         SubmitAircraftStatus:   varRole in ["AMT","RMM","DOM","Director","QA","Supervisor","ADOM"],
         SubmitPersonnelStatus:  varRole in ["AMT","RMM","DOM","Director","QA","Supervisor","ADOM"],
         SubmitMXSchedule:       varRole in ["AMT","RMM","DOM","Director","QA","Supervisor","ADOM"],
-        SubmitAskLeadership:    !(varRole in ["Unknown"]),                                     // everyone with a login
-        SubmitSafetyReport:     !(varRole in ["Unknown"]),                                     // everyone with a login
+        SubmitAskLeadership:    !(varRole in ["Unknown"]),
+        SubmitSafetyReport:     !(varRole in ["Unknown"]),
         SubmitAircraftMovement: varRole in ["AMT","RMM","DOM","Director","QA","Scheduler","PR","ADOM","Supervisor"],
         SubmitPilotTraining:    varRole in ["Pilot","Chief Pilot"],
         SubmitTimeOff:          varRole in ["AMT","RMM","DOM","Director","QA","Supervisor","ADOM"],
@@ -154,28 +180,21 @@ Set(varCan,
 // --- Bulletin feed (cache) ---
 ClearCollect(colBulletins,
     Filter(
-        'Operational Bulletins',
-        Status.Value = "Active"
-        && (
-            'Audience'.Value = "All" 
-            || varRole in 'Audience'.Value
-        )
+        'Operational Bulletin',
+        Status = 'Status (Operational Bulletins)'.Active
     )
 );
 
-// --- Pending approvals for this user (MX Requests routed to them) ---
+// --- Pending approvals for this user ---
 ClearCollect(colMyApprovals,
     Filter(
-        'MX Requests',
-        Status.Value = "Submitted",
+        'MX Request',
+        Status = 'Status (MX Requests)'.Submitted,
+        IsBlank(Decision),
         Or(
-            // RMMs see requests where they're the Aircraft.RMM
-            (varRole = "RMM" && 'Aircraft Tail'.Value in Filter(Aircraft, RMM.Email = varCurrentUser.Email).Tail),
-            // Director sees Routing=Director
-            (varRole in ["Director","DOM"] && Routing.Value = "Director"),
-            // Scheduler sees Routing=Scheduler
-            (varRole = "Scheduler" && Routing.Value = "Scheduler"),
-            // QA + ADOM see all (org-wide visibility)
+            (varRole = "RMM" && 'Aircraft Tail'.RMM.Email = varCurrentUser.Email),
+            (varRole in ["Director","DOM"] && Routing = 'Routing (MX Requests)'.Director),
+            (varRole = "Scheduler" && Routing = 'Routing (MX Requests)'.Scheduler),
             (varRole in ["QA","ADOM"])
         )
     )
@@ -185,6 +204,20 @@ ClearCollect(colMyApprovals,
 Set(varHomeScreen, scr_Home);
 Navigate(scr_Home, ScreenTransition.None);
 ```
+
+**Note on Choice column comparisons:** Dataverse Power Fx supports two
+syntaxes:
+
+```powerapps
+// Option A — type-safe (preferred)
+Status = 'Status (MX Requests)'.Submitted
+
+// Option B — string compare (works for read; less type-safe)
+Status.Value = "Submitted"
+```
+
+This guide uses Option A consistently for filter/comparison and Option B
+only when constructing Patch values that need string literals.
 
 ## App.OnError
 
@@ -207,41 +240,31 @@ Trace(
 
 # 4. Layout shell
 
-Every screen reuses the same header and side nav. Build it once in
-`scr_Home` and copy as a Component (`Insert → Custom → New component`).
+Reusable component shared by every screen. Build once and copy as a
+Component (`Insert → Custom → New component`).
 
 ## Component: `cmpAppShell`
-
-Two slots: a header at the top and a tab nav on the left edge.
 
 ### Header (top, 56px tall)
 
 ```
-cmpAppShell.Height: parent.Height (filled by container)
-cmpAppShell.Width:  parent.Width
-
-Layout: HorizontalContainer at top, height 56
-   ┌──────────┬────────────────────────────────┬──────────┐
-   │  Logo    │  Page title (bound to varPageTitle)  │ Avatar │
-   └──────────┴────────────────────────────────┴──────────┘
+┌──────────┬─────────────────────────┬──────────┐
+│  Logo    │  varPageTitle           │ Avatar  │
+└──────────┴─────────────────────────┴──────────┘
 ```
 
-Header formulas:
-
-| Control                | Property | Formula                                                        |
-| ---------------------- | -------- | -------------------------------------------------------------- |
-| `lbl_PageTitle`        | `Text`   | `varPageTitle`                                                 |
-| `lbl_PageTitle`        | `Color`  | `RGBA(255,255,255,1)`                                          |
-| `lbl_PageTitle`        | `Size`   | `18`                                                           |
-| `lbl_PageTitle`        | `FontWeight` | `FontWeight.Bold`                                          |
-| `lbl_UserInitials`     | `Text`   | `Left(varCurrentUser.FullName,1) & Mid(LastN(Split(varCurrentUser.FullName, " "), 1).Result, 1, 1)` |
-| `cnt_Avatar`           | `Fill`   | `RGBA(255,106,0,1)` (IHC orange)                               |
-| `cnt_Avatar`           | `OnSelect` | `Navigate(scr_Profile, ScreenTransition.Fade)`              |
+| Control               | Property | Formula                                                        |
+| --------------------- | -------- | -------------------------------------------------------------- |
+| `lbl_PageTitle`       | `Text`   | `varPageTitle`                                                 |
+| `lbl_PageTitle`       | `Color`  | `RGBA(255,255,255,1)`                                          |
+| `lbl_PageTitle`       | `FontWeight` | `FontWeight.Bold`                                          |
+| `lbl_UserInitials`    | `Text`   | `Left(varCurrentUser.FullName,1) & Mid(LastN(Split(varCurrentUser.FullName, " "), 1).Result, 1, 1)` |
+| `cnt_Avatar`          | `Fill`   | `RGBA(255,106,0,1)`                                            |
+| `cnt_Avatar`          | `OnSelect` | `Navigate(scr_Profile, ScreenTransition.Fade)`               |
 
 ### Side nav (left, 64px wide on phone — icon only)
 
-A vertical Gallery rendering navigation tiles. The Items list is filtered
-by `varCan` so users see only modules they can access.
+A vertical Gallery rendering navigation tiles, filtered by `varCan`.
 
 ```powerapps
 // gal_SideNav.Items
@@ -262,8 +285,6 @@ Filter(
 )
 ```
 
-Tile template:
-
 | Control       | Property    | Formula                                                                |
 | ------------- | ----------- | ---------------------------------------------------------------------- |
 | `cnt_Tile`    | `Fill`      | `If(App.ActiveScreen = ThisItem.screen, RGBA(255,106,0,0.15), RGBA(0,0,0,0))` |
@@ -271,39 +292,18 @@ Tile template:
 | `ico_Tile`    | `Icon`      | `ThisItem.icon`                                                        |
 | `ico_Tile`    | `Color`     | `If(App.ActiveScreen = ThisItem.screen, RGBA(255,106,0,1), RGBA(180,180,180,1))` |
 
-Add a badge on the Approvals tile:
-
-| Control            | Property | Formula                                          |
-| ------------------ | -------- | ------------------------------------------------ |
-| `lbl_ApprovalBadge`| `Text`   | `CountRows(colMyApprovals)`                      |
-| `lbl_ApprovalBadge`| `Visible`| `ThisItem.id = "approvals" && CountRows(colMyApprovals) > 0` |
-
 # 5. Home screen — `scr_Home`
-
-Role-based dashboard. Layout (top to bottom):
 
 ```
 ┌────────────────────────────────────────────────┐
 │  Header (cmpAppShell)                           │
 ├────┬───────────────────────────────────────────┤
-│Side│  Bulletin feed (scrollable, max 3 visible) │
-│ Nav│                                            │
-│    │  ┌──────────────┐  ┌──────────────┐       │
-│    │  │ Pending      │  │ My Team      │       │
-│    │  │ Approvals    │  │ On Call Now  │       │
-│    │  │ (CountRows)  │  │              │       │
-│    │  └──────────────┘  └──────────────┘       │
-│    │                                            │
-│    │  ┌──────────────────────────────────────┐ │
-│    │  │ Module quick-links (filtered by      │ │
-│    │  │ varCan; same shape as side nav)      │ │
-│    │  └──────────────────────────────────────┘ │
-│    │                                            │
-│    │  ┌──────────────────────────────────────┐ │
-│    │  │ Status Dashboard (if varCan.Status...) │ │
-│    │  │ — Aircraft AOG count                 │ │
-│    │  │ — Personnel Red Status count         │ │
-│    │  └──────────────────────────────────────┘ │
+│Side│  Bulletin feed (scrollable)                │
+│ Nav│  ┌──────────┐ ┌──────────┐                │
+│    │  │ Pending  │ │ On Call  │                │
+│    │  │ Approvals│ │ Now      │                │
+│    │  └──────────┘ └──────────┘                │
+│    │  Status Dashboard (RMM/Director/QA/ADOM)  │
 └────┴───────────────────────────────────────────┘
 ```
 
@@ -311,21 +311,23 @@ Role-based dashboard. Layout (top to bottom):
 
 ```powerapps
 Set(varPageTitle, "Home — " & varRole);
-Refresh('Operational Bulletins');
-Refresh('MX Requests');
+Concurrent(
+    Refresh('Operational Bulletin'),
+    Refresh('MX Request')
+);
 ClearCollect(colBulletins,
-    Filter('Operational Bulletins',
-        Status.Value = "Active"
-        && (Audience.Value = "All" || varRole in Audience.Value)
+    Filter('Operational Bulletin',
+        Status = 'Status (Operational Bulletins)'.Active
     )
 );
 ClearCollect(colMyApprovals,
-    Filter('MX Requests',
-        Status.Value = "Submitted",
+    Filter('MX Request',
+        Status = 'Status (MX Requests)'.Submitted,
+        IsBlank(Decision),
         Or(
-            (varRole = "RMM" && 'Aircraft Tail'.Value in Filter(Aircraft, RMM.Email = varCurrentUser.Email).Tail),
-            (varRole in ["Director","DOM"] && Routing.Value = "Director"),
-            (varRole = "Scheduler" && Routing.Value = "Scheduler"),
+            (varRole = "RMM" && 'Aircraft Tail'.RMM.Email = varCurrentUser.Email),
+            (varRole in ["Director","DOM"] && Routing = 'Routing (MX Requests)'.Director),
+            (varRole = "Scheduler" && Routing = 'Routing (MX Requests)'.Scheduler),
             (varRole in ["QA","ADOM"])
         )
     )
@@ -351,36 +353,32 @@ SortByColumns(
 )
 ```
 
-Tile template (inside the gallery):
-
 | Control          | Property | Formula                                                                                          |
 | ---------------- | -------- | ------------------------------------------------------------------------------------------------ |
 | `cnt_BullTile`   | `Fill`   | `Switch(ThisItem.Level.Value, "Alert", RGBA(220,38,38,0.15), "Advisory", RGBA(217,119,6,0.15), "Info", RGBA(59,130,246,0.15))` |
 | `cnt_BullTile`   | `BorderColor` | `Switch(ThisItem.Level.Value, "Alert", RGBA(220,38,38,1), "Advisory", RGBA(217,119,6,1), "Info", RGBA(59,130,246,1))` |
-| `lbl_BullLevel`  | `Text`   | `Upper(ThisItem.Level.Value)`                                                                     |
-| `lbl_BullSubject`| `Text`   | `ThisItem.Subject`                                                                                |
-| `lbl_BullPosted` | `Text`   | `"Posted by " & ThisItem.'Posted By'.DisplayName & " · " & DateDiff(ThisItem.'Posted At', Now(), Hours) & "h ago"` |
-| `cnt_BullTile`   | `OnSelect` | `Set(varSelectedBulletin, ThisItem); Navigate(scr_BulletinDetail, ScreenTransition.Fade)`       |
+| `lbl_BullLevel`  | `Text`   | `Upper(ThisItem.Level.Value)`                                                                    |
+| `lbl_BullSubject`| `Text`   | `ThisItem.Subject`                                                                               |
+| `lbl_BullPosted` | `Text`   | `"Posted by " & ThisItem.'Posted By'.'Full Name' & " · " & DateDiff(ThisItem.'Posted At', Now(), Hours) & "h ago"` |
+| `cnt_BullTile`   | `OnSelect` | `Set(varSelectedBulletin, ThisItem); Navigate(scr_BulletinDetail, ScreenTransition.Fade)`      |
 
 ## KPI tiles row
-
-Two side-by-side tiles. Each is a Container with a number + label.
 
 | Tile             | KPI label             | Number formula                                                  | OnSelect                                          |
 | ---------------- | --------------------- | --------------------------------------------------------------- | ------------------------------------------------- |
 | Pending Approvals | "Pending Approvals"  | `CountRows(colMyApprovals)`                                     | `Navigate(scr_ApprovalInbox, ScreenTransition.Fade)` |
-| On Call Now       | "On Call Now"        | `CountRows(Filter('Personnel - Maintenance', 'On Shift' = true && Region.Value = varUserPersonnel.Region.Value))` | `Navigate(scr_MyTeam, ScreenTransition.Fade)` |
+| On Call Now       | "On Call Now"        | `CountRows(Filter('Personnel — Maintenance', 'On Shift' = true && Region = varUserPersonnel.Region))` | `Navigate(scr_MyTeam, ScreenTransition.Fade)` |
 
 Hide the second tile if `varRole in ["Pilot","PR","Payroll"]`.
 
-## Status Dashboard tile (RMM/Director/QA/ADOM only)
+## Status Dashboard tile
 
 ```powerapps
 // lbl_AOGCount.Text
-CountRows(Filter(Aircraft, Status.Value = "AOG"))
+CountRows(Filter(Aircraft, Status = 'Status (Aircraft)'.AOG))
 
 // lbl_RedStatusCount.Text
-CountRows(Filter('Personnel - Maintenance', Status.Value = "Red Status"))
+CountRows(Filter('Personnel — Maintenance', Status = 'Status (Personnel)'.'Red Status'))
 
 // cnt_StatusTile.Visible
 varCan.StatusDashboard
@@ -388,60 +386,54 @@ varCan.StatusDashboard
 
 # 6. Approval Inbox — `scr_ApprovalInbox`
 
-Mirrors what comes through Teams Adaptive Cards, but in-app for users
-who'd rather work from the dashboard. Uses the same flow back-end.
+In-app mirror of the Teams Adaptive Card. Same flow back-end picks up
+the Patch.
 
 ## scr_ApprovalInbox.OnVisible
 
 ```powerapps
 Set(varPageTitle, "Approvals");
-Refresh('MX Requests');
+Refresh('MX Request');
 ClearCollect(colMyApprovals,
-    Filter('MX Requests',
-        Status.Value in ["Submitted","Escalated","More Info Requested"],
+    Filter('MX Request',
+        Status in [
+            'Status (MX Requests)'.Submitted,
+            'Status (MX Requests)'.Escalated,
+            'Status (MX Requests)'.'More Info Requested'
+        ],
+        IsBlank(Decision),
         Or(
-            (varRole = "RMM" && 'Aircraft Tail'.Value in Filter(Aircraft, RMM.Email = varCurrentUser.Email).Tail),
-            (varRole in ["Director","DOM"] && Routing.Value = "Director"),
-            (varRole = "Scheduler" && Routing.Value = "Scheduler"),
+            (varRole = "RMM" && 'Aircraft Tail'.RMM.Email = varCurrentUser.Email),
+            (varRole in ["Director","DOM"] && Routing = 'Routing (MX Requests)'.Director),
+            (varRole = "Scheduler" && Routing = 'Routing (MX Requests)'.Scheduler),
             (varRole in ["QA","ADOM"])
         )
     )
 )
 ```
 
-## gal_Approvals.Items
-
-```powerapps
-SortByColumns(colMyApprovals, "'Submitted At'", Descending)
-```
-
-Each item shows: Request Number · Aircraft Tail · Type · Priority · Time
-ago · 4 action buttons.
-
 ## Action buttons — Approve / Deny / Request Info / Escalate
 
-These run a child flow that mirrors the Adaptive Card response shape, so
-the back-end flow doesn't have to change.
+The flow trigger condition is `cr_status eq 1 AND cr_decision eq null`,
+so once we Patch a Decision the flow knows to skip the Adaptive Card.
+The flow handles audit + DM + Outlook downstream.
 
 ### `btn_Approve.OnSelect`
 
 ```powerapps
-Patch('MX Requests',
-    LookUp('MX Requests', ID = ThisItem.ID),
+Patch('MX Request', ThisItem,
     {
-        Status:   { Value: "Approved" },
-        Decision: { Value: "Approve" },
-        Approver: varCurrentUser,
-        'Decided At': Now(),
+        Status:             'Status (MX Requests)'.Approved,
+        Decision:           'Decision (MX Requests)'.Approve,
+        Approver:           varCurrentUser,
+        'Decided At':       Now(),
         'Decision Comment': txt_Comment.Text
     }
 );
-// The flow trigger fires on modify; it sees Decision != null and skips the Adaptive Card path.
-// (Add a trigger condition on the flow: trigger only if 'Decision' eq null AND 'Status' eq 'Submitted')
 Notify("Approved.", NotificationType.Success);
 Reset(txt_Comment);
 ClearCollect(colMyApprovals,
-    Filter(colMyApprovals, ID <> ThisItem.ID)
+    Filter(colMyApprovals, 'MX Request' <> ThisItem.'MX Request')
 )
 ```
 
@@ -450,20 +442,21 @@ ClearCollect(colMyApprovals,
 ```powerapps
 If(IsBlank(txt_Comment.Text),
     Notify("A written reason is required to deny.", NotificationType.Warning),
-    Patch('MX Requests',
-        LookUp('MX Requests', ID = ThisItem.ID),
+    Patch('MX Request', ThisItem,
         {
-            Status:           { Value: "Denied" },
-            Decision:         { Value: "Deny" },
-            'Decision Reason': txt_Comment.Text,
-            Approver:          varCurrentUser,
-            'Decided At':      Now(),
-            'Decision Comment':txt_Comment.Text
+            Status:             'Status (MX Requests)'.Denied,
+            Decision:           'Decision (MX Requests)'.Deny,
+            'Decision Reason':  txt_Comment.Text,
+            Approver:           varCurrentUser,
+            'Decided At':       Now(),
+            'Decision Comment': txt_Comment.Text
         }
     );
     Notify("Denied with reason.", NotificationType.Success);
     Reset(txt_Comment);
-    ClearCollect(colMyApprovals, Filter(colMyApprovals, ID <> ThisItem.ID))
+    ClearCollect(colMyApprovals,
+        Filter(colMyApprovals, 'MX Request' <> ThisItem.'MX Request')
+    )
 )
 ```
 
@@ -472,51 +465,53 @@ If(IsBlank(txt_Comment.Text),
 ```powerapps
 If(IsBlank(txt_Comment.Text),
     Notify("Type the question for the submitter first.", NotificationType.Warning),
-    Patch('MX Requests',
-        LookUp('MX Requests', ID = ThisItem.ID),
+    Patch('MX Request', ThisItem,
         {
-            Status:             { Value: "More Info Requested" },
-            Decision:           { Value: "Request Info" },
-            'More Info Request': txt_Comment.Text,
-            'Decision Comment':  txt_Comment.Text
+            Status:              'Status (MX Requests)'.'More Info Requested',
+            Decision:            'Decision (MX Requests)'.'Request Info',
+            'More Info Request': txt_Comment.Text
         }
     );
     Notify("Asked for more info.", NotificationType.Success);
     Reset(txt_Comment);
-    ClearCollect(colMyApprovals, Filter(colMyApprovals, ID <> ThisItem.ID))
+    ClearCollect(colMyApprovals,
+        Filter(colMyApprovals, 'MX Request' <> ThisItem.'MX Request')
+    )
 )
 ```
 
 ### `btn_Escalate.OnSelect`
 
 ```powerapps
-Patch('MX Requests',
-    LookUp('MX Requests', ID = ThisItem.ID),
+// Two-step Patch: first set Decision=Escalate (audit trail), then clear
+// Decision and bump Routing=Director so the flow re-triggers as a
+// Director-routed request.
+Patch('MX Request', ThisItem,
     {
-        Status:   { Value: "Escalated" },
-        Decision: { Value: "Escalate" },
-        Routing:  { Value: "Director" },
+        Status:             'Status (MX Requests)'.Escalated,
+        Decision:           'Decision (MX Requests)'.Escalate,
+        Routing:            'Routing (MX Requests)'.Director,
         'Decision Comment': txt_Comment.Text
     }
 );
-// Setting Decision=null after escalation re-enters the flow as a Director-routed request.
-Patch('MX Requests',
-    LookUp('MX Requests', ID = ThisItem.ID),
-    { Decision: Blank() }
+Patch('MX Request', ThisItem,
+    {
+        Status:   'Status (MX Requests)'.Submitted,
+        Decision: Blank()
+    }
 );
 Notify("Escalated to Director.", NotificationType.Success);
 Reset(txt_Comment);
-ClearCollect(colMyApprovals, Filter(colMyApprovals, ID <> ThisItem.ID))
+ClearCollect(colMyApprovals,
+    Filter(colMyApprovals, 'MX Request' <> ThisItem.'MX Request')
+)
 ```
 
 # 7. Module 1 — Status (`scr_Status`)
 
-Two tabs: Aircraft and Personnel. Both let the user submit a status
-change with a one-tap button row, plus see the most-recent log.
+Two tabs: Aircraft and Personnel.
 
-## Aircraft tab — `cnt_AircraftTab`
-
-Top: a Dropdown to pick a tail. Below: a row of 4 Status buttons.
+## Aircraft tab
 
 ```powerapps
 // dd_AircraftPicker.Items
@@ -526,60 +521,51 @@ SortByColumns(Aircraft, "Tail", Ascending)
 Set(varSelectedAircraft, Self.Selected)
 ```
 
-Status submit buttons (each follows the same pattern):
+Status submit pattern:
 
 ```powerapps
 // btn_StatusInService.OnSelect
 If(IsBlank(varSelectedAircraft),
     Notify("Pick an aircraft first.", NotificationType.Warning),
-    Patch(Aircraft,
-        varSelectedAircraft,
+
+    // 1. Update Aircraft master
+    Patch(Aircraft, varSelectedAircraft,
         {
-            Status: { Value: "In Service" },
-            'Status Reason': "",
-            'Status Updated At': Now(),
-            'Status Updated By': varCurrentUser
+            Status:               'Status (Aircraft)'.'In Service',
+            'Status Reason':      "",
+            'Status Updated At':  Now(),
+            'Status Updated By':  varCurrentUser
         }
     );
-    Patch('Aircraft Status Log',
-        Defaults('Aircraft Status Log'),
-        {
-            Title:               "ACS · " & varSelectedAircraft.Tail & " · In Service",
-            'Log ID':            "ACS-" & Text(Last('Aircraft Status Log').ID + 1, "[$-en-US]000000"),
-            'Aircraft Tail':     { Id: varSelectedAircraft.ID, Value: varSelectedAircraft.Tail },
-            'Previous Status':   { Value: varSelectedAircraft.Status.Value },
-            'New Status':        { Value: "In Service" },
-            'Status Reason':     "",
-            'Changed At':        Now(),
-            'Changed By':        varCurrentUser,
-            'Audit Correlation': GUID()
-        }
+
+    // 2. Append to log
+    With({ correlationId: GUID() },
+        Patch('Aircraft Status Log', Defaults('Aircraft Status Log'),
+            {
+                'Aircraft Tail':     varSelectedAircraft,
+                'Previous Status':   varSelectedAircraft.Status,
+                'New Status':        'Status (Aircraft)'.'In Service',
+                'Status Reason':     "",
+                'Changed At':        Now(),
+                'Changed By':        varCurrentUser,
+                'Audit Correlation': correlationId
+            }
+        )
     );
+
     Notify(varSelectedAircraft.Tail & " marked In Service.", NotificationType.Success);
-    Refresh(Aircraft);
-    Refresh('Aircraft Status Log')
+    Refresh(Aircraft)
 )
 ```
 
-For the AOG variant, prompt for a reason first:
-
-```powerapps
-// btn_StatusAOG.OnSelect
-If(IsBlank(varSelectedAircraft),
-    Notify("Pick an aircraft first.", NotificationType.Warning),
-    Set(varShowAOGReasonModal, true)
-)
-```
-
-Build a small modal Container (`cnt_AOGReasonModal`) with a multi-line
-text input + Confirm + Cancel buttons. Confirm runs the same Patch as
-above with `Status.Value = "AOG"` and `'Status Reason' = txt_AOGReason.Text`.
+For the AOG variant, prompt for a reason via a small modal Container
+(`cnt_AOGReasonModal`) with `txt_AOGReason` + Confirm/Cancel.
 
 ## Personnel tab
 
-Same pattern but Patch against `'Personnel - Maintenance'` and write to
-`'Personnel Status Log'`. Three button options: Available / Unavailable /
-Red Status. The `Action Type` log column is `"status_change"`.
+Same pattern, Patching `'Personnel — Maintenance'` and writing to
+`'Personnel Status Log'` with `'Action Type'` =
+`'Action Type (Personnel Status Log)'.status_change`.
 
 ## Recent log gallery
 
@@ -591,40 +577,28 @@ SortByColumns(
 )
 ```
 
-Visibility: only RMM/Director/QA/ADOM see this — so tile.Visible =
-`varCan.StatusDashboard`.
+Visibility: `varCan.StatusDashboard`.
 
 # 8. Module 2 — Schedule MX (`scr_ScheduleMX`)
 
-Three sub-screens:
-1. List view of all MX Schedule requests (filtered by region for AMT/RMM)
-2. The submission form (the original 2-screen form, preserved below)
-3. Confirmation
+Three sub-screens: list, submission form, confirmation.
 
 ## scr_ScheduleMX.OnVisible
 
 ```powerapps
 Set(varPageTitle, "Schedule MX");
-Refresh('MX Requests');
+Refresh('MX Request');
 ClearCollect(colSchedule,
-    Filter('MX Requests',
-        'Request Type'.Value = "MX Schedule",
+    Filter('MX Request',
+        'Request Type' = 'Request Type (MX Requests)'.'MX Schedule',
         Or(
             varCan.FullVisibility,
-            Requested By.Email = varCurrentUser.Email,
-            (varRole = "RMM" && Region.Value = varUserPersonnel.Region.Value)
+            'Requested By'.Email = varCurrentUser.Email,
+            (varRole = "RMM" && 'Aircraft Tail'.Region = varUserPersonnel.Region)
         )
     )
 )
 ```
-
-## gal_Schedule.Items
-
-```powerapps
-SortByColumns(colSchedule, "'Window Start'", Ascending)
-```
-
-Each tile shows: Tail · Type · Window · countdown to start · Status pill.
 
 ## Countdown timer
 
@@ -649,31 +623,9 @@ With({ hrs: DateDiff(Now(), ThisItem.'Window Start', Hours) },
 )
 ```
 
-## Status pill
-
-```powerapps
-// lbl_StatusPill.Text
-Upper(ThisItem.Status.Value)
-
-// lbl_StatusPill.Fill
-Switch(ThisItem.Status.Value,
-    "Submitted", RGBA(59,130,246,0.2),
-    "Approved",  RGBA(22,163,74,0.2),
-    "Denied",    RGBA(220,38,38,0.2),
-    "More Info Requested", RGBA(168,85,247,0.2),
-    "Escalated", RGBA(217,119,6,0.2),
-    "Cancelled", RGBA(120,120,120,0.2),
-    RGBA(0,0,0,0.1)
-)
-```
-
 ## Submission form — `scr_NewMXRequest`
 
-This is the existing 2-screen form, generalized to support all 6
-request types. The form's layout adapts based on the chosen Request
-Type.
-
-### dd_RequestType (Dropdown)
+Universal form for all 6 request types.
 
 ```powerapps
 // dd_RequestType.Items
@@ -688,9 +640,6 @@ Filter(
     ],
     show
 ).value
-
-// dd_RequestType.Default
-"MX Schedule"
 ```
 
 ### Conditional field visibility
@@ -699,31 +648,8 @@ Filter(
 // dd_AircraftPicker.Visible
 dd_RequestType.Selected.Value in ["MX Schedule", "Aircraft Movement (PR)", "Pilot Training"]
 
-// dp_WindowStart.Visible / dp_WindowEnd.Visible / dd_StartTime / dd_EndTime
+// dp_WindowStart.Visible / dp_WindowEnd.Visible
 dd_RequestType.Selected.Value in ["MX Schedule", "Aircraft Movement (PR)", "Pilot Training", "Time Off"]
-
-// dd_Audience.Visible (multi-select Choice — Audience field on MX Requests)
-dd_RequestType.Selected.Value = "Ask Leadership"
-
-// dd_Priority.Visible
-true   // priority always shows
-
-// dd_AircraftPicker.Items
-SortByColumns(Aircraft, "Tail", Ascending)
-```
-
-### Routing default — derived from Request Type
-
-```powerapps
-// dd_Routing.Default (hidden field, readable to user as a badge "Will be reviewed by: …")
-Switch(dd_RequestType.Selected.Value,
-    "MX Schedule",            "RMM",
-    "Time Off",               "RMM",
-    "Aircraft Movement (PR)", "Scheduler",
-    "Pilot Training",         "Scheduler",
-    "Ask Leadership",         "Director",
-    "Other",                  "RMM"
-)
 ```
 
 ### btn_Submit.OnSelect
@@ -740,17 +666,21 @@ If(
         DateTimeValue(Text(dp_WindowStart.SelectedDate) & " " & dd_StartTime.Selected.Value),
         Notify("End must be after start.", NotificationType.Warning),
 
-    // 2. Patch
+    // 2. Patch — Dataverse lookups take the full record reference
     Set(varSubmitting, true);
     Set(varNewRequest,
-        Patch('MX Requests',
-            Defaults('MX Requests'),
+        Patch('MX Request', Defaults('MX Request'),
             {
-                Title:           dd_RequestType.Selected.Value & " · " & varCurrentUser.FullName,
-                'Request Number': "MXR-" & Text(Last('MX Requests').ID + 1, "[$-en-US]00000"),
-                'Aircraft Tail': If(dd_AircraftPicker.Visible, { Id: dd_AircraftPicker.Selected.ID, Value: dd_AircraftPicker.Selected.Tail }, Blank()),
-                'Aircraft Type': If(dd_AircraftPicker.Visible, dd_AircraftPicker.Selected.Type.Value, ""),
-                'Request Type':  { Value: dd_RequestType.Selected.Value },
+                'Aircraft Tail': If(dd_AircraftPicker.Visible, dd_AircraftPicker.Selected, Blank()),
+                'Aircraft Type': If(dd_AircraftPicker.Visible, dd_AircraftPicker.Selected.Type.Title, ""),
+                'Request Type':  Switch(dd_RequestType.Selected.Value,
+                    "MX Schedule",            'Request Type (MX Requests)'.'MX Schedule',
+                    "Aircraft Movement (PR)", 'Request Type (MX Requests)'.'Aircraft Movement (PR)',
+                    "Pilot Training",         'Request Type (MX Requests)'.'Pilot Training',
+                    "Time Off",               'Request Type (MX Requests)'.'Time Off',
+                    "Ask Leadership",         'Request Type (MX Requests)'.'Ask Leadership',
+                    "Other",                  'Request Type (MX Requests)'.Other
+                ),
                 'Window Start':  If(dp_WindowStart.Visible,
                     DateTimeValue(Text(dp_WindowStart.SelectedDate) & " " & dd_StartTime.Selected.Value),
                     Blank()
@@ -759,20 +689,22 @@ If(
                     DateTimeValue(Text(dp_WindowEnd.SelectedDate) & " " & dd_EndTime.Selected.Value),
                     Blank()
                 ),
-                Base:            { Id: dd_Base.Selected.ID, Value: dd_Base.Selected.Title },
+                Base:            dd_Base.Selected,
                 Reason:          txt_Reason.Text,
-                Priority:        { Value: dd_Priority.Selected.Value },
-                Status:          { Value: "Submitted" },
-                Routing:         { Value:
-                    Switch(dd_RequestType.Selected.Value,
-                        "MX Schedule", "RMM",
-                        "Time Off", "RMM",
-                        "Aircraft Movement (PR)", "Scheduler",
-                        "Pilot Training", "Scheduler",
-                        "Ask Leadership", "Director",
-                        "Other", "RMM"
-                    )
-                },
+                Priority:        Switch(dd_Priority.Selected.Value,
+                    "Normal", 'Priority (MX Requests)'.Normal,
+                    "High",   'Priority (MX Requests)'.High,
+                    "AOG",    'Priority (MX Requests)'.AOG
+                ),
+                Status:          'Status (MX Requests)'.Submitted,
+                Routing:         Switch(dd_RequestType.Selected.Value,
+                    "MX Schedule",            'Routing (MX Requests)'.RMM,
+                    "Time Off",               'Routing (MX Requests)'.RMM,
+                    "Aircraft Movement (PR)", 'Routing (MX Requests)'.Scheduler,
+                    "Pilot Training",         'Routing (MX Requests)'.Scheduler,
+                    "Ask Leadership",         'Routing (MX Requests)'.Director,
+                    "Other",                  'Routing (MX Requests)'.RMM
+                ),
                 'Requested By':       varCurrentUser,
                 'Audit Correlation':  GUID(),
                 'Comments Count':     0,
@@ -789,6 +721,9 @@ If(
     )
 )
 ```
+
+Note: `Request Number` is auto-generated by Dataverse Autonumber on
+insert — no manual `Last(...).ID + 1` math needed.
 
 ## Confirmation screen
 
@@ -818,18 +753,14 @@ Navigate(scr_Home, ScreenTransition.Fade)
 
 # 9. Module 3 — Ask Leadership (`scr_AskLeadership`)
 
-List view + thread view. Reuses the MX Requests list, filtered to
-`Request Type = "Ask Leadership"`.
-
-## scr_AskLeadership.OnVisible
-
 ```powerapps
+// scr_AskLeadership.OnVisible
 Set(varPageTitle, "Ask Leadership");
-Refresh('MX Requests');
-Refresh('MX Request Comments');
+Refresh('MX Request');
+Refresh('MX Request Comment');
 ClearCollect(colAsks,
-    Filter('MX Requests',
-        'Request Type'.Value = "Ask Leadership",
+    Filter('MX Request',
+        'Request Type' = 'Request Type (MX Requests)'.'Ask Leadership',
         Or(
             varCan.FullVisibility,
             'Requested By'.Email = varCurrentUser.Email,
@@ -845,20 +776,11 @@ ClearCollect(colAsks,
 Set(varSelectedAsk, ThisItem);
 ClearCollect(colAskComments,
     SortByColumns(
-        Filter('MX Request Comments', 'MX Request'.Value = ThisItem.'Request Number'),
+        Filter('MX Request Comment', 'MX Request' = ThisItem),
         "'Posted At'", Ascending
     )
 );
 Navigate(scr_AskThread, ScreenTransition.Fade)
-```
-
-## scr_AskThread layout
-
-```
-Header: Subject + status pill + escalate button (if varCan.EscalateToDirector)
-Body:   Original Reason text
-Thread: gal_AskComments scrolling chronologically
-Footer: txt_NewComment + btn_Post
 ```
 
 ## btn_PostComment.OnSelect
@@ -866,25 +788,21 @@ Footer: txt_NewComment + btn_Post
 ```powerapps
 If(IsBlank(txt_NewComment.Text),
     Notify("Type a comment.", NotificationType.Warning),
-    Patch('MX Request Comments',
-        Defaults('MX Request Comments'),
+    Patch('MX Request Comment', Defaults('MX Request Comment'),
         {
-            Title:               "Comment on " & varSelectedAsk.'Request Number',
-            'Comment ID':        "CMT-" & Text(Last('MX Request Comments').ID + 1, "[$-en-US]000000"),
-            'MX Request':        { Id: varSelectedAsk.ID, Value: varSelectedAsk.'Request Number' },
-            'Posted At':         Now(),
-            'Posted By':         varCurrentUser,
-            Body:                txt_NewComment.Text,
-            'Visible To Roles':  { Value: "All approvers" }
+            'MX Request':       varSelectedAsk,
+            'Posted At':        Now(),
+            'Posted By':        varCurrentUser,
+            Body:               txt_NewComment.Text,
+            'Visible To Roles': 'Visible To Roles (MX Request Comments)'.'All approvers'
         }
     );
-    Patch('MX Requests',
-        varSelectedAsk,
+    Patch('MX Request', varSelectedAsk,
         { 'Comments Count': varSelectedAsk.'Comments Count' + 1 }
     );
     ClearCollect(colAskComments,
         SortByColumns(
-            Filter('MX Request Comments', 'MX Request'.Value = varSelectedAsk.'Request Number'),
+            Filter('MX Request Comment', 'MX Request' = varSelectedAsk),
             "'Posted At'", Ascending
         )
     );
@@ -893,15 +811,6 @@ If(IsBlank(txt_NewComment.Text),
 ```
 
 # 10. Module 4 — Safety Report (`scr_Safety`)
-
-Submission-only screen for everyone except managers (who see the
-dashboard). Anonymous toggle gates the Reporter field.
-
-## tgl_Anonymous.OnChange
-
-```powerapps
-Set(varAnonymous, Self.Value)
-```
 
 ## btn_SubmitSafety.OnSelect
 
@@ -912,29 +821,31 @@ If(
     IsBlank(txt_SafetyBody.Text),
         Notify("Describe the concern.", NotificationType.Warning),
 
-    Patch('Safety Reports',
-        Defaults('Safety Reports'),
+    Patch('Safety Report', Defaults('Safety Report'),
         {
-            Title:                  txt_SafetySubject.Text,
-            'Report ID':            "SAF-" & Text(Last('Safety Reports').ID + 1, "[$-en-US]000000"),
-            'Submitted At':         Now(),
-            // Per anonymous handling in connections.md, the flow swaps in mx-anonymous@ihc.org server-side.
-            // Client-side we still write the actual user; the flow rewrites if Anonymous=Yes.
-            Reporter:               varCurrentUser,
-            'Reporter Display Name': If(varAnonymous, "", varCurrentUser.FullName),
-            Anonymous:              varAnonymous,
-            Region:                 If(IsBlank(varUserPersonnel.Region.Value), Blank(), { Value: varUserPersonnel.Region.Value }),
-            Base:                   If(IsBlank(varUserPersonnel.'Primary Base'.Value), Blank(), { Value: varUserPersonnel.'Primary Base'.Value }),
-            'Aircraft Tail':        If(IsBlank(dd_SafetyAircraft.Selected.Tail), Blank(), { Id: dd_SafetyAircraft.Selected.ID, Value: dd_SafetyAircraft.Selected.Tail }),
-            Subject:                txt_SafetySubject.Text,
-            Body:                   txt_SafetyBody.Text,
-            Severity:               { Value: dd_Severity.Selected.Value },
-            Status:                 { Value: "Submitted" },
-            'Audit Correlation':    GUID()
+            Subject:                 txt_SafetySubject.Text,
+            Body:                    txt_SafetyBody.Text,
+            'Submitted At':          Now(),
+            // Flow rewrites Reporter to mx-anonymous service account when Anonymous=Yes (server-side).
+            // Client always writes the actual user.
+            Reporter:                varCurrentUser,
+            'Reporter Display Name': If(tgl_Anonymous.Value, "", varCurrentUser.FullName),
+            Anonymous:               tgl_Anonymous.Value,
+            Region:                  varUserPersonnel.Region,
+            Base:                    varUserPersonnel.'Primary Base',
+            Aircraft:                If(IsBlank(dd_SafetyAircraft.Selected.Tail), Blank(), dd_SafetyAircraft.Selected),
+            Severity:                Switch(dd_Severity.Selected.Value,
+                "Low",      'Severity (Safety Reports)'.Low,
+                "Medium",   'Severity (Safety Reports)'.Medium,
+                "High",     'Severity (Safety Reports)'.High,
+                "Critical", 'Severity (Safety Reports)'.Critical
+            ),
+            Status:                  'Status (Safety Reports)'.Submitted,
+            'Audit Correlation':     GUID()
         }
     );
     Notify("Safety report submitted. " &
-        If(varAnonymous,
+        If(tgl_Anonymous.Value,
             "You won't receive replies (anonymous mode).",
             "You'll get a Teams DM when it's acknowledged."
         ),
@@ -945,31 +856,28 @@ If(
 )
 ```
 
-## Safety Reports Dashboard (scr_SafetyDashboard)
-
-Visible only to RMM/Director/QA/ADOM. Same gallery pattern as Approval
-Inbox, with action buttons: Acknowledge / Investigate / Escalate / Close.
+## Safety Reports Dashboard
 
 ```powerapps
 // gal_SafetyReports.Items
 SortByColumns(
-    Filter('Safety Reports',
-        Status.Value <> "Closed",
+    Filter('Safety Report',
+        Status <> 'Status (Safety Reports)'.Closed,
         Or(
             varCan.FullVisibility,
-            Region.Value = varUserPersonnel.Region.Value
+            Region = varUserPersonnel.Region
         )
     ),
-    Severity, Descending,
-    'Submitted At', Descending
+    "Severity", Descending,
+    "'Submitted At'", Descending
 )
 ```
 
 # 11. Module 5 — Docs (`scr_Docs`)
 
-The Docs module backs to a SharePoint Document Library, not a list. The
-canvas app embeds an iframe-style link out (Power Apps doesn't render
-arbitrary HTML, but it can launch a SharePoint URL).
+The Docs module backs to a SharePoint Document Library (Phase 1 still
+uses SharePoint for the file blob even though data is in Dataverse) or
+to a Dataverse File column on a `cr_doc` table (Phase 2).
 
 ## btn_OpenDocs.OnSelect
 
@@ -983,42 +891,31 @@ Launch(
 
 ## Bulletin Archive sub-section
 
-Inline gallery of resolved bulletins, filtered + sorted.
-
 ```powerapps
 // gal_BulletinArchive.Items
 SortByColumns(
-    Filter('Operational Bulletins', Status.Value = "Resolved"),
-    'Resolved At', Descending
+    Filter('Operational Bulletin', Status = 'Status (Operational Bulletins)'.Resolved),
+    "'Resolved At'", Descending
 )
 ```
 
-Gallery template shows: Subject · Resolved By · Resolution Notes ·
-Resolved At. Tap to open `scr_BulletinDetail` with the resolved bulletin.
-
 # 12. Module 6 — My Team (`scr_MyTeam`)
-
-Most-used screen for RMM/Director/Scheduler/QA. Three views via a
-SegmentedControl-style 3-button row at the top: On Call · Tech List ·
-Gantt.
 
 ## On Call view
 
 ```powerapps
 // gal_OnCall.Items
 SortByColumns(
-    Filter('Personnel - Maintenance',
+    Filter('Personnel — Maintenance',
         'On Shift' = true,
         Or(
             varCan.FullVisibility,
-            Region.Value = varUserPersonnel.Region.Value
+            Region = varUserPersonnel.Region
         )
     ),
-    'Last Name', Ascending
+    "'Last Name'", Ascending
 )
 ```
-
-Each tile: Name · Role · Base · Phone (tappable) · Text (tappable).
 
 ```powerapps
 // btn_Call.OnSelect
@@ -1028,148 +925,85 @@ Launch("tel:" & ThisItem.Phone)
 Launch("sms:" & ThisItem.Phone)
 ```
 
-## Tech List view
-
-Same data source, but unfiltered by On Shift; alphabetical by name.
-
-## Gantt view (Phase 1 scope: visual only — no edits)
-
-Power Apps doesn't have a native Gantt control. Approximate with a
-horizontal Gallery where each row is a person and each column is a day:
-
-```powerapps
-// gal_GanttRows.Items
-'Personnel - Maintenance'
-
-// Inside each row: gal_GanttCells.Items
-ForAll(Sequence(7),
-    {
-        date: Today() + Value - 1,
-        // each cell looks up Schedule Events for this person + this day
-        events: Filter('Schedule Events',
-            Personnel.Email = ThisItem.Email,
-            Date = Today() + Value - 1
-        )
-    }
-)
-```
-
-For Phase 1 the user wants a "watchtower" Gantt — read-only. Phase 2
-upgrade is the PCF Gantt component.
-
-## On Shift / Off Shift toggle (current user only)
+## On Shift toggle
 
 ```powerapps
 // tgl_OnShift.Default
 varUserPersonnel.'On Shift'
 
 // tgl_OnShift.OnChange
-Patch('Personnel - Maintenance',
-    varUserPersonnel,
+Patch('Personnel — Maintenance', varUserPersonnel,
     { 'On Shift': Self.Value }
 );
-Patch('Personnel Status Log',
-    Defaults('Personnel Status Log'),
-    {
-        Title:               "Shift toggle · " & varCurrentUser.FullName,
-        'Log ID':            "PSL-" & Text(Last('Personnel Status Log').ID + 1, "[$-en-US]000000"),
-        Personnel:           varCurrentUser,
-        'Action Type':       { Value: "shift_toggle" },
-        'Status Reason':     If(Self.Value, "Started shift", "Ended shift"),
-        'Changed At':        Now(),
-        'Changed By':        varCurrentUser,
-        'Audit Correlation': GUID()
-    }
+With({ correlationId: GUID() },
+    Patch('Personnel Status Log', Defaults('Personnel Status Log'),
+        {
+            Personnel:           varUserPersonnel,
+            'Action Type':       'Action Type (Personnel Status Log)'.shift_toggle,
+            'On Shift':          Self.Value,
+            'Status Reason':     If(Self.Value, "Started shift", "Ended shift"),
+            'Changed At':        Now(),
+            'Changed By':        varCurrentUser,
+            'Audit Correlation': correlationId
+        }
+    )
 );
-Set(varUserPersonnel, LookUp('Personnel - Maintenance', Email = varCurrentUser.Email))
+Set(varUserPersonnel, LookUp('Personnel — Maintenance', Email = varCurrentUser.Email))
 ```
 
 # 13. Module 7 — MX Tracking (`scr_MXTracking`)
-
-Calendar view with saved filter prefs. Power Apps' Calendar Control is
-the simplest path; for the Gantt + Inspections chart, use Galleries with
-custom rendering.
-
-## Filter sidebar
-
-```powerapps
-// dd_FilterAircraft.Items
-[{Tail: "All", ID: 0}] & SortByColumns(Aircraft, "Tail", Ascending)
-
-// dd_FilterBase.Items
-[{Title: "All", ID: 0}] & SortByColumns(Bases, "Title", Ascending)
-
-// dd_FilterRegion.Items
-[{Title: "All", ID: 0}] & SortByColumns(Regions, "Title", Ascending)
-```
 
 ## Save filter button
 
 ```powerapps
 // btn_SaveFilters.OnSelect
 With({
-    existing: LookUp('User Filter Preferences',
-        'User Email' = varCurrentUser.Email && View.Value = "MX Tracking"
+    existing: LookUp('User Filter Preference',
+        'User Email' = varCurrentUser.Email && View = 'View (User Filter Preferences)'.'MX Tracking'
     )
 },
-    If(IsBlank(existing.ID),
-        Patch('User Filter Preferences',
-            Defaults('User Filter Preferences'),
+    If(IsBlank(existing),
+        Patch('User Filter Preference', Defaults('User Filter Preference'),
             {
-                Title:         varCurrentUser.Email & " · MX Tracking",
-                'User Email':  varCurrentUser.Email,
-                View:          { Value: "MX Tracking" },
-                'Filter JSON': JSON({
+                'User Email':   varCurrentUser.Email,
+                View:           'View (User Filter Preferences)'.'MX Tracking',
+                'Filter JSON':  JSON({
                     aircraft: dd_FilterAircraft.Selected.Tail,
                     base:     dd_FilterBase.Selected.Title,
-                    region:   dd_FilterRegion.Selected.Title
+                    region:   dd_FilterRegion.Selected.Name
                 }),
                 'Last Updated': Now()
             }
         ),
-        Patch('User Filter Preferences', existing, {
-            'Filter JSON': JSON({
-                aircraft: dd_FilterAircraft.Selected.Tail,
-                base:     dd_FilterBase.Selected.Title,
-                region:   dd_FilterRegion.Selected.Title
-            }),
-            'Last Updated': Now()
-        })
+        Patch('User Filter Preference', existing,
+            {
+                'Filter JSON':  JSON({
+                    aircraft: dd_FilterAircraft.Selected.Tail,
+                    base:     dd_FilterBase.Selected.Title,
+                    region:   dd_FilterRegion.Selected.Name
+                }),
+                'Last Updated': Now()
+            }
+        )
     )
 );
 Notify("Filters saved.", NotificationType.Success)
 ```
 
-## Restore on screen load
-
-```powerapps
-// scr_MXTracking.OnVisible (additional)
-With({ pref: LookUp('User Filter Preferences',
-    'User Email' = varCurrentUser.Email && View.Value = "MX Tracking"
-)},
-    If(!IsBlank(pref),
-        Set(varSavedFilters, ParseJSON(pref.'Filter JSON'))
-    )
-)
-```
-
 ## Upcoming Inspections bar chart
-
-A horizontal Gallery sorted by `Window Start ascending`, with bar fill
-color coded:
 
 ```powerapps
 // gal_UpcomingInspections.Items
 SortByColumns(
-    Filter('MX Requests',
-        'Request Type'.Value = "MX Schedule",
-        Status.Value = "Approved",
+    Filter('MX Request',
+        'Request Type' = 'Request Type (MX Requests)'.'MX Schedule',
+        Status = 'Status (MX Requests)'.Approved,
         'Window Start' >= Now()
     ),
-    'Window Start', Ascending
+    "'Window Start'", Ascending
 )
 
-// rect_BarFill.Fill (inside each row)
+// rect_BarFill.Fill
 With({ days: DateDiff(Now(), ThisItem.'Window Start', Days) },
     Switch(true,
         days < 1,    RGBA(220,38,38,1),
@@ -1177,88 +1011,80 @@ With({ days: DateDiff(Now(), ThisItem.'Window Start', Days) },
         RGBA(22,163,74,1)
     )
 )
-
-// rect_BarFill.Width (proportional to days-out, capped at 30 days)
-Min(DateDiff(Now(), ThisItem.'Window Start', Days), 30) * 10
 ```
 
 # 14. Module 8 — Bulletins (`scr_Bulletins`)
-
-Three sections: post (RMM/Director/QA only), feed, archive.
 
 ## scr_Bulletins.OnVisible
 
 ```powerapps
 Set(varPageTitle, "Bulletins");
-Refresh('Operational Bulletins');
+Refresh('Operational Bulletin');
 ClearCollect(colActiveBulletins,
     SortByColumns(
-        Filter('Operational Bulletins', Status.Value = "Active"),
+        Filter('Operational Bulletin', Status = 'Status (Operational Bulletins)'.Active),
         Switch(Level.Value, "Alert", 1, "Advisory", 2, "Info", 3, 4),
         'Posted At', Descending
     )
 );
 ClearCollect(colArchivedBulletins,
     SortByColumns(
-        Filter('Operational Bulletins', Status.Value in ["Resolved","Archived"]),
+        Filter('Operational Bulletin',
+            Status in [
+                'Status (Operational Bulletins)'.Resolved,
+                'Status (Operational Bulletins)'.Archived
+            ]
+        ),
         'Resolved At', Descending
     )
 )
 ```
 
-## Post bulletin form
-
-Visible only when `varCan.PostBulletin`.
+## Post bulletin
 
 ```powerapps
 // btn_PostBulletin.OnSelect
 If(IsBlank(txt_BulSubject.Text) || IsBlank(txt_BulBody.Text),
     Notify("Subject and body are required.", NotificationType.Warning),
-    Patch('Operational Bulletins',
-        Defaults('Operational Bulletins'),
+    Patch('Operational Bulletin', Defaults('Operational Bulletin'),
         {
-            Title:        txt_BulSubject.Text,
-            'Bulletin ID': "BUL-" & Text(Last('Operational Bulletins').ID + 1, "[$-en-US]000000"),
-            Level:        { Value: dd_BulLevel.Selected.Value },
-            'Posted At':  Now(),
-            'Posted By':  varCurrentUser,
-            Subject:      txt_BulSubject.Text,
-            Body:         txt_BulBody.Text,
-            Audience:     If(IsBlank(dd_BulAudience.Selected.Value),
-                             { Value: "All" },
-                             { Value: dd_BulAudience.Selected.Value }
-                         ),
-            Region:       If(IsBlank(dd_BulRegion.Selected.Title),
-                             Blank(),
-                             { Id: dd_BulRegion.Selected.ID, Value: dd_BulRegion.Selected.Title }
-                         ),
-            Status:       { Value: "Active" },
-            'Audit Correlation': GUID()
+            Subject:    txt_BulSubject.Text,
+            Body:       txt_BulBody.Text,
+            Level:      Switch(dd_BulLevel.Selected.Value,
+                "Alert",    'Level (Operational Bulletins)'.Alert,
+                "Advisory", 'Level (Operational Bulletins)'.Advisory,
+                "Info",     'Level (Operational Bulletins)'.Info
+            ),
+            'Posted At':          Now(),
+            'Posted By':          varCurrentUser,
+            Audience:             [{ Value: dd_BulAudience.Selected.Value }],
+            Region:               If(IsBlank(dd_BulRegion.Selected.Name), Blank(), dd_BulRegion.Selected),
+            Status:               'Status (Operational Bulletins)'.Active,
+            'Audit Correlation':  GUID()
         }
     );
     Notify("Bulletin posted.", NotificationType.Success);
     Reset(txt_BulSubject); Reset(txt_BulBody); Reset(dd_BulLevel); Reset(dd_BulAudience); Reset(dd_BulRegion);
-    Refresh('Operational Bulletins')
+    Refresh('Operational Bulletin')
 )
 ```
 
 ## Resolve bulletin
 
 ```powerapps
-// btn_ResolveBulletin.OnSelect (in scr_BulletinDetail)
+// btn_ResolveBulletin.OnSelect
 If(IsBlank(txt_ResolutionNotes.Text),
     Notify("Resolution notes are required to resolve.", NotificationType.Warning),
-    Patch('Operational Bulletins',
-        varSelectedBulletin,
+    Patch('Operational Bulletin', varSelectedBulletin,
         {
-            Status:           { Value: "Resolved" },
-            'Resolved At':    Now(),
-            'Resolved By':    varCurrentUser,
+            Status:             'Status (Operational Bulletins)'.Resolved,
+            'Resolved At':      Now(),
+            'Resolved By':      varCurrentUser,
             'Resolution Notes': txt_ResolutionNotes.Text
         }
     );
     Notify("Bulletin resolved.", NotificationType.Success);
-    Refresh('Operational Bulletins');
+    Refresh('Operational Bulletin');
     Navigate(scr_Bulletins, ScreenTransition.UnCover)
 )
 ```
@@ -1267,107 +1093,95 @@ If(IsBlank(txt_ResolutionNotes.Text),
 
 ```powerapps
 // btn_PermDelete.Visible
-varCan.DeleteBulletin && varSelectedBulletin.Status.Value = "Resolved"
+varCan.DeleteBulletin && varSelectedBulletin.Status = 'Status (Operational Bulletins)'.Resolved
 
 // btn_PermDelete.OnSelect
 If(varConfirmDelete,
-    Remove('Operational Bulletins', varSelectedBulletin);
+    Remove('Operational Bulletin', varSelectedBulletin);
     Notify("Bulletin permanently deleted.", NotificationType.Success);
-    Refresh('Operational Bulletins');
+    Refresh('Operational Bulletin');
     Navigate(scr_Bulletins, ScreenTransition.UnCover),
-    // first tap arms the confirm
     Set(varConfirmDelete, true);
     Notify("Tap again to confirm permanent deletion.", NotificationType.Warning)
 )
 ```
 
-# 15. Common Power Fx patterns
+# 15. Common Power Fx patterns (Dataverse)
 
 ## Patch with Choice / Lookup / Person fields
 
 ```powerapps
-// Choice
-{ Status: { Value: "Approved" } }
+// Choice — type-safe
+{ Status: 'Status (MX Requests)'.Approved }
 
-// Lookup (single)
-{ 'Aircraft Tail': { Id: varAircraft.ID, Value: varAircraft.Tail } }
+// Lookup (single) — Dataverse takes the full record reference
+{ 'Aircraft Tail': varAircraft }
 
-// Lookup (multi-select Choice)
-{ Audience: [{ Value: "RMM" }, { Value: "Director" }] }
+// Lookup (multi) — array of records
+{ 'Coverage Bases': [base1, base2, base3] }
 
-// Person/Group (single)
-{ 'Requested By': varCurrentUser }       // varCurrentUser = User()
+// Multi-select Choice — array of choice options
+{ Audience: [
+    'Audience (Operational Bulletins)'.RMM,
+    'Audience (Operational Bulletins)'.Director
+]}
 
-// Person/Group (multi)
+// Person/Group — User() works directly
+{ 'Requested By': varCurrentUser }
+
+// Person/Group (multi) — array of users
 { Approvers: [varCurrentUser, otherUser] }
 
-// Date — write UTC, display local
-{ 'Submitted At': DateAdd(Now(), -TimeZoneOffset(), Minutes) }
+// Date — Dataverse stores UTC; display layer converts to local
+{ 'Submitted At': Now() }
 ```
 
 ## Audit Correlation pattern
 
-Every primary list write generates a GUID. Every Audit Log row references
-that GUID. Lets reporting reconstruct full transition history.
+Every primary table write generates a GUID. Audit rows reference that
+GUID. Lets reporting reconstruct full transition history.
 
 ```powerapps
 With({ correlationId: GUID() },
-    Patch('MX Requests', Defaults('MX Requests'), {
+    Patch('MX Request', Defaults('MX Request'), {
         // ... all fields ...
         'Audit Correlation': correlationId
     });
-    Patch('Audit Log', Defaults('Audit Log'), {
-        // ... audit fields ...
-        'Audit Correlation': correlationId
-    })
+    // Flow writes audit rows server-side. If the canvas needs to write
+    // its own audit row (e.g. for client-only events like shift_toggle),
+    // include 'Audit Correlation': correlationId on that Patch too.
 )
 ```
 
-## Sequential row IDs
-
-Power Apps doesn't have auto-numbering for SharePoint custom IDs. Use the
-last row's ID + 1, formatted:
-
-```powerapps
-"MXR-" & Text(Last('MX Requests').ID + 1, "[$-en-US]00000")
-```
-
-For high-concurrency lists (race condition risk), generate the ID in the
-flow instead — server-side uniqueness is guaranteed.
-
-## Permission gating — UI level
+## Permission gating
 
 ```powerapps
 btn_PostBulletin.Visible: varCan.PostBulletin
 gal_StatusDashboard.Visible: varCan.StatusDashboard
 ```
 
-## Permission gating — data level
-
-UI gating prevents accidental writes; data-level gating prevents
-malicious ones. SharePoint item-level permissions (set in
-`connections.md`) enforce this server-side. The canvas app trusts but
-verifies — never relies on UI-only gating for sensitive ops.
+UI gating prevents accidental writes. Dataverse role privileges (set in
+`connections.md`) prevent malicious ones server-side. The canvas app
+trusts but verifies — never relies on UI-only gating for sensitive ops.
 
 # 16. Performance + scale tips
 
-- **Limit collection size.** ClearCollect on a 10K-row list will hang
+- **Limit collection size.** ClearCollect on a 100K-row table will hang
   the app. Filter server-side first:
   ```
-  ClearCollect(colMyApprovals, Filter('MX Requests', ID > 0))   // BAD
-  ClearCollect(colMyApprovals, Filter('MX Requests', Status.Value = "Submitted"))  // GOOD
+  ClearCollect(colMyApprovals, Filter('MX Request', /* anything */))   // BAD
+  ClearCollect(colMyApprovals, Filter('MX Request', Status = 'Status (MX Requests)'.Submitted))  // GOOD
   ```
-- **Delegation warnings (blue squiggles).** If the formula isn't
-  delegable, Power Apps fetches only the first 500 (or 2000 with the
-  data-row limit setting bumped). Resolve by:
-  - Using delegable functions (`Filter`, `LookUp`, `Sort`) over
-    in-memory ones (`AddColumns`, `GroupBy`)
-  - Pre-filtering on indexed columns
+- **Delegation warnings (blue squiggles).** Dataverse delegates almost
+  everything Power Fx supports — far more than SharePoint. If you do
+  see a warning, check for:
+  - In-memory functions (`AddColumns`, `GroupBy`) before a Filter
+  - String functions on Choice columns (use the type-safe `'Status (Table)'.Value` syntax)
+  - Lookup-walked filters (e.g. `'Aircraft Tail'.RMM.Email`) — these
+    delegate but slow queries; consider denormalizing
 - **Cache reference data.** Regions / Bases / Aircraft Types are small
-  and never change in a session. Load once in `App.OnStart` and reuse.
-- **Avoid `Refresh()` in `OnVisible` if the screen renders quickly
-  enough off the cache.** Refresh only on submit/return navigation.
-- **Concurrent loads.** Use `Concurrent()` to fan out independent reads:
+  and never change in a session. Load once in `App.OnStart`.
+- **Concurrent loads:**
   ```powerapps
   Concurrent(
       ClearCollect(colBulletins, ...),
@@ -1375,10 +1189,8 @@ verifies — never relies on UI-only gating for sensitive ops.
       Set(varUserPersonnel, ...)
   )
   ```
-- **App load target:** Phase 1 should hit `App.OnStart` complete in
-  under 3 seconds on a cellular connection. If you exceed that, profile
-  with `Trace()` and move slow steps to lazy-load on first relevant
-  screen visit.
+- **App load target:** under 3 seconds on cellular. Profile with
+  `Trace()`.
 
 # 17. Deploy + share
 
@@ -1387,11 +1199,21 @@ verifies — never relies on UI-only gating for sensitive ops.
 ```
 File → Save (Ctrl+S)
 File → Publish version
-File → Share → Add: Entra group `MXC App Users` → Permission: User
 ```
 
-Don't share with individuals; always share via Entra groups so onboard /
-offboard happens through IT's existing group lifecycle.
+## Sharing — Dataverse roles, not direct app shares
+
+The cleanest pattern is to share the app with `MXC App Users` Entra
+group, while the **per-user data access** is governed by the 8
+Dataverse security roles (`MXC AMT`, `MXC RMM`, etc.). Members of the
+Entra group must also have at least one MXC role assigned in the
+environment for the app to work.
+
+```
+File → Share → Add: Entra group `MXC App Users` → Permission: User
+Power Platform admin center → Environment → Settings → Security roles →
+   For each MXC role → Manage members → Add Entra group
+```
 
 ## Versioning
 
@@ -1400,48 +1222,38 @@ File → Versions → Restore (any prior version)
 File → Versions → Live → tag a stable version
 ```
 
-Version every demo / pilot / pre-prod / prod milestone. Restore is the
-escape hatch when a bad change ships.
-
 ## Mobile vs Teams
 
-The same canvas app works in three places:
 - **Power Apps mobile** — install once, live tile per app
 - **Teams** — Add the app via Teams admin center, pin in left rail
 - **Browser** — share the play URL
 
-For Phase 1, mobile is the primary surface. Teams embedding can be a
-Phase 2 polish item.
-
 ## Telemetry
 
-Power Apps has native usage telemetry (View → Analytics in Power Apps
-Studio). Watch in week 1 for:
+Power Apps native usage telemetry (View → Analytics in Studio).
+Watch for:
 - Average load time
 - Active users / day
 - Most-visited screens
 - Error rate by screen
 
-If the load time creeps over 5s, profile with `Trace()` and move
-preloads off `App.OnStart` to lazy-load on first relevant screen visit.
-
 ---
 
-## Phase 1 acceptance criteria for the canvas app
+## Phase 1 acceptance criteria
 
 The app is done when, in Prod:
 
 - [ ] All 8 modules accessible from the side nav with role-based visibility
 - [ ] AMT can submit any of 6 MX Request types in under 30 seconds
-- [ ] RMM/Director/Scheduler/QA can approve / deny / request info /
-      escalate from the in-app inbox AND from the Teams Adaptive Card
+- [ ] RMM/Director/Scheduler/QA can Approve / Deny / Request Info /
+      Escalate from the in-app inbox AND from the Teams Adaptive Card
 - [ ] Bulletin feed loads on every home screen sorted by severity
 - [ ] On-Call screen shows the right region by default with tappable
       call/text buttons
-- [ ] Status submissions hit Aircraft + Aircraft Status Log atomically
+- [ ] Status submissions hit the master table + status log atomically
 - [ ] Anonymous safety reports never leak the reporter back to the UI
 - [ ] Saved filter preferences restore correctly after navigation
-- [ ] Payroll users get redirected to the SharePoint filtered view (no
-      app login)
+- [ ] Payroll users get redirected to the Power BI / Dataverse view
+      (no app login)
 - [ ] App load time < 3s on cellular
 - [ ] Three weeks of clean run history in the Logan pilot
