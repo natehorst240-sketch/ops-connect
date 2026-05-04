@@ -1,0 +1,530 @@
+{
+  "_comment": "Power Automate cloud flow for Phase 1 (SharePoint Lists data layer). Token replacements at import: ${SITE_URL} -> SharePoint site absolute URL (e.g. https://ihc.sharepoint.com/sites/MXConnect); ${LIST_MX_REQUESTS} -> GUID of the 'MX Requests' list; ${LIST_AUDIT_LOG} -> GUID of the 'Audit Log' list; ${LIST_AIRCRAFT} -> GUID of the 'Aircraft' list. The seven mx_* parameters are filled in via Solution > Environment variables (Phase 2) or hard-coded into the flow at import time (Phase 1, since SharePoint-only deployments can skip the Dataverse env-var feature).",
+
+  "properties": {
+    "connectionReferences": {
+      "shared_sharepointonline": {
+        "runtimeSource": "embedded",
+        "connection": { "connectionReferenceLogicalName": "cr_SharePointConnection" },
+        "api": { "name": "shared_sharepointonline" }
+      },
+      "shared_teams": {
+        "runtimeSource": "embedded",
+        "connection": { "connectionReferenceLogicalName": "cr_TeamsConnection" },
+        "api": { "name": "shared_teams" }
+      },
+      "shared_office365": {
+        "runtimeSource": "embedded",
+        "connection": { "connectionReferenceLogicalName": "cr_OutlookConnection" },
+        "api": { "name": "shared_office365" }
+      },
+      "shared_office365users": {
+        "runtimeSource": "embedded",
+        "connection": { "connectionReferenceLogicalName": "cr_Office365UsersConnection" },
+        "api": { "name": "shared_office365users" }
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$connections":            { "defaultValue": {}, "type": "Object" },
+        "$authentication":         { "defaultValue": {}, "type": "SecureObject" },
+
+        "_comment_environment_variables": "Phase 1 runs on SharePoint Lists, so these are inlined as flow parameters rather than bound to Dataverse environment variables. To change values per-environment, edit the flow's Run-only parameters JSON or override at import via PowerShell.",
+
+        "mx_site_url": {
+          "defaultValue": "",
+          "type":         "String",
+          "metadata": { "description": "SharePoint site absolute URL hosting the MX Connect lists" }
+        },
+        "mx_list_requests": {
+          "defaultValue": "",
+          "type":         "String",
+          "metadata": { "description": "GUID of the 'MX Requests' list (find in List settings > List ID)" }
+        },
+        "mx_list_audit": {
+          "defaultValue": "",
+          "type":         "String",
+          "metadata": { "description": "GUID of the 'Audit Log' list" }
+        },
+        "mx_list_aircraft": {
+          "defaultValue": "",
+          "type":         "String",
+          "metadata": { "description": "GUID of the 'Aircraft' list (used to enrich the Adaptive Card)" }
+        },
+        "mx_approver_team_id": {
+          "defaultValue": "",
+          "type":         "String",
+          "metadata": { "description": "Microsoft Teams Team ID where Adaptive Cards are posted (e.g. 19:abc...@thread.tacv2)" }
+        },
+        "mx_approver_channel_id": {
+          "defaultValue": "",
+          "type":         "String",
+          "metadata": { "description": "Channel ID within the approver Team where cards are posted" }
+        },
+        "mx_director_channel_id": {
+          "defaultValue": "",
+          "type":         "String",
+          "metadata": { "description": "Channel ID for the Ask Leadership / Director routing path" }
+        },
+        "mx_outlook_calendar": {
+          "defaultValue": "",
+          "type":         "String",
+          "metadata": { "description": "Shared Outlook calendar name or ID for approved MX events" }
+        },
+        "mx_request_timeout_hours": {
+          "defaultValue": 24,
+          "type":         "Int",
+          "metadata": { "description": "Hours to wait for a decision before auto-escalating" }
+        },
+        "mx_audit_retention_days": {
+          "defaultValue": 2555,
+          "type":         "Int",
+          "metadata": { "description": "Days to retain Audit Log rows (default 2555 = 7 years per HIPAA)" }
+        },
+        "mx_app_deeplink_base": {
+          "defaultValue": "https://make.powerapps.com/",
+          "type":         "String",
+          "metadata": { "description": "URL prefix for deep-links from Outlook events / Teams messages back into MX Connect" }
+        },
+        "mx_director_email": {
+          "defaultValue": "",
+          "type":         "String",
+          "metadata": { "description": "Director-group email address for timeout escalations" }
+        }
+      },
+      "triggers": {
+        "When_an_MX_Request_is_created_or_modified": {
+          "type": "OpenApiConnection",
+          "recurrence": { "frequency": "Minute", "interval": 1 },
+          "splitOn": "@triggerOutputs()?['body/value']",
+          "inputs": {
+            "host": {
+              "connectionName": "shared_sharepointonline",
+              "operationId": "GetOnNewOrUpdatedItems",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline"
+            },
+            "parameters": {
+              "dataset": "@parameters('mx_site_url')",
+              "table":   "@parameters('mx_list_requests')"
+            }
+          },
+          "_comment": "SharePoint connector polls the list every minute. The trigger condition below filters down to only Status='Submitted' rows so Approve/Deny updates don't re-trigger the flow."
+        }
+      },
+      "actions": {
+        "Filter_to_submitted_only": {
+          "type": "If",
+          "expression": {
+            "and": [
+              { "equals": [ "@triggerOutputs()?['body/Status/Value']", "Submitted" ] }
+            ]
+          },
+          "actions": {
+            "Initialize_audit_correlation": {
+              "type": "InitializeVariable",
+              "inputs": {
+                "variables": [
+                  {
+                    "name":  "vAuditCorrelation",
+                    "type":  "string",
+                    "value": "@{coalesce(triggerOutputs()?['body/Audit_x0020_Correlation'], guid())}"
+                  }
+                ]
+              },
+              "runAfter": {}
+            },
+
+            "Initialize_request_id": {
+              "type": "InitializeVariable",
+              "inputs": {
+                "variables": [
+                  {
+                    "name":  "vRequestId",
+                    "type":  "integer",
+                    "value": "@triggerOutputs()?['body/ID']"
+                  }
+                ]
+              },
+              "runAfter": { "Initialize_audit_correlation": ["Succeeded"] }
+            },
+
+            "Initialize_routing": {
+              "type": "InitializeVariable",
+              "inputs": {
+                "variables": [
+                  {
+                    "name":  "vRouting",
+                    "type":  "string",
+                    "value": "@{coalesce(triggerOutputs()?['body/Routing/Value'], 'RMM')}"
+                  }
+                ]
+              },
+              "runAfter": { "Initialize_request_id": ["Succeeded"] },
+              "_comment": "Routing column is a Choice with values RMM | Director. RMM is the default approver path; Director is used for the 'Ask Leadership' flow shown in the demo."
+            },
+
+            "Audit_submitted": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_sharepointonline",
+                  "operationId":    "PostItem",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline"
+                },
+                "parameters": {
+                  "dataset":  "@parameters('mx_site_url')",
+                  "table":    "@parameters('mx_list_audit')",
+                  "item/Title":            "@{concat('mx_request.submitted · ', triggerOutputs()?['body/Request_x0020_Number'])}",
+                  "item/Audit_x0020_ID":   "@{guid()}",
+                  "item/Event_x0020_At":   "@{utcNow()}",
+                  "item/ActorClaims":      "@{triggerOutputs()?['body/Requested_x0020_By/Claims']}",
+                  "item/Actor_x0020_Role": "AMT",
+                  "item/Action":           "mx_request.submitted",
+                  "item/Subject_x0020_Table": "MX Requests",
+                  "item/Subject_x0020_ID":  "@{variables('vRequestId')}",
+                  "item/Audit_x0020_Correlation": "@{variables('vAuditCorrelation')}",
+                  "item/Comment":          "Initial submission",
+                  "item/Metadata":         "@{string(triggerOutputs()?['body'])}",
+                  "item/Retention_x0020_Until": "@{addDays(utcNow(), parameters('mx_audit_retention_days'))}"
+                }
+              },
+              "runAfter": { "Initialize_routing": ["Succeeded"] }
+            },
+
+            "Stamp_correlation_back_to_request": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_sharepointonline",
+                  "operationId":    "PatchItem",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline"
+                },
+                "parameters": {
+                  "dataset":  "@parameters('mx_site_url')",
+                  "table":    "@parameters('mx_list_requests')",
+                  "id":       "@variables('vRequestId')",
+                  "item/Audit_x0020_Correlation": "@{variables('vAuditCorrelation')}"
+                }
+              },
+              "runAfter": { "Audit_submitted": ["Succeeded"] }
+            },
+
+            "Compose_card_body": {
+              "type": "Compose",
+              "inputs": {
+                "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                "type":    "AdaptiveCard",
+                "version": "1.5",
+                "body": [
+                  {
+                    "type":  "Container",
+                    "style": "emphasis",
+                    "bleed": true,
+                    "items": [
+                      { "type": "TextBlock", "text": "@{if(equals(variables('vRouting'),'Director'), 'ASK LEADERSHIP · DECISION NEEDED', 'MX REQUEST · APPROVAL NEEDED')}", "weight": "Bolder", "color": "Accent" },
+                      { "type": "TextBlock", "text": "@{triggerOutputs()?['body/Aircraft_x0020_Tail/Value']} · @{triggerOutputs()?['body/Request_x0020_Type/Value']}", "weight": "Bolder", "size": "Large" },
+                      { "type": "TextBlock", "text": "Request @{triggerOutputs()?['body/Request_x0020_Number']} · Priority: @{triggerOutputs()?['body/Priority/Value']}", "size": "Small", "isSubtle": true }
+                    ]
+                  },
+                  {
+                    "type": "FactSet",
+                    "facts": [
+                      { "title": "Aircraft",  "value": "@{triggerOutputs()?['body/Aircraft_x0020_Tail/Value']} · @{triggerOutputs()?['body/Aircraft_x0020_Type']}" },
+                      { "title": "Window",    "value": "@{formatDateTime(triggerOutputs()?['body/Window_x0020_Start'], 'ddd MMM d · HH:mm')} → @{formatDateTime(triggerOutputs()?['body/Window_x0020_End'], 'ddd MMM d · HH:mm')}" },
+                      { "title": "Base",      "value": "@{triggerOutputs()?['body/Base']}" },
+                      { "title": "Requestor", "value": "@{triggerOutputs()?['body/Requested_x0020_By/DisplayName']}" }
+                    ]
+                  },
+                  { "type": "TextBlock",   "text": "Reason", "weight": "Bolder", "spacing": "Medium" },
+                  { "type": "TextBlock",   "text": "@{triggerOutputs()?['body/Reason']}", "wrap": true },
+                  { "type": "Input.Text",  "id": "comment", "label": "Comment (optional, attached to audit log)", "placeholder": "Add a note before deciding…", "maxLength": 500 }
+                ],
+                "actions": [
+                  { "type": "Action.Submit", "title": "Approve", "data": { "action": "approve", "requestId": "@{variables('vRequestId')}" }, "style": "positive" },
+                  { "type": "Action.Submit", "title": "Deny",    "data": { "action": "deny",    "requestId": "@{variables('vRequestId')}" }, "style": "destructive" }
+                ]
+              },
+              "runAfter": { "Stamp_correlation_back_to_request": ["Succeeded"] }
+            },
+
+            "Post_card_and_wait": {
+              "type": "OpenApiConnectionWebhook",
+              "limit": { "timeout": "PT24H" },
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_teams",
+                  "operationId":    "PostAdaptiveCardAndWaitForResponse",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams"
+                },
+                "parameters": {
+                  "poster":   "Flow bot",
+                  "location": "Channel",
+                  "messageBody": "@{outputs('Compose_card_body')}",
+                  "recipient/groupId":   "@{parameters('mx_approver_team_id')}",
+                  "recipient/channelId": "@{if(equals(variables('vRouting'),'Director'), parameters('mx_director_channel_id'), parameters('mx_approver_channel_id'))}",
+                  "updateMessage":       "Decision recorded."
+                }
+              },
+              "runAfter": { "Compose_card_body": ["Succeeded"] },
+              "_comment": "Routes to the RMM channel by default, or the Director channel when Routing='Director' (Ask Leadership scenario). 24h timeout fires the escalation branch below."
+            },
+
+            "Decision": {
+              "type": "Switch",
+              "expression": "@outputs('Post_card_and_wait')?['body/data/action']",
+              "cases": {
+                "Approve": {
+                  "case": "approve",
+                  "actions": {
+                    "Update_request_approved": {
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "host": {
+                          "connectionName": "shared_sharepointonline",
+                          "operationId":    "PatchItem",
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline"
+                        },
+                        "parameters": {
+                          "dataset":  "@parameters('mx_site_url')",
+                          "table":    "@parameters('mx_list_requests')",
+                          "id":       "@variables('vRequestId')",
+                          "item/Status":            "Approved",
+                          "item/Decided_x0020_At":  "@{utcNow()}",
+                          "item/Decision_x0020_Comment": "@{outputs('Post_card_and_wait')?['body/data/comment']}",
+                          "item/ApproverClaims":    "@{concat('i:0#.f|membership|', outputs('Post_card_and_wait')?['body/responder/userPrincipalName'])}"
+                        }
+                      }
+                    },
+                    "Create_outlook_event": {
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "host": {
+                          "connectionName": "shared_office365",
+                          "operationId":    "V4CalendarPostItem",
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365"
+                        },
+                        "parameters": {
+                          "calendar": "@{parameters('mx_outlook_calendar')}",
+                          "event/subject":  "@{triggerOutputs()?['body/Aircraft_x0020_Tail/Value']} · @{triggerOutputs()?['body/Request_x0020_Type/Value']}",
+                          "event/body":     "<a href='@{parameters('mx_app_deeplink_base')}@{variables('vRequestId')}'>Open in MX Connect</a>",
+                          "event/start":    "@{triggerOutputs()?['body/Window_x0020_Start']}",
+                          "event/end":      "@{triggerOutputs()?['body/Window_x0020_End']}",
+                          "event/timeZone": "Mountain Standard Time"
+                        }
+                      },
+                      "runAfter": { "Update_request_approved": ["Succeeded"] }
+                    },
+                    "Save_outlook_event_id": {
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "host": {
+                          "connectionName": "shared_sharepointonline",
+                          "operationId":    "PatchItem",
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline"
+                        },
+                        "parameters": {
+                          "dataset":  "@parameters('mx_site_url')",
+                          "table":    "@parameters('mx_list_requests')",
+                          "id":       "@variables('vRequestId')",
+                          "item/Outlook_x0020_Event_x0020_ID": "@{outputs('Create_outlook_event')?['body/id']}"
+                        }
+                      },
+                      "runAfter": { "Create_outlook_event": ["Succeeded"] }
+                    },
+                    "DM_requestor_approved": {
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "host": {
+                          "connectionName": "shared_teams",
+                          "operationId":    "PostMessageToConversation",
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams"
+                        },
+                        "parameters": {
+                          "poster":     "Flow bot",
+                          "location":   "Chat with Flow bot",
+                          "recipient":  "@{triggerOutputs()?['body/Requested_x0020_By/Email']}",
+                          "messageBody/content":     "Your MX request <b>@{triggerOutputs()?['body/Request_x0020_Number']}</b> for <b>@{triggerOutputs()?['body/Aircraft_x0020_Tail/Value']}</b> was <b>approved</b> by <b>@{outputs('Post_card_and_wait')?['body/responder/displayName']}</b>.@{if(empty(outputs('Post_card_and_wait')?['body/data/comment']), '', concat('<br><br>Comment: ', outputs('Post_card_and_wait')?['body/data/comment']))}",
+                          "messageBody/contentType": "html"
+                        }
+                      },
+                      "runAfter": { "Save_outlook_event_id": ["Succeeded"] }
+                    },
+                    "Audit_approved": {
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "host": {
+                          "connectionName": "shared_sharepointonline",
+                          "operationId":    "PostItem",
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline"
+                        },
+                        "parameters": {
+                          "dataset":  "@parameters('mx_site_url')",
+                          "table":    "@parameters('mx_list_audit')",
+                          "item/Title":            "@{concat('mx_request.approved · ', triggerOutputs()?['body/Request_x0020_Number'])}",
+                          "item/Audit_x0020_ID":   "@{guid()}",
+                          "item/Event_x0020_At":   "@{utcNow()}",
+                          "item/ActorClaims":      "@{concat('i:0#.f|membership|', outputs('Post_card_and_wait')?['body/responder/userPrincipalName'])}",
+                          "item/Actor_x0020_Role": "@{if(equals(variables('vRouting'),'Director'), 'Director', 'RMM')}",
+                          "item/Action":           "mx_request.approved",
+                          "item/Subject_x0020_Table": "MX Requests",
+                          "item/Subject_x0020_ID":  "@{variables('vRequestId')}",
+                          "item/Audit_x0020_Correlation": "@{variables('vAuditCorrelation')}",
+                          "item/Comment":          "@{outputs('Post_card_and_wait')?['body/data/comment']}",
+                          "item/Metadata":         "@{string(outputs('Post_card_and_wait')?['body'])}",
+                          "item/Retention_x0020_Until": "@{addDays(utcNow(), parameters('mx_audit_retention_days'))}"
+                        }
+                      },
+                      "runAfter": { "DM_requestor_approved": ["Succeeded"] }
+                    }
+                  }
+                },
+                "Deny": {
+                  "case": "deny",
+                  "actions": {
+                    "Update_request_denied": {
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "host": {
+                          "connectionName": "shared_sharepointonline",
+                          "operationId":    "PatchItem",
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline"
+                        },
+                        "parameters": {
+                          "dataset":  "@parameters('mx_site_url')",
+                          "table":    "@parameters('mx_list_requests')",
+                          "id":       "@variables('vRequestId')",
+                          "item/Status":            "Denied",
+                          "item/Decided_x0020_At":  "@{utcNow()}",
+                          "item/Decision_x0020_Comment": "@{outputs('Post_card_and_wait')?['body/data/comment']}",
+                          "item/ApproverClaims":    "@{concat('i:0#.f|membership|', outputs('Post_card_and_wait')?['body/responder/userPrincipalName'])}"
+                        }
+                      }
+                    },
+                    "DM_requestor_denied": {
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "host": {
+                          "connectionName": "shared_teams",
+                          "operationId":    "PostMessageToConversation",
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams"
+                        },
+                        "parameters": {
+                          "poster":     "Flow bot",
+                          "location":   "Chat with Flow bot",
+                          "recipient":  "@{triggerOutputs()?['body/Requested_x0020_By/Email']}",
+                          "messageBody/content":     "Your MX request <b>@{triggerOutputs()?['body/Request_x0020_Number']}</b> was <b>denied</b> by <b>@{outputs('Post_card_and_wait')?['body/responder/displayName']}</b>.@{if(empty(outputs('Post_card_and_wait')?['body/data/comment']), '', concat('<br><br>Reason: ', outputs('Post_card_and_wait')?['body/data/comment']))}",
+                          "messageBody/contentType": "html"
+                        }
+                      },
+                      "runAfter": { "Update_request_denied": ["Succeeded"] }
+                    },
+                    "Audit_denied": {
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "host": {
+                          "connectionName": "shared_sharepointonline",
+                          "operationId":    "PostItem",
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline"
+                        },
+                        "parameters": {
+                          "dataset":  "@parameters('mx_site_url')",
+                          "table":    "@parameters('mx_list_audit')",
+                          "item/Title":            "@{concat('mx_request.denied · ', triggerOutputs()?['body/Request_x0020_Number'])}",
+                          "item/Audit_x0020_ID":   "@{guid()}",
+                          "item/Event_x0020_At":   "@{utcNow()}",
+                          "item/ActorClaims":      "@{concat('i:0#.f|membership|', outputs('Post_card_and_wait')?['body/responder/userPrincipalName'])}",
+                          "item/Actor_x0020_Role": "@{if(equals(variables('vRouting'),'Director'), 'Director', 'RMM')}",
+                          "item/Action":           "mx_request.denied",
+                          "item/Subject_x0020_Table": "MX Requests",
+                          "item/Subject_x0020_ID":  "@{variables('vRequestId')}",
+                          "item/Audit_x0020_Correlation": "@{variables('vAuditCorrelation')}",
+                          "item/Comment":          "@{outputs('Post_card_and_wait')?['body/data/comment']}",
+                          "item/Metadata":         "@{string(outputs('Post_card_and_wait')?['body'])}",
+                          "item/Retention_x0020_Until": "@{addDays(utcNow(), parameters('mx_audit_retention_days'))}"
+                        }
+                      },
+                      "runAfter": { "DM_requestor_denied": ["Succeeded"] }
+                    }
+                  }
+                }
+              },
+              "default": { "actions": {} },
+              "runAfter": { "Post_card_and_wait": ["Succeeded"] }
+            },
+
+            "_comment_escalation_branch": "TimedOut and Failed states from Post_card_and_wait route here in parallel to Decision. The 24h timeout matches the default mx_request_timeout_hours; if changing the parameter, update the limit.timeout above to match (Logic Apps does not support @parameters() inside limit blocks).",
+
+            "Update_request_escalated": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_sharepointonline",
+                  "operationId":    "PatchItem",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline"
+                },
+                "parameters": {
+                  "dataset":  "@parameters('mx_site_url')",
+                  "table":    "@parameters('mx_list_requests')",
+                  "id":       "@variables('vRequestId')",
+                  "item/Status":            "Escalated",
+                  "item/Decision_x0020_Comment": "@{concat('Auto-escalated to Director after ', parameters('mx_request_timeout_hours'), 'h without decision.')}"
+                }
+              },
+              "runAfter": { "Post_card_and_wait": ["TimedOut", "Failed"] }
+            },
+
+            "Email_director_escalation": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_office365",
+                  "operationId":    "SendEmailV2",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365"
+                },
+                "parameters": {
+                  "emailMessage/To":      "@{parameters('mx_director_email')}",
+                  "emailMessage/Subject": "@{concat('[MX Connect Escalation] ', triggerOutputs()?['body/Request_x0020_Number'], ' · ', triggerOutputs()?['body/Aircraft_x0020_Tail/Value'], ' awaiting decision')}",
+                  "emailMessage/Body":    "<p>The following MX request has been awaiting decision for over @{parameters('mx_request_timeout_hours')} hours and has been auto-escalated.</p><p><strong>Request:</strong> @{triggerOutputs()?['body/Request_x0020_Number']}<br><strong>Aircraft:</strong> @{triggerOutputs()?['body/Aircraft_x0020_Tail/Value']} · @{triggerOutputs()?['body/Aircraft_x0020_Type']}<br><strong>Type:</strong> @{triggerOutputs()?['body/Request_x0020_Type/Value']}<br><strong>Window:</strong> @{formatDateTime(triggerOutputs()?['body/Window_x0020_Start'], 'ddd MMM d · HH:mm')} → @{formatDateTime(triggerOutputs()?['body/Window_x0020_End'], 'ddd MMM d · HH:mm')}<br><strong>Base:</strong> @{triggerOutputs()?['body/Base']}<br><strong>Requestor:</strong> @{triggerOutputs()?['body/Requested_x0020_By/DisplayName']}<br><strong>Routing:</strong> @{variables('vRouting')}</p><p><a href='@{parameters('mx_app_deeplink_base')}@{variables('vRequestId')}'>Open in MX Connect</a></p>",
+                  "emailMessage/Importance":  "High",
+                  "emailMessage/Body_Type":   "HTML"
+                }
+              },
+              "runAfter": { "Update_request_escalated": ["Succeeded"] }
+            },
+
+            "Audit_escalated": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_sharepointonline",
+                  "operationId":    "PostItem",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline"
+                },
+                "parameters": {
+                  "dataset":  "@parameters('mx_site_url')",
+                  "table":    "@parameters('mx_list_audit')",
+                  "item/Title":            "@{concat('mx_request.escalated · ', triggerOutputs()?['body/Request_x0020_Number'])}",
+                  "item/Audit_x0020_ID":   "@{guid()}",
+                  "item/Event_x0020_At":   "@{utcNow()}",
+                  "item/Actor_x0020_Role": "System",
+                  "item/Action":           "mx_request.escalated",
+                  "item/Subject_x0020_Table": "MX Requests",
+                  "item/Subject_x0020_ID":  "@{variables('vRequestId')}",
+                  "item/Audit_x0020_Correlation": "@{variables('vAuditCorrelation')}",
+                  "item/Comment":          "@{concat('Auto-escalated after ', parameters('mx_request_timeout_hours'), 'h without decision; email sent to ', parameters('mx_director_email'))}",
+                  "item/Metadata":         "@{string(outputs('Post_card_and_wait'))}",
+                  "item/Retention_x0020_Until": "@{addDays(utcNow(), parameters('mx_audit_retention_days'))}"
+                }
+              },
+              "runAfter": { "Email_director_escalation": ["Succeeded"] }
+            }
+          },
+          "else": { "actions": {} },
+          "runAfter": {}
+        }
+      }
+    }
+  }
+}
