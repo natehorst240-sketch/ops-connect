@@ -11,34 +11,66 @@ ground truth for the last 30%.
 
 ---
 
-## Table 1 — Where Copilot helps (and doesn't)
+## ⚠️ READ FIRST — Copilot in Power Apps cannot be paused or cancelled
 
-| Task                              | Copilot helps?  | Time saved |
-| --------------------------------- | --------------- | ---------- |
-| Generate Dataverse table from CSV | ✅ Big           | 60–80% per table |
-| Generate Choice options           | ✅ Medium        | 30–50%     |
-| Scaffold Power Automate flow      | ✅ Medium        | 50–60%     |
-| Write individual Power Fx formula | ✅ Big           | 70%        |
-| Design Adaptive Card              | ✅ Medium        | 40%        |
-| Generate seed/test data           | ✅ Big           | 80%        |
-| Write help text + tooltips        | ✅ Big           | 90%        |
-| Configure security roles          | ❌ Manual UI     | 0%         |
-| Set up business units             | ❌ Manual UI     | 0%         |
-| Build relationships pane manually | ❌ UI-only       | 0%         |
-| Map env vars to connection refs   | ❌ Manual UI     | 0%         |
+Once you submit a prompt, Copilot runs to completion. There is **no
+stop button, no abort, no Esc**. If it goes off the rails — generates
+the wrong table, mis-types columns, names things weirdly — your only
+recourse is to wait it out, then **clean up after**.
+
+Mitigations:
+
+1. **Save the solution before each Copilot run.** `Ctrl+S` on the
+   solution itself. If Copilot creates 6 garbage columns, you can roll
+   back via solution version restore.
+2. **Run prompts on small surface area.** Don't paste a 14-step flow
+   prompt as one ask — break into stages (see Chunked prompts below).
+3. **Test in Dev only, never in Prod.** A bad Copilot run in Prod is
+   harder to clean up than just wiping Dev.
+4. **Duplicate the table first if editing.** When having Copilot
+   "modify" an existing table, copy the table first. If Copilot
+   destroys it, you still have the copy.
+5. **Read the prompt one more time before submitting.** No takebacks.
+
+The prompts in this doc are pre-chunked to minimize blast radius —
+each one builds **one** thing. Don't combine them into a megaprompt.
 
 ---
 
-# Tables
+## Table 1 — Where Copilot helps (and doesn't)
 
-## Prompt 1 — Generate a Dataverse table from a populated CSV
+| Task                              | Copilot helps?  | Time saved | Pause-safe?* |
+| --------------------------------- | --------------- | ---------- | ------------ |
+| Generate Dataverse table from CSV | ✅ Big           | 60–80% per table | ⚠️ No |
+| Generate Choice options           | ✅ Medium        | 30–50%     | ⚠️ No        |
+| Scaffold Power Automate flow      | ✅ Medium        | 50–60%     | ⚠️ No        |
+| Write individual Power Fx formula | ✅ Big           | 70%        | ✅ Yes (just don't accept) |
+| Design Adaptive Card              | ✅ Medium        | 40%        | ✅ Yes (external designer) |
+| Generate seed/test data           | ✅ Big           | 80%        | ⚠️ No        |
+| Write help text + tooltips        | ✅ Big           | 90%        | ✅ Yes        |
+| Configure security roles          | ❌ Manual UI     | 0%         | n/a          |
+| Set up business units             | ❌ Manual UI     | 0%         | n/a          |
+| Build relationships pane manually | ❌ UI-only       | 0%         | n/a          |
+| Map env vars to connection refs   | ❌ Manual UI     | 0%         | n/a          |
+
+*"Pause-safe" = the prompt produces a *suggestion* you accept or
+reject (safe), vs. *executes a change* on your environment (no undo).
+
+---
+
+# Tables — chunked prompts (safer)
+
+Each table is one prompt. Don't ask Copilot to build all 15 in one go
+— if it fumbles the first, you can't stop it before the rest get the
+same treatment. Save solution between each.
+
+## Prompt 1 — Generate ONE table from a populated CSV
 
 **Where:** make.powerapps.com → Solutions → MX Connect → + New →
 Table → Get data → Excel/CSV.
 
-**What to load:** Upload one of the populated CSVs from
-`m365-solution/sharepoint-lists/` (e.g., `04-aircraft.csv` or
-`05-personnel-maintenance.csv`).
+**What to load:** Upload one populated CSV at a time (e.g.,
+`04-aircraft.csv`).
 
 **Prompt:**
 
@@ -52,6 +84,9 @@ values In Service / AOG / Maintenance / Away from Base / Unavailable
 / Spare. Enable auditing on the table.
 ```
 
+**Save solution → review the table → fix issues → save again → next
+table.**
+
 **What to fix afterward:**
 - Convert text columns that should be Lookup (Type, Base, Region) once
   the target tables exist
@@ -59,16 +94,14 @@ values In Service / AOG / Maintenance / Away from Base / Unavailable
   the CSV)
 - Set the RMM column to Person/Group manually
 
-**Repeat for:** every table that has a populated CSV. The 8 specs
-without a CSV (status logs, comments, filter prefs, audit) — build
-manually per the spec.
+**Repeat for:** every table that has a populated CSV. Count: 8 tables.
+Pause for 30 seconds between each to verify the previous result.
 
 ---
 
-## Prompt 2 — Generate Global Choice options
+## Prompt 2 — Generate Global Choice options (one at a time)
 
-**Where:** Solutions → MX Connect → + New → More → Choice →
-"Generate from data" or describe option.
+**Where:** Solutions → MX Connect → + New → More → Choice.
 
 **Prompt:**
 
@@ -84,18 +117,19 @@ schema name "cr_mx_request_status". Six values:
   6: Cancelled
 ```
 
-**Repeat for** each of the 22 global choices listed in
-`build-walkthrough.md §A.4`. You can batch this — paste a markdown
-table and say "create global Choice for each of these."
+Run this 22 times — once per global choice in
+`build-walkthrough.md §A.4`. Yes, tedious. But each run is small and
+contained, so failures are easy to clean up.
+
+**Don't batch all 22 into one prompt.** If it mis-types one,
+it'll mis-type all of them and you lose the audit trail of what got
+created.
 
 ---
 
-## Prompt 3 — Generate a table from text spec (no CSV)
+## Prompt 3 — Generate ONE table from text spec (no CSV)
 
 **Where:** Solutions → MX Connect → + New → Table → Describe what you want.
-
-**What to load:** Open the spec (e.g., `tables/cr_audit.md`) in
-another tab.
 
 **Prompt:**
 
@@ -124,67 +158,95 @@ table (it's a system table, not custom).
 
 ---
 
-# Flows
+# Flows — chunked prompts
 
-## Prompt 4 — Scaffold the entire mxr-approval flow
+Power Automate's "Describe it to design it" runs to completion. The
+single-prompt monolith below is in §"What I used to recommend" — it
+works but is risky.
 
-**Where:** make.powerautomate.com → + New flow → Describe it to design it.
+**Better path: build the flow in 5 small prompts**, accepting each
+result before submitting the next.
+
+## Prompt 4a — Trigger only
+
+**Where:** make.powerautomate.com → + New flow → Describe it to
+design it.
 
 **Prompt:**
 
 ```
-When a Dataverse row in the MX Requests table is created or modified
-where Status equals "Submitted" and Decision is null:
-
-1. Initialize three string variables: vAuditCorrelation (from row's
-   Audit Correlation column), vRouting (from row's Routing column,
-   default to "RMM"), vRecipientChannel (set to one of three Teams
-   channel IDs based on vRouting: Director channel for Director,
-   Scheduler channel for Scheduler, RMM channel for RMM).
-
-2. Add a row to MX Audit with action mx_request.submitted, actor =
-   the row's Requested By, audit correlation = vAuditCorrelation.
-
-3. Compose an Adaptive Card body that displays the request details
-   (tail, type, window, base, requestor, reason) with four buttons:
-   Approve (positive style), Deny (destructive), Request Info, and
-   Escalate.
-
-4. Post the Adaptive Card and wait for response in Microsoft Teams
-   to the recipient channel from vRecipientChannel. Set timeout to
-   24 hours.
-
-5. Switch on the response action. For Approve: update the MX Request
-   to Status=Approved, Decision=Approve, set Approver, create an
-   Outlook calendar event (skip if Request Type is Ask Leadership or
-   Other), DM the requestor, write an mx_request.approved audit row.
-   For Deny: similar but Status=Denied and Decision=Deny, with a
-   required Decision Reason. For Request Info: Status=More Info
-   Requested, Decision=Request Info, populate More Info Request, DM
-   requestor with the question. For Escalate: set Routing=Director,
-   then reset Status=Submitted and Decision=null so the trigger
-   re-fires.
-
-6. If the wait times out, set Routing=Director, reset Status=Submitted
-   and Decision=null, send an email to the Director group, write an
-   mx_request.escalated audit row.
-
-Use environment variables for: mx_approver_team_id,
-mx_approver_channel_id, mx_scheduler_channel_id,
-mx_director_channel_id, mx_outlook_calendar, mx_director_email,
-mx_request_timeout_hours, mx_audit_retention_days,
-mx_app_deeplink_base.
+When a row in the MX Requests Dataverse table is created or modified,
+where Status equals Submitted (numeric value 1) and Decision is null.
+Trigger only. Don't add any actions yet.
 ```
 
-**What to fix afterward:**
-- Copilot usually generates the Switch with only 2 cases — manually
-  add the Request Info and Escalate cases
-- The Adaptive Card body needs the FactSet + Input.Text from the JSON
-- Trigger filter: confirm `cr_status eq 1 and cr_decision eq null`
-- Configure run-after on the timeout actions to fire on TimedOut OR
-  Failed (Copilot defaults to TimedOut only)
+Confirm the trigger landed correctly. Save the flow.
 
-This single prompt saves 60–90 minutes vs starting from blank.
+## Prompt 4b — Initialize variables
+
+**Where:** Inside the flow, click "+" below the trigger.
+
+**Prompt:**
+
+```
+Initialize three string variables in sequence:
+- vAuditCorrelation = the trigger row's Audit Correlation column
+- vRouting = coalesce(triggerOutputs row's Routing display value, "RMM")
+- vRecipientChannel = if vRouting is "Director" use parameters
+  mx_director_channel_id; if "Scheduler" use mx_scheduler_channel_id;
+  else use mx_approver_channel_id.
+```
+
+## Prompt 4c — Audit submitted
+
+**Prompt:**
+
+```
+Add a row to the MX Audit Dataverse table:
+- cr_event_at = utcNow()
+- cr_actor = bind to the systemuser whose ID is in the trigger row's
+  _cr_requested_by_value
+- cr_actor_role = "AMT"
+- cr_action = 1 (mx_request.submitted)
+- cr_subject_table = "cr_mx_request"
+- cr_subject_id = trigger row's GUID
+- cr_correlation = vAuditCorrelation
+- cr_metadata = string of the entire trigger body
+- cr_retention_until = addDays(utcNow(), 2555)
+```
+
+## Prompt 4d — Adaptive Card + Post
+
+Use **Prompt 10** (Adaptive Card body) below for the Compose. Then:
+
+**Prompt:**
+
+```
+Post the Adaptive Card to a Microsoft Teams channel and wait for
+response. Team ID = parameters mx_approver_team_id. Channel ID =
+vRecipientChannel variable. Set timeout to PT24H. Update message
+on response: "Decision recorded."
+```
+
+## Prompt 4e — Decision Switch (one case at a time)
+
+**Don't ask for all 4 cases in one prompt.** Submit each case
+separately:
+
+**Approve case prompt:**
+
+```
+After Post and wait, add a Switch on the response action. For case
+"approve" add these actions in sequence:
+1. Update the MX Request: Status=2, Decision=1, Approver bind,
+   Decided At = utcNow(), Decision Comment.
+2. If Request Type is not 5 (Ask Leadership) or 99 (Other), create
+   an Outlook calendar event and update the row's Outlook Event ID.
+3. Post a Teams DM to the requestor with an approval message.
+4. Add an MX Audit row with action = 2 (mx_request.approved).
+```
+
+Repeat for `deny`, `request_info`, `escalate`. Save between each.
 
 ---
 
@@ -205,12 +267,12 @@ Update the MX Request row that triggered this flow. Set:
   output of Post_card_and_wait
 ```
 
-Copilot auto-generates the OData expressions for `recordId`,
-`@odata.bind` for the Approver lookup, etc.
+Per-action Copilot is **safer** — it suggests the field bindings,
+you click Accept to apply. No mid-flight surprises.
 
 ---
 
-## Prompt 6 — Generate an auxiliary flow (aircraft AOG broadcast)
+## Prompt 6 — Auxiliary flow (aircraft AOG broadcast)
 
 **Where:** + New flow → Describe it to design it.
 
@@ -233,9 +295,8 @@ same audit correlation, and metadata containing a JSON blob with the
 old status, new status, and reason.
 ```
 
-Copilot will generate this end-to-end. Manually verify the trigger
-condition catches *only* status transitions to AOG (not every status
-change). Use a Trigger Condition like:
+Manually verify the trigger condition catches *only* status transitions
+to AOG (not every status change):
 
 ```
 @equals(triggerOutputs()?['body/cr_status@OData.Community.Display.V1.FormattedValue'], 'AOG')
@@ -243,9 +304,13 @@ change). Use a Trigger Condition like:
 
 ---
 
-# Power Fx (Canvas App)
+# Power Fx (Canvas App) — Pause-safe ✅
 
-## Prompt 7 — Generate Patch formula for any list
+Power Fx prompts run *suggestion-style*. Copilot drafts a formula, you
+review it, then click Accept or Discard. **These are the safest
+prompts** — no environment changes happen unless you accept.
+
+## Prompt 7 — Generate Patch formula for any table
 
 **Where:** Power Apps Studio → button's `OnSelect` → Copilot icon at
 the bottom of the formula bar.
@@ -318,6 +383,9 @@ Copilot will scaffold maybe 8–10. Paste the rest from
 **Where:** Power Apps Studio → + New screen → "Generate from data" or
 the Copilot tab.
 
+⚠️ **Note: this CREATES a screen, so it does mutate your app.** Save
+the app first.
+
 **Prompt:**
 
 ```
@@ -340,19 +408,18 @@ Use a header at top with title "Approvals" and the persona avatar
 on the right.
 ```
 
-This generates a working screen scaffold in ~30 seconds. Manually:
-- Wire up the action button OnSelect formulas (paste from
-  `canvas-app.md §6`)
-- Tweak the visual styling
+If it generates badly, delete the screen and re-prompt. Don't try to
+fix a broken auto-generated screen — start over.
 
 ---
 
-# Adaptive Card
+# Adaptive Card — Pause-safe ✅
 
 ## Prompt 10 — Generate the Adaptive Card body
 
-**Where:** https://adaptivecards.io/designer (free, no Microsoft login)
-or Copilot in Power Automate's Compose action.
+**Where:** https://adaptivecards.io/designer (free, no Microsoft
+login). External tool — you can iterate freely without touching your
+flow.
 
 **Prompt:**
 
@@ -392,7 +459,9 @@ expressions match your column names.
 
 # Test Data
 
-## Prompt 11 — Generate seed rows for testing
+## Prompt 11 — Generate seed rows
+
+⚠️ **Mutates your tables.** Save solution first.
 
 **Where:** Power Apps Studio → Tables → Aircraft → + New row →
 Generate sample data (Copilot button at top).
@@ -409,13 +478,12 @@ Requested. Reasonable Reasons (1 sentence each). Mix of priorities
 (mostly Normal, 2 High, 1 AOG).
 ```
 
-**What to fix afterward:** Lookups (Aircraft Tail, Base) will be string
-names — manually pick the actual records. `Requested By` defaults to
-the current user.
+If you get garbage data, manually delete the rows and retry. Easier
+than letting Copilot try to fix its own mess.
 
 ---
 
-## Prompt 12 — Generate Adaptive Card test payload
+## Prompt 12 — Adaptive Card test payload
 
 **Where:** Power Automate → Run flow with test data.
 
@@ -428,12 +496,12 @@ steve.taul@ihc.org), comment = "Approved — coordinated with
 N251HC for cross-coverage."
 ```
 
-Use the output to populate the test inputs when you "Test → With
-manually entered data" the flow.
+This is read-only — Copilot just produces JSON for you to paste into
+the test inputs. Pause-safe.
 
 ---
 
-# Documentation
+# Documentation — Pause-safe ✅
 
 ## Prompt 13 — Generate user help text + tooltips
 
@@ -449,15 +517,11 @@ Director, sending the request to the Director's Teams channel
 instead of the regional RMM channel.
 ```
 
-Copilot will write something like: *"Turn on for budget questions,
-policy exceptions, or anything that needs a leadership call. Sends
-the request to the Director instead of the regional RMM."*
-
-Repeat for every control that needs a tooltip.
+Suggestion-style. Accept or reject.
 
 ---
 
-## Prompt 14 — Generate audit log readable summaries
+## Prompt 14 — Audit log readable summaries
 
 **Where:** Custom column "Summary" on `cr_audit` → calculated formula.
 
@@ -477,43 +541,43 @@ Reference cr_actor, cr_subject_id, and joined columns from the
 related MX Request or Operational Bulletin.
 ```
 
-Calculated columns have limits — Copilot will tell you which parts
-need to be a Power Automate computed field instead. Useful as a
-starting point for the audit dashboard.
+⚠️ Saving the calculated column is a mutation. The formula draft
+itself is pause-safe.
 
 ---
 
-# Order of operations — chain prompts for max speed
+# Order of operations — chunked + saved between
 
-Day 1 morning, in this order:
+Day 1 morning. **Save solution between EACH numbered step.**
 
 ```
-1. Prompt 2 (×22)   Build all global choices       30 min
-2. Prompt 1 (×8)    Build tables from CSVs          90 min
-3. Prompt 3 (×7)    Build tables from spec          60 min
-4. Prompt 11 (×3)   Generate test rows               15 min
-                                                    ─────
-                                            Total: 3.25h
+1. Prompt 2 (×22, one at a time)   Build all global choices       45 min
+2. Prompt 1 (×8, one per CSV)      Build tables from CSVs         100 min
+3. Prompt 3 (×7, one per spec)     Build tables from spec         70 min
+4. Prompt 11 (×3, save between)    Generate test rows             20 min
+                                                                  ─────
+                                                          Total: 3.9h
 
-Day 1 afternoon:
-5. Prompt 4         Scaffold the main flow          60 min
-6. Prompt 5 (×3)    Patch up stuck flow actions     20 min
-7. Prompt 10        Adaptive Card body              10 min
-8. Prompt 6         Aircraft AOG broadcast flow     20 min
-                                                    ─────
-                                            Total: 1.83h
+Day 1 afternoon — Flow:
+5. Prompts 4a–4e (chunked)         Scaffold the main flow         70 min
+6. Prompt 5 (×3, suggestion)       Patch up stuck flow actions    20 min
+7. Prompt 10 (external designer)   Adaptive Card body             10 min
+8. Prompt 6 (single auxiliary)     Aircraft AOG broadcast flow    25 min
+                                                                  ─────
+                                                          Total: 2.1h
 
-Day 2 morning — Canvas app:
-9. Prompt 8         App.OnStart                     20 min
-10. Prompt 9 (×8)   Each module screen layout       2.5h
-11. Prompt 7 (×6)   Each Patch formula              45 min
-                                                    ─────
-                                            Total: 3.5h
+Day 2 morning — Canvas app (suggestion-style, pause-safe):
+9. Prompt 8 (suggestion)           App.OnStart                    25 min
+10. Prompt 9 (×8, save between)    Each module screen layout      3h
+11. Prompt 7 (×6, suggestion)      Each Patch formula             45 min
+                                                                  ─────
+                                                          Total: 4h
 ```
 
-That's roughly **8.5h of effective AI-assisted build** vs ~30h doing it
-all manually. The remaining 30% (security roles, BU hierarchy,
-relationship verification, env vars, connection refs) stays manual.
+**That's roughly 10h of effective AI-assisted build** with
+chunking-and-save discipline. Slightly slower than the 8.5h megaprompt
+path, but **massively safer** — bad runs are bounded to one table or
+one action, not the whole solution.
 
 ---
 
@@ -534,6 +598,9 @@ Use Copilot in-product for:
 
 - Anything that requires knowledge of *your* tables, *your* flows,
   *your* environment
+
+External LLMs are **always pause-safe** — they produce text, you copy
+what you want.
 
 ---
 
