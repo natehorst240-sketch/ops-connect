@@ -1,0 +1,90 @@
+Title,First Name,Last Name,Email,Phone,Role,Region,Primary Base,Coverage Bases,Leader,Active,Notes
+Rick Beerly,Rick,Beerly,Rick.Beerly@imail.org,801-243-1693,Supervisor,109 UT,"Cedar City, UT","Cedar City, UT; St. George, UT",Nate Horstmeier,Yes,
+Aaron Gabel,Aaron,Gabel,Aaron.Gabel@imail.org,248-781-6478,AMT,109 UT,"(FW) SLC, UT",,Nate Horstmeier,Yes,Cross-region (FW base under 109 UT region)
+Alex Gonzalez,Alex,Gonzalez,Alex.Gonzalez1@imail.org,760-574-0961,AMT,109 UT,"(RW) SLC, UT",,Nate Horstmeier,Yes,
+Aaron Jameson,Aaron,Jameson,Aaron.Jameson@imail.org,435-272-3281,AMT,109 UT,"Cedar City, UT",,Nate Horstmeier,Yes,
+Mason Littledike,Mason,Littledike,Mason.Littledike@imail.org,435-640-2841,AMT,109 UT,"Provo, UT","Provo, UT; Roosevelt, UT",Nate Horstmeier,Yes,
+Gordon Mabey,Gordon,Mabey,Gordon.Mabey@imail.org,801-918-1313,AMT,109 UT,"IMED Hangar, UT",,Nate Horstmeier,Yes,
+Alec Overton,Alec,Overton,Alec.Overton@imail.org,801-660-7640,AMT,109 UT,"Logan, UT","Logan, UT; McKay Dee, UT",Nate Horstmeier,Yes,
+Mac Paye,Mac,Paye,Mac.Paye@imail.org,916-871-6135,AMT,109 UT,"Logan, UT","Logan, UT; McKay Dee, UT",Nate Horstmeier,Yes,
+Andrew Piegzik,Andrew,Piegzik,Andrew.Piegzik@imail.org,717-421-5997,AMT,109 UT,"(FW) SLC, UT",,Nate Horstmeier,Yes,Cross-region
+Sergey Khoroshenko,Sergey,Khoroshenko,Sergey.Khoroshenko@imail.org,215-310-8339,AMT,109 UT,"(RW) SLC, UT",,Nate Horstmeier,Yes,Source listed twice; deduped
+Sean Tito-Agustin,Sean,Tito-Agustin,Sean.Tito-Agustin@imail.org,808-722-3113,AMT,109 UT,"Provo, UT","Provo, UT; Roosevelt, UT",Nate Horstmeier,Yes,
+Steve Wilstead,Steve,Wilstead,Steve.Wilstead@imail.org,,AMT,109 UT,"Cedar City, UT","Cedar City, UT; St. George, UT",Nate Horstmeier,Yes,Phone missing in source
+Nate Horstmeier,Nate,Horstmeier,Nathan.Horstmeier@imail.org,208-319-4448,RMM,109 UT,"Logan, UT","Logan, UT; McKay Dee, UT; IMED Hangar, UT; Provo, UT; Roosevelt, UT; Cedar City, UT; St. George, UT; (RW) SLC, UT",Ryan Taul,Yes,
+Ryan Taul,Ryan,Taul,Ryan.Taul@imail.org,801-946-4214,DOM,ALL,"SLC HQ, UT",ALL,Billy Ortega,Yes,Director of Maintenance
+Pete Robotham,Pete,Robotham,Peter.Robotham@imail.org,801-910-6440,DOM,ALL,"SLC HQ, UT",ALL,Jared Thompson,Yes,Director of Maintenance
+Billy Ortega,Billy,Ortega,Billy.Ortega@imail.org,801-949-7693,DOM,ALL,"SLC HQ, UT",ALL,Jared Thompson,Yes,Director - Aircraft Maintenance
+Issac Hull,Issac,Hull,Isaac.Hull@imail.org,505-258-0672,AMT,CO/NM,"Cortez, CO",,Chris Gibson,Yes,Source spelled first name "Issac" (variant of Isaac)
+Derek Jorgensen,Derek,Jorgensen,Derek.Jorgensen@imail.org,801-707-0318,AMT,CO/NM,"Glenwood Springs, CO",,Chris Gibson,Yes,
+Jason Redmond,Jason,Redmond,Jason.Redmond@imail.org,816-547-6496,AMT,CO/NM,"Los Alamos, NM",,Chris Gibson,Yes,
+Ben VanderHoeven,Ben,VanderHoeven,Ben.VanDerHoeven@imail.org,801-602-0785,AMT,CO/NM,"Los Alamos, NM",,Chris Gibson,Yes,
+Aaron Smith,Aaron,Smith,Aaron.M.Smith@imail.org,775-340-8100,AMT,CO/NM,"Pagosa Springs, CO",,Chris Gibson,Yes,
+Michael Barber,Michael,Barber,Michael.Barber@imail.org,970-903-2960,AMT,CO/NM,"Pagosa Springs, CO",,Chris Gibson,Yes,
+Weldon Medina,Weldon,Medina,Weldon.Medina@imail.org,970-628-6331,AMT,CO/NM,"Pagosa Springs, CO","Pagosa Springs, CO; Cortez, CO",Chris Gibson,Yes,
+Dean Atkins,Dean,Atkins,Dean.Atkins@imail.org,970-560-0867,AMT,CO/NM,"Pagosa Springs, CO","Pagosa Springs, CO; Cortez, CO",Chris Gibson,Yes,
+John Modrow,John,Modrow,John.Modrow@imail.org,907-209-9701,AMT,CO/NM,"Steamboat Springs, CO",,Chris Gibson,Yes,
+Jeffery Chamberlain,Jeffery,Chamberlain,Jeffery.Chamberlain@imail.org,801-946-7300,AMT,CO/NM,"Steamboat Springs, CO",,Chris Gibson,Yes,Personnel list also spells "Jeffrey"
+Chris Gibson,Chris,Gibson,Christopher.Gibson1@imail.org,505-350-3681,RMM,CO/NM,"Los Alamos, NM","Los Alamos, NM; Cortez, CO; Pagosa Springs, CO; Glenwood Springs, CO; Steamboat Springs, CO",Pete Robotham,Yes,
+Rex Schwarz,Rex,Schwarz,Rex.Schwarz@imail.org,208-969-0844,AMT,ID/NV,"Burley, ID",,John Cutright,Yes,
+Nicholas Gonzales,Nicholas,Gonzales,Nicholas.Gonzales@imail.org,337-519-5722,AMT,ID/NV,"Elko, NV",,John Cutright,Yes,
+Greg Sloan,Greg,Sloan,Greg.Sloan@imail.org,775-934-7440,AMT,ID/NV,"Elko, NV",,John Cutright,Yes,
+Michael Deal,Michael,Deal,Michael.Deal@imail.org,775-934-0484,AMT,ID/NV,"Elko, NV",,John Cutright,Yes,
+Brayden Tolby,Brayden,Tolby,Brayden.Tolby@imail.org,623-238-1711,AMT,ID/NV,"Ely, NV",,John Cutright,Yes,
+Dave McConnel,Dave,McConnel,Dave.McConnel@imail.org,435-232-1571,AMT,ID/NV,"Rexburg, ID",,John Cutright,Yes,
+Jeremiah Maestrejuian,Jeremiah,Maestrejuian,Jeremiah.Maestrejuian@imail.org,775-304-5083,AMT,ID/NV,"Winnemucca, NV",,John Cutright,Yes,
+Peter VanHook,Peter,VanHook,Peter.VanHook@imail.org,320-295-0058,AMT,ID/NV,"Winnemucca, NV",,John Cutright,Yes,
+John Cutright,John,Cutright,John.Cutright@imail.org,559-367-7390,RMM,ID/NV,"Burley, ID","Burley, ID; Elko, NV; Ely, NV; Winnemucca, NV; Rexburg, ID; Las Vegas, NV",Pete Robotham,Yes,
+Casey Stockall,Casey,Stockall,Casey.Stockall@imail.org,,RMM,NC Region,"Concord, NC","Rock Hill, SC; Hickory, NC; Concord, NC; Davidson County, NC; Martinsville, VA; Wilkesboro, NC; Wadesboro, NC",Billy Ortega,Yes,Phone missing in source
+Sean Brown,Sean,Brown,Sean.Brown@imail.org,928-640-1082,Supervisor / RMM,PAGE,"Page, AZ","Page, AZ",Dwight Brooks,Yes,Personnel list shows Coby.Brown@imail.org as alternate; Aircraft list treats him as PAGE RMM
+Fred Bistline,Fred,Bistline,Fredrick.Bistline@imail.org,435-233-8177,AMT,PAGE,"Page, AZ",,Dwight Brooks,Yes,
+Denton Siebrecht,Denton,Siebrecht,Denton.Siebrecht@imail.org,928-640-1840,AMT,PAGE,"Page, AZ",,Dwight Brooks,Yes,
+Joel Redman,Joel,Redman,Joel.Redman@imail.org,254-338-0593,AMT,PAGE,"Page, AZ",,Dwight Brooks,Yes,
+Joshua Williams,Joshua,Williams,Joshua.Williams@imail.org,615-390-0795,AMT,PAGE,"Page, AZ",,Dwight Brooks,Yes,
+Rachel Kihn,Rachel,Kihn,Rachel.Kihn@imail.org,910-546-6850,AMT (Rover),RW Rover,Rover,"Rexburg, ID; Burley, ID",John Cutright,Yes,
+Steven Harvey,Steven,Harvey,Steven.Harvey@imail.org,8001-946-2497,AMT (Rover),RW Rover,Rover,"Lander, WY; Rawlins, WY",Tevita Silatolu,Yes,Phone may be typo (8001 not a valid area code)
+Steven Niederkorn,Steven,Niederkorn,Steven.Niederkorn@imail.org,970-690-8908,AMT (Rover),RW Rover,Rover,"Glenwood Springs, CO",Chris Gibson,Yes,
+Taylor Sermon,Taylor,Sermon,Taylor.Sermon@imail.org,801-857-9757,QA,SLC,"SLC HQ, UT",,Joe Sparto,Yes,
+Edwin Meza,Edwin,Meza,Edwin.Meza@imail.org,801-574-7929,QA,SLC,"SLC HQ, UT",,Joe Sparto,Yes,
+Carla Weir,Carla,Weir,Carla.Weir@imail.org,808-855-0667,Scheduler,SLC,"SLC HQ, UT",,Billy Ortega,Yes,Title in personnel list: Aircraft Maintenance Schedule and Training Coordinator
+Rachel Williams,Rachel,Williams,Rachel.Williams@imail.org,801-624-0342,Scheduler,SLC,"SLC HQ, UT",,Billy Ortega,Yes,Title in personnel list: Aircraft Maintenance Coordinator
+Joe Sparto,Joe,Sparto,Joe.Sparto@imail.org,801-589-9056,QA Manager,SLC,"SLC HQ, UT",,Billy Ortega,Yes,Title: Air Maintenance Quality Assurance Manager
+Sam Thompson,Sam,Thompson,Samuel.Thompson@imail.org,801-708-3654,Parts,SLC,"SLC HQ, UT",,,Yes,Leader unspecified in source
+Andy Woolsey,Andy,Woolsey,Andy.Woolsey@imail.org,801-698-5847,Parts,SLC,"SLC HQ, UT",,,Yes,Title: Field Logistics Coordinator II; Leader unspecified in source
+Garett Ballif,Garett,Ballif,Garett.Ballif@imail.org,,AMT,SLC FW,"(FW) SLC, UT",,Scott Winberg,Yes,Phone missing in source
+Brian Daniels,Brian,Daniels,Brian.Daniels@imail.org,801-953-9118,AMT,SLC FW,"(FW) SLC, UT",,Scott Winberg,Yes,
+Bryan Gibbs,Bryan,Gibbs,Bryan.Gibbs@imail.org,843-860-7048,AMT,SLC FW,"(FW) SLC, UT",,Scott Winberg,Yes,
+Zee Gordzholadze,Zee,Gordzholadze,Zee.Gordzholadze@imail.org,818-426-8456,Supervisor,SLC FW,"(FW) SLC, UT",,Scott Winberg,Yes,
+Jean-Paul Guidry,Jean-Paul,Guidry,Jean-Paul.Guidry@imail.org,801-738-4919,AMT,SLC FW,"(FW) SLC, UT",,Scott Winberg,Yes,
+Bryce Low,Bryce,Low,Bryce.Low@imail.org,909-744-7878,AMT,SLC FW,"(FW) SLC, UT",,Scott Winberg,Yes,
+Joshua Snyder,Joshua,Snyder,Joshua.Snyder@imail.org,702-600-7619,AMT,SLC FW,"(FW) SLC, UT",,Scott Winberg,Yes,
+James Squire,James,Squire,James.Squire@imail.org,801-897-9490,Supervisor,SLC FW,"(FW) SLC, UT",,Scott Winberg,Yes,
+Aja Siems,Aja,Siems,Aja.Siems@imail.org,385-243-5938,AMT,SLC FW,"(FW) SLC, UT",,Scott Winberg,Yes,
+Scott Winberg,Scott,Winberg,Scott.Winberg@imail.org,801-556-0494,RMM,SLC FW,"(FW) SLC, UT","(FW) SLC, UT",Ryan Taul,Yes,
+Jon Hankins,Jon,Hankins,Jon.Hankins@imail.org,702-824-8755,AMT,UT/AZ,"Fort Mohave, AZ",,Dwight Brooks,Yes,
+Casey Vaughn,Casey,Vaughn,Casey.Vaughn@imail.org,760-828-0011,AMT,UT/AZ,"Fort Mohave, AZ",,Dwight Brooks,Yes,
+Jerrimiah Turman,Jerrimiah,Turman,Jerrimiah.Turman@imail.org,970-201-4874,AMT,UT/AZ,"Moab, UT",,Dwight Brooks,Yes,Note: "Jerrimiah" spelling matches source; family member "Brandon Turman" appears in crew list
+Brian Hyland,Brian,Hyland,Brian.Hyland@imail.org,801-842-9086,AMT,UT/AZ,"Richfield, UT",,Dwight Brooks,Yes,
+Dwight Brooks,Dwight,Brooks,Dwight.Brooks@imail.org,208-919-4740,RMM,UT/AZ,"Richfield, UT","Richfield, UT; Moab, UT; Page, AZ; Fort Mohave, AZ; Kingman, AZ",Pete Robotham,Yes,Source listed Dwight as own leader (likely typo); set to Pete Robotham — verify
+Chris Eells,Chris,Eells,Chris.Eells@imail.org,,RMM,WI Region,"Waukesha, WI","Waukesha, WI; Burlington, WI; Hartford, WI",Billy Ortega,Yes,Phone missing in source
+Abraham Zenger,Abraham,Zenger,Abraham.Zenger@imail.org,801-842-3127,AMT,WOODSCROSS,"Bountiful, UT",,Martin Hodo,Yes,
+Michael Whipple,Michael,Whipple,Michael.Whipple@imail.org,435-669-9151,AMT,WOODSCROSS,"Bountiful, UT",,Martin Hodo,Yes,
+Clay Allison,Clay,Allison,Clay.Allison@imail.org,801-560-6349,AMT,WOODSCROSS,"Bountiful, UT",,Martin Hodo,Yes,
+Mark Anders,Mark,Anders,Mark.Anders@imail.org,801-673-4420,AMT,WOODSCROSS,"Bountiful, UT",,Martin Hodo,Yes,
+Nathan Childers,Nathan,Childers,Nathan.Childers@imail.org,817-897-3177,AMT,WOODSCROSS,"Bountiful, UT",,Martin Hodo,Yes,
+Stephen Hibbens,Stephen,Hibbens,Stephen.Hibbens@imail.org,801-638-5853,AMT,WOODSCROSS,"Bountiful, UT",,Martin Hodo,Yes,Title in personnel list: Aircraft Maintenance Technician II
+Bryce Hunt,Bryce,Hunt,Bryce.Hunt@imail.org,801-710-2421,Parts,WOODSCROSS,"Bountiful, UT",,Martin Hodo,Yes,
+Nicholas Morrison,Nicholas,Morrison,Nicholas.Morrison@imail.org,801-657-6637,AMT,WOODSCROSS,"Bountiful, UT",,Martin Hodo,Yes,Title in personnel list: Aircraft Maintenance Technician II
+Greg Atkinson,Greg,Atkinson,Greg.Atkinson@imail.org,435-740-0002,AMT,WOODSCROSS,"Bountiful, UT",,Martin Hodo,Yes,
+Kevin Little,Kevin,Little,Kevin.Little@imail.org,385-253-0346,Parts,WOODSCROSS,"Bountiful, UT",,Martin Hodo,Yes,
+Martin Hodo,Martin,Hodo,Martin.Hodo@imail.org,801-836-8572,RMM,WOODSCROSS,"Bountiful, UT","Bountiful, UT",Pete Robotham,Yes,
+Nate Anderson,Nate,Anderson,Nathan.C.Anderson@imail.org,360-951-3875,AMT,WY/MT,"Greybull, WY",,Tevita Silatolu,Yes,
+Robert Guty,Robert,Guty,Robert.Guty@imail.org,307-272-2616,AMT,WY/MT,"Greybull, WY",,Tevita Silatolu,Yes,
+Kelby Kalbach,Kelby,Kalbach,Kelby.Kalbach@imail.org,307-851-3012,AMT,WY/MT,"Lander, WY",,Tevita Silatolu,Yes,
+Lance Anderson,Lance,Anderson,Lance.Anderson@imail.org,818-314-2884,AMT,WY/MT,"Rawlins, WY",,Tevita Silatolu,Yes,
+James Casteel,James,Casteel,James.Casteel@imail.org,307-248-3356,AMT,WY/MT,"Riverton, WY",,Tevita Silatolu,Yes,
+Aaron Quitberg,Aaron,Quitberg,Aaron.Quitberg@imail.org,435-230-9235,AMT,WY/MT,"Riverton, WY",,Tevita Silatolu,Yes,
+Donald Knop,Donald,Knop,Donald.Knop@imail.org,435-790-8742,AMT,WY/MT,"Vernal, UT",,Tevita Silatolu,Yes,
+Chace Cooper,Chace,Cooper,Chace.Cooper@imail.org,928-691-0665,AMT,WY/MT,"Vernal, UT",,Tevita Silatolu,Yes,
+Tevita Silatolu,Tevita,Silatolu,Tevita.Silatolu@imail.org,801-634-2372,RMM,WY/MT,"Billings, MT","Billings, MT; Greybull, WY; Lander, WY; Rawlins, WY; Vernal, UT; Riverton, WY",Ryan Taul,Yes,
+Jared Thompson,Jared,Thompson,jared.thompson@imail.org,,Senior Director Aviation Operations,ALL,"SLC HQ, UT",ALL,,Yes,Senior Director of Medical Transport Aviation Operations — leadership above DOMs
