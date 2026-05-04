@@ -1,0 +1,6 @@
+Title,Audit ID,Event At,Actor,Actor Role,Action,Subject Table,Subject ID,Audit Correlation,Comment,Metadata,Retention Until
+AUD-000001,AUD-000001,5/2/2026 09:30,Mason Littledike,AMT,mx_request.submitted,MX Requests,MXR-00001,7d3a1b2c-1234-4567-8910-abcdef012345,,"{""tail"":""N531HC"",""type"":""Phase Inspection""}",5/2/2033 09:30
+AUD-000002,AUD-000002,5/2/2026 14:23,Nate Horstmeier,RMM,mx_request.approved,MX Requests,MXR-00001,7d3a1b2c-1234-4567-8910-abcdef012345,Approved — coordinated with N271HC pre-positioning,"{""approver"":""Nate Horstmeier""}",5/2/2033 14:23
+AUD-000003,AUD-000003,5/2/2026 09:15,Nate Horstmeier,RMM,mx_request.denied,MX Requests,MXR-00003,d5e6f7a8-3456-6789-0123-cdefab234567,Coverage gap on Logan,"{""reason"":""coverage gap""}",5/2/2033 09:15
+AUD-000004,AUD-000004,5/2/2026 08:00,System,System,mx_request.escalated,MX Requests,MXR-00004,e6f7a8b9-4567-7890-1234-defabc345678,Auto-escalated to Director (AOG priority),"{""trigger"":""AOG"",""escalated_to"":""Ryan Taul""}",5/2/2033 08:00
+AUD-000005,AUD-000005,5/2/2026 11:00,Sean Brown,Supervisor / RMM,mx_request.approved,MX Requests,MXR-00006,a8b9c0d1-6789-9012-3456-fabcde567890,Approved — Joel taking the shift,"{""approver"":""Sean Brown"",""self_approved"":true}",5/2/2033 11:00
