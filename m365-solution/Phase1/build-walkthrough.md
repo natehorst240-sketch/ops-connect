@@ -67,6 +67,12 @@ Display names follow `tables/README.md`. Personnel separator is a
 
 ## A.3 Generic table creation flow
 
+The modern Power Apps maker uses different labels than the classic
+solution explorer. Use the labels exactly as they appear in the maker
+UI today (shown below). The dialog is **Properties → Advanced options**
+on the table — same pane whether you open it during create or edit
+later via the pencil icon.
+
 ```
 Solutions → MX Connect → + New → Table → Table (advanced properties)
 
@@ -78,13 +84,34 @@ Solutions → MX Connect → + New → Table → Table (advanced properties)
    Primary column type:        Text (use Single line of text)
 
    Advanced options:
-     Enable auditing:          ☑ Yes      (do this on every business table)
-     Enable Activities:        ☐ No
-     Enable Notes:             ☐ No
-     Track changes:            ☑ Yes      (needed for Power Automate triggers)
+     For this table
+       Apply duplicate detection rules:           ☐ Off
+       Track changes:                              ☑ On    (needed for Power Automate triggers)
+       Provide custom help:                        ☐ Off
+       Audit changes to its data:                  ☑ On    (do this on every business table)
+       Leverage quick-create form if available:    ☐ Off
+       Enable long term retention:                 ☐ Off
+
+     Make this table an option when
+       Creating a new activity:                    ☐ Off   (Activities are off in Phase 1)
+       Doing a mail merge:                         ☐ Off
+       Setting up SharePoint document management:  ☐ Off
+
+     Rows in this table
+       Can have connections:                       ☐ Off   (Connections are off in Phase 1)
+       Can have a contact email:                   ☐ Off
+       Have an access team:                        ☐ Off
+       Can be linked to feedback:                  ☐ Off   (Notes/feedback are off in Phase 1)
+       Appear in search results:                   ☑ On
+       Can be taken offline:                       ☐ Off   (turn ☑ On only for canvas tables you read offline)
+       Can be added to a queue:                    ☐ Off
 
    Save
 ```
+
+The two checkboxes you must set on every business table are
+**Audit changes to its data** and **Track changes**. Everything else
+under Advanced options stays at its default (Off) for Phase 1.
 
 For tables with autonumber primary columns (`cr_mx_request`, `cr_audit`),
 pick **Autonumber** as the primary column type at create time and
