@@ -3,12 +3,14 @@
 Flight + dispatch roster: pilots, flight nurses, flight paramedics,
 respiratory therapists, communication specialists, crew schedulers.
 
-**Phase 1 ships the schema only.** Phase 2 flows (Open Shift Claim,
-Shift Swap, Time-Off, Cert Expiry) will read + write this table.
+**Phase 1 ships the schema only — header-only CSV.** Population happens
+in Phase 2 from ProteanHub / CompleteFlight nightly sync.
 
 ## Display name
 
 **Personnel — Crew**
+
+Use a regular hyphen (`Personnel - Crew`) for ease of typing.
 
 ## Schema name
 
@@ -20,67 +22,33 @@ Shift Swap, Time-Off, Cert Expiry) will read + write this table.
 
 ## Columns
 
+Matches the header in `m365-solution/sharepoint-lists/11-personnel-crew.csv`:
+
 | Schema name              | Display              | Type                       | Required | Default     | Notes                                                              |
 | ------------------------ | -------------------- | -------------------------- | -------- | ----------- | ------------------------------------------------------------------ |
-| `cr_full_name`           | Full name            | Text (100)                 | Yes      | —           | Primary column.                                                    |
-| `cr_first_name`          | First name           | Text (50)                  | Yes      | —           |                                                                    |
-| `cr_last_name`           | Last name            | Text (50)                  | Yes      | —           |                                                                    |
+| `cr_full_name`           | Title                | Text (100)                 | Yes      | —           | Primary column.                                                    |
+| `cr_first_name`          | First Name           | Text (50)                  | Yes      | —           |                                                                    |
+| `cr_last_name`           | Last Name            | Text (50)                  | Yes      | —           |                                                                    |
 | `cr_email`               | Email                | Email                      | Yes      | —           |                                                                    |
 | `cr_phone`               | Phone                | Phone                      | No       | —           |                                                                    |
-| `cr_role`                | Role                 | Choice                     | Yes      | —           | See § *Choice values*.                                            |
-| `cr_specialty`           | Specialty            | Choice (multi)             | No       | —           | See § *Choice values*.                                            |
-| `cr_region_id`           | Region               | Lookup → `cr_region`       | No       | —           |                                                                    |
-| `cr_primary_base_id`     | Primary base         | Lookup → `cr_base`         | No       | —           |                                                                    |
-| `cr_coverage_bases`      | Coverage bases       | Multiline text (500)       | No       | —           |                                                                    |
-| `cr_certifications`      | Certifications       | Multiline text (500)       | No       | —           | Semicolon-delimited (`PALS;ACLS;NRP;FP-C`). Cache from CompleteFlight. |
-| `cr_cert_earliest_expiry`| Cert earliest expiry | Date and time              | No       | —           | Earliest across all certs; nightly refresh.                       |
-| `cr_hired_date`          | Hired date           | Date and time              | No       | —           | Used for seniority tiebreaks.                                     |
-| `cr_leader`              | Leader               | Lookup → `systemuser`      | No       | —           |                                                                    |
+| `cr_role`                | Role                 | Choice                     | Yes      | —           | Phase 2 enum (Pilot / Flight Nurse / etc.) — not yet in canonical CSV. |
+| `cr_specialty`           | Specialty            | Choice (multi)             | No       | —           | Phase 2.                                                          |
+| `cr_region`              | Region               | Text (16)                  | No       | —           |                                                                    |
+| `cr_primary_base`        | Primary Base         | Text (50)                  | No       | —           |                                                                    |
+| `cr_coverage_bases`      | Coverage Bases       | Multiline text (500)       | No       | —           |                                                                    |
+| `cr_certifications`      | Certifications       | Multiline text (500)       | No       | —           | Semicolon-delimited (`PALS;ACLS;NRP;FP-C`).                        |
+| `cr_cert_earliest_expiry`| Cert Earliest Expiry | Date and time              | No       | —           |                                                                    |
+| `cr_hired_date`          | Hired Date           | Date and time              | No       | —           |                                                                    |
+| `cr_leader`              | Leader               | Text (60)                  | No       | —           | Phase 2: convert to Lookup → `systemuser`.                          |
 | `cr_active`              | Active               | Yes/No                     | Yes      | Yes         |                                                                    |
 | `cr_notes`               | Notes                | Multiline text (1000)      | No       | —           |                                                                    |
 
-## Choice values
-
-### `cr_role`
-
-| Label                       | Value |
-| --------------------------- | ----- |
-| Pilot                       | 1     |
-| Chief Pilot                 | 2     |
-| Flight Nurse                | 3     |
-| Flight Paramedic            | 4     |
-| Respiratory Therapist       | 5     |
-| Crew Scheduler              | 6     |
-| Communication Specialist    | 7     |
-| Comm Lead                   | 8     |
-| Lead Nurse                  | 9     |
-| Lead Paramedic              | 10    |
-
-### `cr_specialty` (multi)
-
-| Label              | Value |
-| ------------------ | ----- |
-| Urban              | 1     |
-| Rural              | 2     |
-| Pediatric          | 3     |
-| Neonatal           | 4     |
-| Adult              | 5     |
-| Helicopter IFR     | 6     |
-| Helicopter VFR     | 7     |
-| Fixed Wing         | 8     |
-| Multi-engine       | 9     |
-| IFR / FW Captain   | 10    |
-| IFR / FW SIC       | 11    |
+Phase 1 builds this table empty. Phase 2 populates from external
+rosters and locks down the Choice options for Role + Specialty based
+on the actual data.
 
 ## Permissions
 
 - **Read:** All app users.
-- **Create / Update:** Director, DOM, Scheduler. Cert Earliest Expiry
-  refreshed by service account via Power Automate.
-- **Delete:** Director, DOM.
-
-## Phase 1 vs Phase 2
-
-Phase 1: schema only, blank table. Phase 2: populated from ProteanHub /
-CompleteFlight nightly sync flow. Open Shift Claim flow eligibility filter
-uses `cr_certifications` + `cr_specialty` + `cr_active` + `cr_region_id`.
+- **Create / Update / Delete:** Director, DOM, Scheduler. Phase 2 service
+  account refreshes Cert Earliest Expiry nightly.
