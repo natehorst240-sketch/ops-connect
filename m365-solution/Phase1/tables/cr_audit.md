@@ -13,8 +13,19 @@ audit row. Read access restricted to QA + Director.
 
 ## Primary column
 
-`cr_audit_id` — Autonumber, format `AUD-{SEQNUM:000000}`. No business
-meaning; just for joins.
+The modern maker only allows Text for primary columns at create time,
+so Phase 1 uses a two-column pattern (same as `cr_mx_request`):
+
+- **Primary column (Dataverse-required):** `cr_audit_label` —
+  Text(100), Optional. Not used by Phase 1 logic. Optional backfill
+  by the flow for human-readable default views.
+- **Business-ID column (used everywhere):** `cr_audit_id` —
+  **Autonumber**, prefix `AUD-`, minimum digit count `6`, seed `1`.
+  Format produces `AUD-000001`. No business meaning; used for joins
+  and as the row identifier in audit-log views.
+
+Add `cr_audit_label` first (during table creation), then add
+`cr_audit_id` as a regular Autonumber column after the table is saved.
 
 ## Columns
 
@@ -22,7 +33,8 @@ Matches `m365-solution/sharepoint-lists/07-audit-log.csv` (5 seed rows):
 
 | Schema name              | Display              | Type                       | Required | Notes                                                                          |
 | ------------------------ | -------------------- | -------------------------- | -------- | ------------------------------------------------------------------------------ |
-| `cr_audit_id`            | Audit ID             | Autonumber                 | System   | Format `AUD-{SEQNUM:000000}`. Primary column.                                  |
+| `cr_audit_label`         | Audit Label          | Text (100)                 | Optional | Primary column. Dataverse-required only; not used by logic.                    |
+| `cr_audit_id`            | Audit ID             | Autonumber                 | System   | Prefix `AUD-`, min 6 digits. Produces `AUD-000001`. Business-ID, used in joins. |
 | `cr_event_at`            | Event At             | Date and time              | Yes      | UTC. `utcNow()` from the flow.                                                 |
 | `cr_actor`               | Actor                | Text (60)                  | Yes      | Name string per CSV. May be `System` for auto-actions. Phase 2: Lookup → `systemuser`. |
 | `cr_actor_role`          | Actor Role           | Text (32)                  | Yes      | `AMT`, `RMM`, `Director`, `QA`, `System`. CSV also has `Supervisor / RMM` for cross-role users (Sean Brown). |

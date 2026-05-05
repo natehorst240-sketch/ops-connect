@@ -113,11 +113,33 @@ The two checkboxes you must set on every business table are
 **Audit changes to its data** and **Track changes**. Everything else
 under Advanced options stays at its default (Off) for Phase 1.
 
-For tables with autonumber primary columns (`cr_mx_request`, `cr_audit`),
-pick **Autonumber** as the primary column type at create time and
-configure the format string. **You cannot change a Text primary column
-to Autonumber after the fact** — you'd have to delete and recreate the
-table.
+For tables that the spec lists as having an Autonumber primary column
+(`cr_mx_request`, `cr_audit`): the **modern maker dialog only allows
+Text** for the primary column at table-creation time. There is no
+Autonumber option in the Primary column tab.
+
+Workaround — and this is the canonical Phase 1 path:
+
+1. Create the table with a plain Text primary column. Use a generic
+   name like `cr_request_label` (on `cr_mx_request`) or `cr_audit_label`
+   (on `cr_audit`). Make it Optional, Max 100 chars. This column only
+   satisfies Dataverse's "every table needs a primary" rule and is
+   not used by Phase 1 logic.
+2. After the table is saved, add the **business-ID column** as a
+   separate Autonumber column:
+   - On `cr_mx_request`: `cr_request_number`, prefix `MXR-`, min 5
+     digits, seed 1 → produces `MXR-00001`.
+   - On `cr_audit`: `cr_audit_number`, prefix `AUD-`, min 6 digits,
+     seed 1 → produces `AUD-000001`. (The spec just calls this the
+     row identifier; flows reference it as `cr_audit_number`.)
+3. The flow, Adaptive Card, audit Subject ID, and Teams DM all
+   reference the Autonumber column directly. They never read the
+   primary column. So nothing downstream has to change.
+
+The primary Text column on `cr_mx_request` can optionally be backfilled
+by the canvas Patch on submit (e.g.,
+`Concatenate("MXR-", Text(varNewRow.cr_request_number), " — ", varRequestType.Value)`
+for human-readable Dataverse default views), but it's not required.
 
 ## A.4 Adding columns — by type
 
