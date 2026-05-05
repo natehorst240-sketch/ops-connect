@@ -1,21 +1,21 @@
 # Phase 1 Runbook — MX Connect (Dataverse, Canonical Scope)
 
 **Goal:** AMT submits a request from Power Apps mobile → routed to the
-right approver via `cr_routing` → Adaptive Card in Teams → Approve or
-Deny (or 24h timeout-to-Director) → `cr_mx_request` + Outlook + DM
-update automatically. `cr_audit` captures every state change.
+right approver via `cr_routing` → Adaptive Card in Teams → approver
+chooses **Approve / Deny / Escalate / Return** → `cr_mx_request` +
+Outlook + DM update automatically. `cr_audit` captures every state
+change.
 
 **Stack:** Power Apps (canvas) + Power Automate + Microsoft Teams +
 **Dataverse** + Outlook.
 
 **Scope:** This runbook covers **canonical Phase 1 only** — the 8
-canonical tables in `tables/README.md` Phase 1 list, plus the simple
-Approve/Deny/timeout flow. The 4-decision matrix (Approve / Deny /
-Request Info / Escalate), 6 extension tables, and 8-module application
-suite are **extension scope** — flagged at the bottom as a Week 9+
-follow-up if you opt in.
+canonical tables in `tables/README.md` Phase 1 list, plus the
+4-decision approval flow. The 6 extension tables and 8-module canvas
+app suite are **extension scope** — flagged at the bottom as a
+Week 9+ follow-up if you opt in.
 
-**Estimated effort:** 4–6 weeks for canonical, 1 Power Platform
+**Estimated effort:** 5–6 weeks for canonical, 1 Power Platform
 developer + IHC IT liaison.
 
 ---
@@ -26,7 +26,7 @@ developer + IHC IT liaison.
 - `tables/cr_*.md` — column-by-column specs (each derives from a canonical CSV)
 - `connections.md` — connection references + Dataverse roles
 - `powerfx/canvas-app.md` — canvas app build guide
-- `flows/mxr-approval-flow-v2.json` — flow recipe (extension scope)
+- `flows/mxr-approval-flow-v2.json` — flow recipe (4-decision matches canonical)
 - `cards/approval-card.json` — Adaptive Card template
 - `build-walkthrough.md` — click-by-click build for canonical
 - `rebuild-from-clean-state.md` — recovery if Plan mode poisoned the publisher
@@ -74,7 +74,7 @@ Define these in the solution before week 2.
 | `mx_app_deeplink_base`          | String | `https://make.powerapps.com/…`       | URL prefix for deep-links from emails / DMs        |
 | `mx_director_email`             | String | `directors@ihc.org`                  | Recipient for timeout escalation emails             |
 
-8 env vars for canonical Phase 1. (The matrix-extension flow adds
+8 env vars for canonical Phase 1. (The matrix-extension scope adds
 `mx_scheduler_channel_id`, `mx_safety_channel_id`,
 `mx_safety_retention_days`, `mx_anonymous_account` for a total of 12.)
 
@@ -88,11 +88,27 @@ values:
 | Routing    | Default request types                            | Channel                       |
 | ---------- | ------------------------------------------------ | ----------------------------- |
 | `RMM`      | Phase Inspection, Repair, Overhaul, Time Off, Open Shift | `mx_approver_channel_id` |
-| `Director` | AOG-priority requests; auto-escalations on timeout | `mx_director_channel_id`    |
+| `Director` | AOG-priority requests; Escalated-decision re-routes; auto-escalations on timeout | `mx_director_channel_id` |
 
 The canvas form's submit handler sets Routing based on Priority
 (Priority=AOG forces Routing=Director, otherwise default RMM). The
 flow reads `cr_routing` and switches the Teams `recipient/channelId`.
+
+---
+
+## Decisions — canonical 4 actions
+
+Every approver responds with one of four decisions:
+
+| Button label | Decision value | Required field            | Result                                                    |
+| ------------ | -------------- | ------------------------- | --------------------------------------------------------- |
+| Approve      | `Approved`     | (none)                    | Status → Approved. Outlook event created.                 |
+| Deny         | `Denied`       | `cr_decision_reason`      | Status → Denied. DM with reason.                          |
+| Return       | `Returned`     | `cr_more_info_request`    | Status → Returned. DM with the question. Submitter edits + resubmits → flow re-fires. |
+| Escalate     | `Escalated`    | (none, but comment helps) | Status → Escalated, Routing → Director, then re-arms trigger so card re-posts to Director channel. |
+
+**Plus a 5th implicit decision:** **Timeout**. If no response within
+24h, the flow auto-escalates (same effect as Escalate).
 
 ---
 
@@ -127,8 +143,8 @@ Build order (referenced tables before referencing tables):
 4. `cr_aircraft` (Type as Lookup; Base/Region/RMM as Text per CSV constraints)
 5. `cr_personnel_maintenance` (Region/Primary Base/Leader as Text)
 6. `cr_personnel_crew` (header-only — Phase 2 populates)
-7. `cr_mx_request` (Aircraft Tail + Base as Lookup; Requested By/Approver as Text)
-8. `cr_audit` (Actor as Text)
+7. `cr_mx_request` (Aircraft Tail + Base as Lookup; Requested By/Approver as Text; **includes cr_decision + cr_decision_reason + cr_more_info_request**)
+8. `cr_audit` (Actor as Text; Action enum has 7 canonical values)
 
 For each, follow the column-by-column spec in `tables/cr_*.md`. Enable
 Auditing on every business table. See `build-walkthrough.md §A` for
@@ -209,7 +225,7 @@ Per the order in `tables/README.md`:
 3. `02-bases.csv` → cr_base
 4. `04-aircraft.csv` → cr_aircraft
 5. `05-personnel-maintenance.csv` → cr_personnel_maintenance
-6. `06-mx-requests.csv` → cr_mx_request (6 seed rows for testing)
+6. `06-mx-requests.csv` → cr_mx_request (6 seed rows; cr_decision will be blank since the CSV pre-dates that column)
 7. `07-audit-log.csv` → cr_audit (5 seed rows)
 
 The CSVs are at `m365-solution/sharepoint-lists/` (the canonical
@@ -236,15 +252,15 @@ Submit one MX Request of each Routing type from canvas:
 - Phase Inspection, Routing = RMM
 - AOG (Priority=AOG forces Routing=Director)
 
-Confirm rows land in `cr_mx_request` with the right `cr_routing` value.
+Confirm rows land in `cr_mx_request` with the right `cr_routing` value
+and `cr_decision` blank.
 
 ---
 
 ## Week 3 — Power Automate flow (trigger → card)
 
-**Deliverable:** Submitting in canvas causes an Adaptive Card to land
-in the right Teams channel within ~2 seconds (Dataverse webhook
-trigger is near-realtime).
+**Deliverable:** Submitting in canvas causes an Adaptive Card with
+4 action buttons to land in the right Teams channel within ~2 seconds.
 
 ### 3.1 New cloud flow
 
@@ -255,27 +271,30 @@ Solutions > MXConnect > + New > Automation > Cloud flow > Automated
      Table:           MX Request (cr_mx_request)
      Change type:     Added or Modified
      Scope:           Organization
-     Filter columns:  cr_status
-     Filter rows:     cr_status eq 1
+     Filter columns:  cr_status,cr_decision
+     Filter rows:     cr_status eq 1 and cr_decision eq null
 ```
 
-The trigger filter ensures the flow only fires on `Status = Submitted`
-(value 1 in the canonical Status enum). Without it, the flow's own
-Update writes re-trigger.
+The trigger filter is critical:
+- `cr_status eq 1` (Submitted) — initial submissions
+- `cr_decision eq null` — prevents re-fire on the flow's own Decision
+  writes; allows re-fire for Returned-resubmit and Escalated-re-route
+  (canvas/flow clears `cr_decision` for both)
 
-### 3.2 Build the canonical flow shape
+### 3.2 Build the flow
 
-Build manually in Power Automate Studio. The shipped JSON
-`flows/mxr-approval-flow-v2.json` is **extension scope** (4-decision
-Switch with Request Info + Escalate; references extension columns).
-Use it as a structural reference and trim:
+The shipped JSON `flows/mxr-approval-flow-v2.json` is canonical for
+the 4-decision flow. Either import via `pac` or build manually
+following the action sequence in `build-walkthrough.md §B`.
+
+The action sequence:
 
 1. Trigger
 2. Initialize variables — `vAuditCorrelation`, `vRouting`, `vRecipientChannel`
 3. Audit submitted (write `cr_audit` row, action 1)
-4. Compose Adaptive Card body (2 buttons: Approve, Deny)
+4. Compose Adaptive Card body (4 buttons: Approve, Deny, Escalate, Return)
 5. Post Adaptive Card and wait for response (24h timeout)
-6. Switch on response action — Approve case + Deny case only
+6. Switch on response action — Approve / Deny / Escalate / Return cases
 7. Timeout / Failed branch — auto-escalate to Director
 
 ### 3.3 Smoke test
@@ -284,14 +303,16 @@ Submit one Phase Inspection request from canvas. Confirm:
 - Flow run shows in `Power Automate → My flows → mxr-approval-flow-v2 →
   28-day run history` within ~2 seconds
 - Card lands in the RMM channel (Routing = RMM default)
-- Card displays tail, type, window, requestor; Approve + Deny buttons
+- Card displays tail, type, window, requestor; **4 buttons (Approve /
+  Deny / Escalate / Return)** plus a comment input
 - Audit row written (`mx_request.submitted`)
 
 ---
 
-## Week 4 — Approve / Deny / Timeout
+## Week 4 — Approve / Deny / Escalate / Return / Timeout
 
-**Deliverable:** All canonical decisions plus timeout work end-to-end.
+**Deliverable:** All 4 canonical decisions plus timeout work
+end-to-end.
 
 ### 4.1 Add Switch action
 
@@ -299,56 +320,84 @@ After "Post adaptive card and wait for response":
 
 ```
 Switch on:  outputs('Post_card_and_wait')?['body/data/action']
-   case "approve": → Approve branch
-   case "deny":    → Deny branch
+   case "approve":  → Approve branch
+   case "deny":     → Deny branch
+   case "escalate": → Escalate branch
+   case "return":   → Return branch
 ```
 
 ### 4.2 Approve branch
 
-1. **Update row** — `cr_status` = 2 (Approved), `cr_decided_at`,
-   `cr_decision_comment`, `cr_approver` (text name from
-   `body/responder/displayName`)
-2. **Create event V4** — Outlook calendar from `mx_outlook_calendar`
-3. **Update row** — `cr_outlook_event_id` from Create event output
-4. **Post message** — Teams DM to requestor
-5. **Create row** — `cr_audit` action 2 (`mx_request.approved`)
+1. **Update row** — `cr_status` = 2 (Approved), `cr_decision` = 1
+   (Approved), `cr_decided_at`, `cr_decision_comment`, `cr_approver`
+2. **Conditional** — skip Outlook step if Request Type is Time Off
+   (request_type = 4) since time-off doesn't need a calendar event
+3. **Create event V4** — Outlook calendar from `mx_outlook_calendar`
+4. **Update row** — `cr_outlook_event_id` from Create event output
+5. **Post message** — Teams DM to requestor
+6. **Create row** — `cr_audit` action 2 (`mx_request.approved`)
 
 ### 4.3 Deny branch
 
-1. **Update row** — `cr_status` = 3, `cr_decision_comment` (the comment
-   text from the card)
+1. **Update row** — `cr_status` = 3 (Denied), `cr_decision` = 2 (Denied),
+   `cr_decision_reason` (the comment text — required), `cr_approver`
 2. **Post message** — Teams DM with reason
 3. **Create audit row** — action 3 (`mx_request.denied`)
 
 (No Outlook event for Deny.)
 
-### 4.4 Timeout / Failed branch
+### 4.4 Return branch
+
+The approver clicks **Return** when they need more info from the
+submitter. The request goes back to the submitter, who edits + resubmits.
+
+1. **Update row** — `cr_status` = 5 (Returned), `cr_decision` = 4
+   (Returned), `cr_more_info_request` (the question — required),
+   `cr_approver`
+2. **Post message** — DM the question to requestor with deep-link to
+   open the request in MX Connect and add the answer
+3. **Create audit row** — action 5 (`mx_request.returned`)
+
+When the submitter resubmits (canvas clears `cr_decision` and resets
+`cr_status` back to 1 Submitted), the trigger re-fires.
+
+### 4.5 Escalate branch (manual)
+
+1. **Update row** — `cr_status` = 4 (Escalated), `cr_decision` = 3
+   (Escalated), `cr_routing` = 2 (Director), `cr_decision_comment`
+2. **Update row again** — set `cr_status` = 1 (Submitted) and
+   `cr_decision` = null (re-arms the trigger)
+3. **Create audit row** — action 4 (`mx_request.escalated`)
+
+The next iteration of the flow sees Routing = Director and posts the
+Adaptive Card to the Director channel.
+
+### 4.6 Timeout branch
 
 The "wait for response" action's `limit.timeout = PT24H`. On TimedOut
 or Failed (parallel branch via "Configure run after"):
 
-1. **Update row** — `cr_status` = 4 (Escalated), `cr_routing` = 2 (Director),
-   `cr_decision_comment` = "Auto-escalated after 24h"
-2. **Send email V2** — Director group with full context + deep-link
-3. **Create audit row** — action 4 (`mx_request.escalated`), actor =
+1. **Update row** — `cr_status` = 4 (Escalated), `cr_routing` = 2
+   (Director), `cr_decision_comment` = "Auto-escalated after 24h"
+2. **Update row** — reset `cr_status` = 1 and `cr_decision` = null
+   (re-arms trigger for Director re-post)
+3. **Send email V2** — Director group with full context + deep-link
+4. **Create audit row** — action 4 (`mx_request.escalated`), actor =
    `System`
 
-(Note: Re-triggering after auto-escalation is **extension scope**. In
-canonical Phase 1, the request stays Escalated and the Director acts
-via the email or by manually re-flipping `cr_status` to Submitted.)
+### 4.7 Smoke test
 
-### 4.5 Smoke test
-
-Five canonical scenarios:
+Six canonical scenarios:
 - Approve, Routing = RMM
 - Deny with comment
-- Approve where Priority = AOG (auto-routed Director — verify card lands in Director channel)
+- Return → submitter resubmits → flow re-fires → eventual Approve
+- Manual Escalate from RMM channel → confirm card re-posts to Director
+- Approve where Priority = AOG (auto-routed Director — verify card
+  lands in Director channel)
 - Wait past timeout (set `limit.timeout` to `PT5M` for testing)
-- Force trigger failure (e.g. revoke Teams connector mid-run) and
-  confirm the timeout-branch fires
 
-Verify each: row state, Outlook event presence/absence, Teams DMs,
-audit row count.
+Verify each: row state, Decision value, Outlook event presence/absence,
+Teams DMs, audit row count.
 
 ---
 
@@ -390,6 +439,8 @@ pilot users — use real names from `05-personnel-maintenance.csv`.)
 - Field validation gaps (e.g., "end before start" allowed?)
 - Notification body wording
 - Routing edge cases — should specific request types ever route differently?
+- How often Return is used (a high rate suggests submission form
+  needs better required-field guidance)
 - Missing audit fields that came up in real use
 
 ---
@@ -416,6 +467,7 @@ edit components.
 - DLP policy violations target: 0
 - App load time target: <3s on cellular
 - Auto-escalation rate (timeouts): track but no target threshold yet
+- Return rate: track to see if submission form needs adjustment
 
 If any miss, halt rollout and fix before expanding to other regions.
 
@@ -458,7 +510,9 @@ order:
 | Schema name shows `cr87b_*` after creating a table     | MX Connect not set as preferred solution                                    | Solutions → MX Connect → ⋯ → Set as preferred solution. See `rebuild-from-clean-state.md`. |
 | Adaptive Card never appears in Teams                   | Wrong channel ID, or the bot isn't installed in the team                    | Verify channel IDs and add the Power Automate bot to the team        |
 | Card appears but in wrong channel                      | `cr_routing` column missing or default-cast to RMM                          | Confirm canvas form sets Routing on every Patch                      |
-| Flow re-fires on its own writes                        | Trigger filter missing or wrong                                             | Confirm `cr_status eq 1` on the trigger Filter rows expression       |
+| Flow re-fires on its own writes                        | Trigger filter missing `cr_decision eq null`                                | Add it to the trigger Filter rows expression                         |
+| Return loop doesn't re-trigger                         | Canvas didn't clear `cr_decision` on resubmit                               | Patch `cr_decision: Blank()` + `cr_status: Submitted` on resubmit    |
+| Escalate doesn't re-route to Director channel          | Two-step Patch missed; need to set `cr_routing=2` AND `cr_status=1` AND `cr_decision=null` | See flow JSON Escalate branch reference                |
 | Patch fails with "Network error"                       | Canvas talking to wrong environment or table not in solution                | Re-add the data source; confirm table is part of MXConnect solution  |
 | Audit rows never written                               | Service account lacks Append-To privilege on `cr_audit`                     | Add Append-To to `MXC AMT` and `MXC RMM` roles                       |
 | Outlook event in wrong calendar                        | Env variable references calendar name, not ID                               | Use the calendar ID; names vary by user                              |
@@ -476,12 +530,16 @@ Phase 1 is done when, in Prod:
       from a phone in under 30 seconds
 - [ ] The Adaptive Card lands in the right Teams channel (RMM channel
       for default; Director channel for Priority=AOG) within ~2 seconds
-- [ ] Approvers can Approve or Deny from the Teams card
-- [ ] Approved requests create an Outlook calendar event
+- [ ] Approvers can choose Approve / Deny / Escalate / Return from the
+      Teams card; each writes the right Decision value and Status
+- [ ] Approved requests create an Outlook calendar event (except Time Off)
 - [ ] Denied requests DM the requestor with the comment
+- [ ] Returned requests DM the requestor with the question; submitter
+      can edit + resubmit; flow re-fires correctly
+- [ ] Escalated requests re-route to Director channel
 - [ ] Timeout (24h) auto-escalates to Director with email + audit row
 - [ ] Audit row exists in `cr_audit` for every state change (one of
-      the 6 canonical actions)
+      the 7 canonical actions)
 - [ ] DLP review signed off by IHC IT
 - [ ] Three weeks of clean run history (>98% success) in the Logan pilot
 
@@ -492,24 +550,20 @@ When all checked, you're ready for Week 9+ extension scope or Phase 2
 
 ## Week 9+ — Extension scope (optional)
 
-If you want the role-matrix features (4-decision Switch, 6 extension
-tables, 8-module canvas app), that's an additional 4–6 weeks of work.
+If you want the role-matrix features (8-module canvas app, 6 extension
+tables, Routing=Scheduler), that's an additional 4–6 weeks of work.
 
-What changes:
+What changes from canonical:
 
-- Add 6 extension columns to `cr_mx_request`: `cr_decision`,
-  `cr_decision_reason`, `cr_more_info_request`, `cr_comments_count`,
-  `cr_anonymous`, `cr_audience` (see `cr_mx_request.md` extension
-  section)
+- Add 3 extension columns to `cr_mx_request`: `cr_comments_count`,
+  `cr_anonymous`, `cr_audience` (the 4-decision columns are already
+  canonical)
 - Add 6 extension tables: `cr_operational_bulletin`, `cr_safety_report`,
   `cr_aircraft_status_log`, `cr_personnel_status_log`,
   `cr_mx_request_comment`, `cr_user_filter_pref` (each spec has an
   EXTENSION banner)
 - Expand `cr_mx_request.cr_routing` from 2 to 3 values (add Scheduler)
-- Expand `cr_audit.cr_action` enum to 14 additional actions
-- Replace the canonical 2-decision flow with the shipped
-  `mxr-approval-flow-v2.json` (4-decision Switch + Routing=Scheduler +
-  re-arm-after-Request-Info pattern)
+- Expand `cr_audit.cr_action` enum with the 13 extension actions
 - Add `mx_scheduler_channel_id`, `mx_safety_channel_id`,
   `mx_safety_retention_days`, `mx_anonymous_account` env vars
 - Add MXC Pilot / MXC PR / MXC Scheduler / MXC Payroll security roles
