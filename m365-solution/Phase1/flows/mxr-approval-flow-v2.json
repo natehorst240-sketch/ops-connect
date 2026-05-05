@@ -1,5 +1,5 @@
 {
-  "_comment": "Power Automate cloud flow definition for mxr-approval-flow-v2 (Phase 1, Dataverse). Token replacements at solution import: `cr_` -> tenant publisher prefix. Mx_* parameters bind to Dataverse environment variables via metadata.schemaName. Switch on cr_routing posts to RMM / Scheduler / Director channels. Adaptive Card has 4 actions: Approve / Deny / Request Info / Escalate. Trigger condition prevents self-fire on the flow's own Decision writes.",
+  "_comment": "**EXTENSION SCOPE** — This flow JSON implements the matrix-extension 4-decision approval (Approve / Deny / Request Info / Escalate) plus Routing=Scheduler. It references extension columns on cr_mx_request (cr_decision, cr_decision_reason, cr_more_info_request) and the extended Action enum on cr_audit. **The canonical Phase 1 flow is simpler** — just Approve + Deny + timeout-to-Director. Build the canonical version manually per build-walkthrough.md §B if you're staying within canonical scope; or import this JSON if you've opted into the role-matrix extension scope and have built the matching extension columns. Token replacements at solution import: `cr_` -> tenant publisher prefix. Mx_* parameters bind to Dataverse environment variables via metadata.schemaName.",
 
   "properties": {
     "connectionReferences": {
@@ -91,7 +91,7 @@
               "subscriptionRequest/filterexpression": "cr_status eq 1 and cr_decision eq null"
             }
           },
-          "_comment": "message 3 = Created or Updated. scope 4 = Organization. Filter ensures the trigger fires when a row enters Submitted state without a Decision yet. After a Decision is set, subsequent updates don't re-fire. Re-submission after Request Info works because the canvas app clears cr_decision when the submitter resubmits."
+          "_comment": "message 3 = Created or Updated. scope 4 = Organization. Filter ensures the trigger fires when a row enters Submitted state without a Decision yet. After a Decision is set, subsequent updates don't re-fire. Re-submission after Request Info works because the canvas app clears cr_decision when the submitter resubmits. NOTE: cr_decision is an extension column — for canonical Phase 1, simplify the filter to just `cr_status eq 1`."
         }
       },
       "actions": {
@@ -267,7 +267,7 @@
                   },
                   "else": { "actions": {} },
                   "runAfter": { "Update_request_approved": ["Succeeded"] },
-                  "_comment": "request_type 5 = Ask Leadership, 99 = Other. These don't get Outlook events because they're not on the calendar."
+                  "_comment": "request_type 5 = Ask Leadership (extension), 99 = Other. These don't get Outlook events because they're not on the calendar. NOTE: canonical Phase 1 doesn't have request_type 5 — Ask Leadership is matrix-extension scope."
                 },
                 "DM_requestor_approved": {
                   "type": "OpenApiConnection",
