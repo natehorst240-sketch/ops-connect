@@ -1,19 +1,22 @@
 # Phase 1 Build Walkthrough — Tables + Flow
 
-Click-by-click steps to build the 15 Dataverse tables and the
-`mxr-approval-flow-v2` Power Automate flow in your Dev environment.
+Click-by-click steps to build the **canonical 8 Phase 1 Dataverse tables**
+plus the `mxr-approval-flow-v2` Power Automate flow in your Dev
+environment.
+
+> **Scope:** Canonical Phase 1 only (the 8 tables in
+> `tables/README.md` Phase 1 list). Phase 2 (3 more tables) and the 7
+> extension tables are **out of scope** here — build them later if and
+> when you opt into that scope.
+
 Read this alongside the column-by-column specs in `tables/cr_*.md` and
-the flow JSON at `flows/mxr-approval-flow-v2.json`.
+the canonical CSV data in `../../sharepoint-lists/`.
 
-> **All names below conform to `NAMING-CONVENTIONS.md`.** If you spot a
-> name that disagrees with the conventions doc, the conventions doc
-> wins — file a fix here.
-
-**Time estimate:** 4–6 hours for tables, 2–3 hours for the flow.
+**Time estimate:** 4–5 hours for tables, 2–3 hours for the flow.
 
 ---
 
-# Part A — Build the 15 Dataverse tables in Power Apps
+# Part A — Build the 8 Dataverse tables in Power Apps
 
 ## A.0 Prerequisites
 
@@ -32,45 +35,36 @@ make.powerapps.com → left nav → Solutions → + New solution
    Publisher:     + New publisher
                      Display name: IHC
                      Name:         ihc
-                     Prefix:       cr     ← MUST be cr (or whatever you committed to in NAMING-CONVENTIONS.md §1)
+                     Prefix:       cr     ← MUST be cr per the spec docs
                      Save
    Version:       0.1.0.0
    Save
 ```
 
-After creating: `Solutions → MX Connect → ⋯ → Set as preferred solution`.
+Then: `Solutions → MX Connect → ⋯ → Set as preferred solution`.
+
 This is the step that prevents tables from leaking into the Default
-Publisher with a `cr87b_*` prefix.
+Publisher with a `cr87b_*` prefix. Don't skip it. (See
+`rebuild-from-clean-state.md` if your tables landed under the wrong
+publisher already.)
 
 ## A.2 Build order (dependency-aware)
 
-Build tables in this order or you'll hit "referenced table doesn't
-exist" errors:
-
 ```
-1.  cr_region                  (no dependencies)
-2.  cr_aircraft_type           (no dependencies)
-3.  cr_base                    → cr_region
-4.  cr_aircraft                → cr_aircraft_type, cr_base, cr_region, systemuser
-5.  cr_personnel_maintenance   → cr_region, cr_base, systemuser
-6.  cr_personnel_crew          → cr_region, cr_base, systemuser
-7.  cr_mx_request              → cr_aircraft, cr_base, systemuser
-8.  cr_audit                   → systemuser
-9.  cr_operational_bulletin    → cr_region, systemuser
-10. cr_safety_report           → cr_region, cr_base, cr_aircraft, systemuser
-11. cr_aircraft_status_log     → cr_aircraft, systemuser
-12. cr_personnel_status_log    → cr_personnel_maintenance, systemuser
-13. cr_mx_request_comment      → cr_mx_request, systemuser
-14. cr_user_filter_pref        (no dependencies)
-15. cr_schedule_event          → cr_mx_request, cr_aircraft, systemuser
+1. cr_region                  (no dependencies)
+2. cr_aircraft_type           (no dependencies)
+3. cr_base                    → cr_region (text reference in Phase 1)
+4. cr_aircraft                → cr_aircraft_type (Lookup); Base/Region/RMM are Text
+5. cr_personnel_maintenance   (Region/Primary Base/Leader are Text)
+6. cr_personnel_crew          (header-only; Phase 2 populates)
+7. cr_mx_request              → cr_aircraft, cr_base (Lookups); RequestedBy/Approver are Text
+8. cr_audit                   (Actor is Text)
 ```
 
-Display names follow `NAMING-CONVENTIONS.md §2` — e.g.,
-`Personnel - Maintenance` (regular hyphen, **not em dash**).
+Display names follow `tables/README.md`. Personnel separator is a
+**regular hyphen** (`Personnel - Maintenance`).
 
 ## A.3 Generic table creation flow
-
-Same steps for every table — only the columns and primary column differ.
 
 ```
 Solutions → MX Connect → + New → Table → Table (advanced properties)
@@ -86,21 +80,21 @@ Solutions → MX Connect → + New → Table → Table (advanced properties)
      Enable auditing:          ☑ Yes      (do this on every business table)
      Enable Activities:        ☐ No
      Enable Notes:             ☐ No
-     Allow custom Help URL:    ☐ No
      Track changes:            ☑ Yes      (needed for Power Automate triggers)
-     Provide custom Help:      ☐ No
 
    Save
 ```
 
-After Save, you land on the table page with its system columns
-(`createdon`, `modifiedon`, `createdby`, `modifiedby`, etc.) plus your
-primary column. **Now add the rest of the columns** per the spec.
+For tables with autonumber primary columns (`cr_mx_request`, `cr_audit`),
+pick **Autonumber** as the primary column type at create time and
+configure the format string. **You cannot change a Text primary column
+to Autonumber after the fact** — you'd have to delete and recreate the
+table.
 
 ## A.4 Adding columns — by type
 
-For each table, walk down its `cr_*.md` spec and add columns. The
-column-add UI is the same; the type and config differ.
+For each table, walk down its `cr_*.md` spec and add columns. Standard
+patterns:
 
 ### Single line of text
 
@@ -110,9 +104,8 @@ column-add UI is the same; the type and config differ.
    Name:          cr_tail                (auto-generated)
    Data type:     Single line of text
    Format:        Text
-   Maximum length: 8                     (matches spec)
+   Maximum length: 8                     (per spec)
    Required:      Required               (or Business Required)
-   Searchable:    ☑ (default)
    Save
 ```
 
@@ -133,8 +126,8 @@ column-add UI is the same; the type and config differ.
 + New column
    Display name:  Window Start
    Data type:     Date and time
-   Format:        Date and time          (or Date only — spec says date+time)
-   Behavior:      User local             (lets each user see in their TZ)
+   Format:        Date and time
+   Behavior:      User local
    Required:      Required
    Save
 ```
@@ -143,11 +136,19 @@ column-add UI is the same; the type and config differ.
 
 ```
 + New column
-   Display name:  Comments Count
+   Display name:  Altitude
    Data type:     Whole number
-   Format:        None                   (just integer)
-   Minimum:       0
-   Default:       0
+   Format:        None
+   Save
+```
+
+### Floating point (only on `cr_fleet_position` Phase 2)
+
+```
++ New column
+   Display name:  Latitude
+   Data type:     Floating point
+   Decimal places: 6
    Save
 ```
 
@@ -161,93 +162,35 @@ column-add UI is the same; the type and config differ.
    Save
 ```
 
-### Choice (the picky one)
+### Choice
 
-For **Status**, **Routing**, **Decision**, **Priority**, etc.
-
-**Best practice: use Global Choices** so the same enum is reusable on
-multiple tables (e.g., Aircraft.Status and Aircraft Status Log.New
-Status both reference the same global Choice).
-
-#### First, create the Global Choice
-
-```
-Solutions → MX Connect → + New → More → Choice
-
-   Display name:  Status (MX Request)              ← singular, per NAMING-CONVENTIONS.md §4
-   Name:          cr_mx_request_status
-   Choices:
-      Submitted              (value: 1)
-      Approved               (value: 2)
-      Denied                 (value: 3)
-      More Info Requested    (value: 4)
-      Escalated              (value: 5)
-      Cancelled              (value: 6)
-   Default:       Submitted
-   Save
-```
-
-The numeric values matter — they're what the Power Automate flow filters
-on. Use the values from `NAMING-CONVENTIONS.md §5`.
-
-#### Then, add the Choice column to the table
+Use **local Choices** for canonical Phase 1 unless the same enum is
+shared across tables. The 8-table canonical scope only has one shared
+case: `Aircraft Class` (used on both `cr_aircraft_type` and
+`cr_aircraft`). Make that one a Global Choice; all others can be local
+to the table that owns them.
 
 ```
 + New column
    Display name:  Status
    Data type:     Choice
-   Sync this choice with: Status (MX Request)    ← pick the global choice
+   Sync this choice with: + New choice  (or pick existing for shared)
+      Display name (option 1):  Submitted     Value: 1
+      Display name (option 2):  Approved      Value: 2
+      Display name (option 3):  Denied        Value: 3
+      Display name (option 4):  Escalated     Value: 4
+      Display name (option 5):  Cancelled     Value: 5
    Default:       Submitted
    Required:      Required
    Save
 ```
 
-Build all 22 global Choices per `NAMING-CONVENTIONS.md §4`:
-
-| Choice (display name)                       | Used by                                              |
-| ------------------------------------------- | ---------------------------------------------------- |
-| `Status (MX Request)`                       | cr_mx_request                                        |
-| `Routing (MX Request)`                      | cr_mx_request                                        |
-| `Decision (MX Request)`                     | cr_mx_request                                        |
-| `Priority (MX Request)`                     | cr_mx_request                                        |
-| `Request Type (MX Request)`                 | cr_mx_request                                        |
-| `Audience (MX Request)`                     | cr_mx_request, cr_operational_bulletin               |
-| `Status (Aircraft)`                         | cr_aircraft, cr_aircraft_status_log                  |
-| `Status (Personnel - Maintenance)`          | cr_personnel_maintenance, cr_personnel_status_log    |
-| `Action Type (Personnel Status Log)`        | cr_personnel_status_log                              |
-| `Action (MX Audit)`                         | cr_audit                                             |
-| `Level (Operational Bulletin)`              | cr_operational_bulletin                              |
-| `Status (Operational Bulletin)`             | cr_operational_bulletin                              |
-| `Severity (Safety Report)`                  | cr_safety_report                                     |
-| `Status (Safety Report)`                    | cr_safety_report                                     |
-| `Visible To Roles (MX Request Comment)`     | cr_mx_request_comment                                |
-| `View (User Filter Preference)`             | cr_user_filter_pref                                  |
-| `Class (Aircraft Type)`                     | cr_aircraft_type, cr_aircraft                        |
-| `Type (Region)`                             | cr_region                                            |
-| `Operations (Base)`                         | cr_base                                              |
-| `Role (Personnel - Maintenance)`            | cr_personnel_maintenance                             |
-| `Role (Personnel - Crew)`                   | cr_personnel_crew                                    |
-| `Specialty (Personnel - Crew)`              | cr_personnel_crew                                    |
-
-Tedious upfront but pays off on every Patch / Filter formula.
-
-### Choice (multi-select)
-
-Same as Choice but check the "Allow multiple selections" box:
-
-```
-+ New column
-   Display name:  Audience
-   Data type:     Choice
-   Sync this choice with: Audience (MX Request)
-   Allow multiple selections: ☑ Yes
-   Save
-```
+The numeric values matter — the flow filters on them. Use the values
+from each spec's "Choice values" section verbatim.
 
 ### Lookup (single)
 
-Lookup columns reference another table. The target table **must already
-exist** — that's why build order matters.
+The target table **must already exist** (build-order rule).
 
 ```
 + New column
@@ -259,131 +202,112 @@ exist** — that's why build order matters.
    Save
 ```
 
-Behind the scenes Dataverse creates a 1-to-many relationship. Inspect
-under `Schema → Relationships` if needed.
+### Autonumber (primary column on `cr_mx_request` and `cr_audit`)
 
-### Person/Group (Customer / User)
-
-Dataverse handles "Person" via a Lookup to the built-in `User` table
-(`systemuser`).
-
-```
-+ New column
-   Display name:  Requested By
-   Name:          cr_requested_by
-   Data type:     Lookup
-   Related table: User
-   Required:      Required
-   Save
-```
-
-When the canvas app's `Patch` writes `varCurrentUser` (which is `User()`),
-Dataverse resolves it correctly.
-
-### Autonumber (primary column on transactional tables)
-
-Some tables use Autonumber as the primary column display value (Request
-Number, Bulletin ID, etc.). To set this up, you can't just edit the
-primary column — you have to create the table with Autonumber from the
-start.
+Set this at table create time only:
 
 ```
 + New → Table → Table (advanced properties)
-
    Display name:           MX Request
    Primary column display: Request Number
-   Primary column type:    Autonumber             ← this option only at table create
-   Format:                 String prefix          (or Date / Random Number)
+   Primary column type:    Autonumber             ← table-create only
+   Format:                 String prefix
    Prefix:                 MXR-
    Minimum number:         5                      (5-digit padding → MXR-00001)
    Seed value:             1
    Save
 ```
 
-This is why the build-order doc says "create primary column as
-autonumber from the start." If you forget, you have to delete and
-recreate the table.
+Same pattern for `cr_audit` with prefix `AUD-` and 6-digit padding
+(`AUD-000001`).
 
-## A.5 Per-table walkthrough
+## A.5 Choices needed for canonical Phase 1
+
+These are **all** the Choices the 8 canonical tables need. Build them as
+you go, table by table.
+
+| Choice (display name)        | Owner table                      | Values                                                                                                  |
+| ---------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Region Type                  | `cr_region` (local)              | Field / HQ / Field/HQ / Rover                                                                           |
+| Operations                   | `cr_base` (local)                | RW / FW / RW + FW / Office / Storage / Coverage / RW + Office                                           |
+| Aircraft Class               | global (shared by AC + AC Type)  | Rotary / Fixed Wing                                                                                     |
+| Aircraft Status              | `cr_aircraft` (local)            | In Service (1) / AOG (2) / Maintenance (3) / Away from Base (4) / Unavailable (5) / Spare (6)           |
+| Personnel Role               | `cr_personnel_maintenance` (local) | AMT (1) / AMT (Rover) (2) / Supervisor (3) / RMM (4) / DOM (5) / QA (6) / QA Manager (7) / Parts (8) / Scheduler (9) / Senior Director Aviation Operations (10) |
+| MX Request Type              | `cr_mx_request` (local)          | Phase Inspection (1) / Repair (2) / Overhaul (3) / Time Off (4) / Open Shift (5) / AOG (6)              |
+| MX Request Priority          | `cr_mx_request` (local)          | Normal (1) / High (2) / AOG (3)                                                                          |
+| MX Request Status            | `cr_mx_request` (local)          | Submitted (1) / Approved (2) / Denied (3) / Escalated (4) / Cancelled (5)                                |
+| MX Request Routing           | `cr_mx_request` (local)          | RMM (1) / Director (2)                                                                                   |
+| Audit Action                 | `cr_audit` (local)               | mx_request.submitted (1) / mx_request.approved (2) / mx_request.denied (3) / mx_request.escalated (4) / mx_request.cancelled (5) / mx_request.outlook_created (10) |
+
+10 Choice columns total for canonical Phase 1. Don't add any others
+unless you've opted into the matrix-extension scope (`cr_decision`,
+`cr_more_info_request`, etc. on `cr_mx_request`).
+
+The numeric values come from the spec docs. **Use the exact values** —
+the flow's trigger filter and Update actions use them.
+
+## A.6 Per-table walkthrough
 
 Open each `cr_*.md` spec, follow the column list. Apply the
 appropriate column-type pattern from §A.4. Hit Save after every column
 to avoid losing work.
 
-The column lists are short — mostly 6–18 columns per table. Pace
-yourself: 15–25 minutes per table. The whole 15-table build is 4–6
-hours of focused work.
+The column lists are short — mostly 8–18 columns per table. Pace
+yourself: 15–25 minutes per table.
 
-## A.6 Wiring up the relationships pane
+## A.7 Wiring up the relationships pane
 
 After Lookup columns are added, verify under each table's
 `Relationships → Many-to-one`:
 
 ```
-cr_mx_request ↔ cr_aircraft        (cr_aircraft_tail)
-cr_mx_request ↔ cr_base            (cr_base)
-cr_mx_request ↔ User (systemuser)  (cr_requested_by, cr_approver)
-cr_aircraft   ↔ cr_aircraft_type   (cr_type)
-cr_aircraft   ↔ cr_base            (cr_base)
-cr_aircraft   ↔ cr_region          (cr_region)
-... (and so on per the table specs)
+cr_aircraft   ↔ cr_aircraft_type    (cr_type)
+cr_mx_request ↔ cr_aircraft         (cr_aircraft_tail)
+cr_mx_request ↔ cr_base             (cr_base)
 ```
 
-If any relationship is missing, Power Apps Studio won't see the
-related fields when you do `record.RelatedTable.Field` lookups.
+Phase 1 canonical doesn't have many lookups because the CSV has values
+that don't fit Lookup constraints (free-text names, "ALL", "Spare",
+"NC Region (TBD)"). Phase 2 adds the rest.
 
-## A.7 Enable Auditing on each business table
+## A.8 Enable Auditing
 
-If you missed it during table creation, retroactively enable:
+If you missed it during table creation:
 
 ```
-Tables → cr_mx_request → Properties (top right pencil icon)
+Tables → cr_mx_request → Properties (top-right pencil icon)
    Advanced options → Audit changes to its data: ☑ Yes
    Save
 ```
 
-Do this for every table that holds business data (skip lookups like
-Region / Base / Aircraft Type if you want; their changes are rare).
+Do this for every table that holds business data: `cr_aircraft`,
+`cr_personnel_maintenance`, `cr_mx_request`, `cr_audit`. Lookup tables
+(`cr_region`, `cr_base`, `cr_aircraft_type`) are optional.
 
-## A.8 Build security roles
-
-Per `connections.md`, create 8 custom security roles:
-
-```
-Solutions → MX Connect → + New → Security → Security role
-
-   Display name:  MXC RMM
-   Name:          MXC_RMM
-```
-
-For each role, switch to the **Custom Entities** tab (or in the new
-maker UI, scroll to the Custom Tables section). For each of your 15
-tables, click the privilege circles to set the level per the per-table
-grid in `connections.md`.
-
-```
-Privilege circles (left to right):
-   None / User / Business Unit / Parent: Child Business Units / Organization
-
-Click once = User
-Click twice = BU
-Click 3 times = Parent: Child BUs
-Click 4 times = Org
-Click 5 times = back to None
-```
-
-Save the role. Repeat for the other 7. **Tedious but one-time.**
-
-## A.9 Set up business units (if not already)
+## A.9 Set up business units (for RMM regional scoping)
 
 ```
 Power Platform admin center → Environments → [Dev] → Settings →
    Users + permissions → Business units → + New
+```
 
-   Per region:
-      Name:     109 UT (or WY/MT, ID/NV, etc.)
-      Parent:   ihc.org (root)
-      Save
+Create one BU per region using the **canonical region names** from
+`01-regions.csv`:
+
+```
+ihc.org (root)
+├── 109 UT
+├── CO/NM
+├── ID/NV
+├── NC Region
+├── PAGE
+├── SLC
+├── SLC FW
+├── UT/AZ
+├── WI Region
+├── WOODSCROSS
+├── WY/MT
+└── RW Rover
 ```
 
 Then assign each user to their region's BU under
@@ -395,13 +319,35 @@ This is what makes RMM regional scoping work automatically.
 
 ```
 Solutions → MX Connect → Tables → MX Request → + New row
-   Fill required fields manually
+   Aircraft Tail:  N431HC
+   Request Type:   Phase Inspection
+   Window Start:   tomorrow 07:00
+   Window End:     tomorrow 17:00
+   Priority:       Normal
+   Status:         Submitted
+   Routing:        RMM
    Save
 ```
 
-Confirm the autonumber populates (`MXR-00001`). Confirm `cr_audit`
-remains empty (because the flow isn't built yet — it's the flow that
-writes audit rows).
+Confirm the autonumber populates (`MXR-00001`). Confirm the flow isn't
+built yet, so `cr_audit` stays empty. Once the flow lands, this same
+smoke test fires the end-to-end pipeline.
+
+## A.11 Import canonical seed data
+
+After all tables are built and verified, import the populated CSVs:
+
+```
+Tables → cr_region → top toolbar → Import → Import from Excel
+   Pick: 01-regions.csv from m365-solution/sharepoint-lists/
+   Map columns (Title → Name, Type → Type, Notes → Notes)
+   Import
+```
+
+Repeat for each canonical CSV. The CSV-vs-Lookup column tension (free
+text vs strict Lookup) only matters in Phase 2 — for Phase 1 canonical,
+the spec keeps Base/Region/RMM as Text precisely so CSV import works
+out of the box.
 
 ---
 
@@ -422,103 +368,75 @@ pac solution pack --folder ./mxconnect-cloned --zipfile ./MXConnect.zip
 pac solution import --path ./MXConnect.zip
 ```
 
-This is the fastest path if you're comfortable with `pac` and the
-Solution XML format. Realistically, most builds take Path 2 the first
-time.
+> **Note:** the `mxr-approval-flow-v2.json` shipped in this repo
+> implements the **matrix-extension** 4-decision flow (Approve / Deny
+> / Request Info / Escalate). The canonical Phase 1 flow is simpler —
+> just Approve + Deny + timeout-to-Director. Either trim the JSON's
+> Switch cases or build manually per Path 2.
 
-### Path 2 — Build manually in Power Automate Studio
+### Path 2 — Build manually in Power Automate Studio (recommended for canonical)
 
-Read `flows/mxr-approval-flow-v2.json` as a recipe, not a deployable
-artifact. The structure tells you which actions to add, in what order,
-with what inputs.
-
-## B.2 Create the flow (manual path)
+Build the canonical 2-decision flow:
 
 ```
-make.powerautomate.com → left nav → My flows → + New flow → Automated
+make.powerautomate.com → My flows → + New flow → Automated
    Flow name:  mxr-approval-flow-v2
    Trigger:    When a row is added, modified or deleted (Microsoft Dataverse)
-   Skip       (we'll set the trigger params next)
 ```
 
-## B.3 Configure the trigger
-
-Click the trigger card to expand:
+## B.2 Configure the trigger
 
 ```
 Change type:        Added or Modified
-Table name:         MX Requests          (Power Automate uses plural display name in dropdown)
+Table name:         MX Requests          (Power Automate uses plural display in dropdown)
 Scope:              Organization
-Filter columns:     cr_status,cr_decision
-Filter rows:        cr_status eq 1 and cr_decision eq null
-Run as:             Modifying user (default — fine for now)
+Filter columns:     cr_status
+Filter rows:        cr_status eq 1
+Run as:             Modifying user
 ```
 
-The filter is critical — it stops the flow from re-firing on its own
-Decision writes.
+The filter ensures the flow only fires on `Status = Submitted`. Without
+it, every Update from the flow itself triggers another run.
 
-## B.4 Add the actions
+## B.3 Action sequence (canonical 2-decision)
 
-The flow JSON in `flows/mxr-approval-flow-v2.json` lists actions in
-order. For each one:
+| #  | Action display name              | Connector       | Purpose                              |
+| -- | -------------------------------- | --------------- | ------------------------------------ |
+| 1  | Initialize variable — vAuditCorrelation | Built-in | String, from trigger row             |
+| 2  | Initialize variable — vRouting   | Built-in        | String, from trigger row's Routing   |
+| 3  | Initialize variable — vRecipientChannel | Built-in | String, set per Routing              |
+| 4  | Audit submitted                  | Dataverse       | Add row → MX Audits, action 1        |
+| 5  | Compose card body                | Built-in        | Adaptive Card JSON                    |
+| 6  | Post card and wait               | Teams           | 24h timeout                           |
+| 7  | Decision — Switch                | Built-in        | On `body/data/action`                 |
+| 8  |   Approve case                   | Dataverse + Outlook + Teams | Update + Outlook event + DM + Audit |
+| 9  |   Deny case                      | Dataverse + Teams | Update + DM + Audit                |
+| 10 | Update request escalated (timeout) | Dataverse    | Update Status=Escalated              |
+| 11 | Email director escalation        | Office 365      | Send an email V2                      |
+| 12 | Audit escalated (timeout)        | Dataverse       | Add row → MX Audits, action 4        |
 
-```
-+ New step → search for the action name (e.g., "Initialize variable")
-   Pick the matching connector (Dataverse, Teams, Office 365, etc.)
-   Fill in the inputs from the JSON's "parameters" object
-```
+For Choice columns in Update actions, pick from the dropdown — Power
+Automate Studio shows the labels (Submitted, Approved, etc.) but stores
+the numeric value. The trigger filter `cr_status eq 1` corresponds to
+"Submitted" — confirm by hovering over the option.
 
-### Action sequence (in order)
+## B.4 Configure the Adaptive Card
 
-| # | Action display name              | Connector       | Operation                              |
-| - | -------------------------------- | --------------- | -------------------------------------- |
-| 1 | Initialize variable — vAuditCorrelation | Built-in | Initialize variable                    |
-| 2 | Initialize variable — vRouting   | Built-in        | Initialize variable                    |
-| 3 | Initialize variable — vRecipientChannel | Built-in | Initialize variable                    |
-| 4 | Audit submitted                  | Dataverse       | Add a new row → table MX Audits        |
-| 5 | Compose card body                | Built-in        | Compose                                 |
-| 6 | Post card and wait               | Teams           | Post adaptive card and wait for response |
-| 7 | Decision — Switch                | Built-in        | Switch                                 |
-| 8 |   Approve case (4 actions inside) | Dataverse + Outlook + Teams | Update + Create event + Update + Post + Audit |
-| 9 |   Deny case (3 actions)          | Dataverse + Teams | Update + Post + Audit                |
-| 10 |  Request Info case (3 actions)  | Dataverse + Teams | Update + Post + Audit                |
-| 11 |  Escalate case (3 actions)      | Dataverse        | Update + Update + Audit                |
-| 12 | Update request escalated (timeout) | Dataverse    | Update a row                           |
-| 13 | Reset decision (timeout)         | Dataverse       | Update a row                           |
-| 14 | Email director escalation        | Office 365      | Send an email V2                       |
-| 15 | Audit escalated (timeout)        | Dataverse       | Add a new row                          |
+The Compose action embeds JSON. Test-render the card body in
+https://adaptivecards.io/designer to verify syntax before saving the
+flow.
 
-For each Dataverse action:
+For canonical Phase 1, the card has **two** action buttons (Approve +
+Deny), not four. The 4-button version is matrix-extension scope.
 
-```
-Table name:    MX Requests / MX Audits / etc.   (Power Automate dropdown shows plural)
-Row ID:        @{triggerOutputs()?['body/cr_mx_requestid']}
-Fields:        Click "Show advanced options" to see all columns;
-               populate per the JSON's parameters object
+```json
+"actions": [
+  { "type": "Action.Submit", "title": "Approve", "data": { "action": "approve", "requestId": "@{...}" }, "style": "positive" },
+  { "type": "Action.Submit", "title": "Deny",    "data": { "action": "deny",    "requestId": "@{...}" }, "style": "destructive" }
+]
 ```
 
-For Choice columns, pick from the dropdown — Power Automate Studio
-shows the labels (Submitted, Approved, etc.) but stores the numeric
-value.
-
-For Lookup columns, you have two ways:
-- Pick a row from the dropdown (interactive — use during testing)
-- Use the OData bind syntax: `systemusers(@{output?['body/responder/objectId']})`
-
-## B.5 Configure the Adaptive Card
-
-The Compose action embeds a JSON literal. Copy the entire `body` and
-`actions` arrays from the JSON's `Compose_card_body.inputs` section into
-the Compose action's input.
-
-Test-render the card in https://adaptivecards.io/designer to verify
-syntax before saving the flow. Common gotchas:
-- Triple curly braces in formulas — Power Automate evaluates them on
-  flow run, not in the designer
-- `@{...}` expressions only work inside Compose / Update inputs;
-  literal `${}` placeholders won't substitute
-
-## B.6 Post adaptive card and wait
+## B.5 Post adaptive card and wait
 
 ```
 Post as:           Flow bot
@@ -529,67 +447,56 @@ Adaptive Card:     @{outputs('Compose_card_body')}
 Update message:    Decision recorded.
 ```
 
-Set the **timeout** under "Show advanced options":
+Set timeout under "Show advanced options":
 
 ```
 Timeout duration: PT24H
 ```
 
-This action's outputs (`body/data/action`, `body/data/comment`,
-`body/responder/objectId`, etc.) feed every downstream branch.
-
-## B.7 Switch on decision
+## B.6 Switch on decision
 
 ```
 Switch on: outputs('Post_card_and_wait')?['body/data/action']
 
 Cases:
-   approve       → Approve branch (5 actions)
-   deny          → Deny branch (3 actions)
-   request_info  → Request Info branch (3 actions)
-   escalate      → Escalate branch (3 actions)
-Default:         (empty — covered by timeout branch in parallel)
+   approve  → Approve branch (5 actions)
+   deny     → Deny branch (3 actions)
+Default:    (empty — covered by timeout branch in parallel)
 ```
 
-For each case, drag the matching actions from the JSON's `Decision.cases`
-section.
+## B.7 Timeout / failure branch
 
-## B.8 Timeout / failure branch
-
-The timeout branch runs **in parallel to** the Switch — set up via the
-"Configure run after" option on each timeout action:
+The timeout branch runs **in parallel** to the Switch via "Configure
+run after":
 
 ```
-Update_request_escalated_timeout → Configure run after
+Update_request_escalated → Configure run after
    ✓ Post_card_and_wait timed out
    ✓ Post_card_and_wait failed
    ✗ has succeeded
 ```
 
-This is how you implement the parallel branch that catches the 24h
-timeout.
-
-## B.9 Environment variables
-
-Before the flow can run, set values per `NAMING-CONVENTIONS.md §9`:
+## B.8 Environment variables
 
 ```
 Solutions → MX Connect → + New → More → Environment variable
 
-   For each of the 12 mx_* parameters in the flow JSON:
-      Display name:    mx_approver_team_id
-      Name:            cr_mx_approver_team_id
-      Data type:       Text
-      Default value:   19:abc123...@thread.tacv2
-      Save
+   Display name:    mx_approver_team_id
+   Name:            cr_mx_approver_team_id
+   Data type:       Text
+   Default value:   19:abc123...@thread.tacv2
+   Save
 ```
 
-Power Automate auto-resolves `@parameters('mx_approver_team_id')` →
-`@parameters('cr_mx_approver_team_id')` from the connection reference
-that maps to your env variable. If you used the JSON's
-`metadata.schemaName` binding, this works automatically.
+Repeat for: `mx_approver_channel_id`, `mx_director_channel_id`,
+`mx_outlook_calendar`, `mx_request_timeout_hours`,
+`mx_audit_retention_days`, `mx_app_deeplink_base`, `mx_director_email`.
 
-## B.10 Connection references
+8 env vars for canonical Phase 1. (The matrix-extension flow adds
+`mx_scheduler_channel_id`, `mx_safety_channel_id`,
+`mx_safety_retention_days`, `mx_anonymous_account` for a total of 12.)
+
+## B.9 Connection references
 
 ```
 Solutions → MX Connect → + New → More → Connection reference
@@ -601,36 +508,37 @@ Solutions → MX Connect → + New → More → Connection reference
    Save
 ```
 
-Repeat for `cr_TeamsConnection` (Microsoft Teams) and `cr_OutlookConnection`
-(Office 365 Outlook).
+Repeat for `cr_TeamsConnection` (Microsoft Teams) and
+`cr_OutlookConnection` (Office 365 Outlook).
 
-## B.11 Smoke test the flow
+## B.10 Smoke test the flow
 
 ```
 Power Automate → My flows → mxr-approval-flow-v2 → Run history
 ```
 
-In a separate tab, go to your canvas app or directly into Dataverse:
+In Dataverse:
 
 ```
-Power Apps → Tables → MX Request → + New row
-   Fill required fields
-   Status: Submitted
-   Routing: RMM
+Tables → MX Request → + New row
+   Aircraft Tail: N431HC, Request Type: Phase Inspection,
+   Window Start: tomorrow 07:00, Window End: tomorrow 17:00,
+   Priority: Normal, Status: Submitted, Routing: RMM
    Save
 ```
 
-Wait 5–30 seconds. The flow should fire, you should see it in run
-history. Open the run, expand each action, verify it succeeded.
+Wait 5–30 seconds. The flow fires, Adaptive Card lands in the RMM
+channel. Click Approve. Verify: row Status → Approved, Outlook event
+created, DM to requestor, audit row written.
 
-If the Adaptive Card lands in the wrong channel: check `vRouting` and
+If the card lands in the wrong channel: check `vRouting` and
 `vRecipientChannel` initialization values.
 
 If no card lands: check that the Power Automate bot is added to the
-target Teams channel (`Channel → Connectors → Power Automate`).
+target Teams channel.
 
-If the flow never triggers: check the trigger filter expression — the
-single most common bug is missing `cr_decision eq null`.
+If the flow never triggers: check the trigger filter (`cr_status eq 1`)
+and that auditing/track changes is enabled on the table.
 
 ---
 
@@ -638,106 +546,56 @@ single most common bug is missing `cr_decision eq null`.
 
 | Issue                                                          | Cause                                                                | Fix                                                              |
 | -------------------------------------------------------------- | -------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| Schema name shows `cr87b_*` after creating a table             | MX Connect not set as preferred solution                             | Solutions → MX Connect → ⋯ → Set as preferred solution. See `rebuild-from-clean-state.md` if it already happened. |
 | "Required column missing" on Patch                             | Required column on the table without a default                       | Either remove Required, or add a Default value                   |
 | Lookup column doesn't show the table I want                    | Target table not in the same solution                                | Add target table to the MXConnect solution                       |
-| Flow runs in a loop                                            | Trigger filter missing `cr_decision eq null`                         | Add it to the trigger Filter rows expression                     |
+| Flow runs in a loop                                            | Trigger filter missing or wrong                                      | Confirm `cr_status eq 1` on the trigger Filter rows expression  |
 | Adaptive Card doesn't render                                   | Compose action has malformed JSON                                    | Paste into adaptivecards.io/designer to find the syntax error    |
-| `@parameters('mx_…')` is null at runtime                       | Env variable not mapped to the connection reference                  | Check Solutions → Env variables → set Current value              |
+| `@parameters('mx_…')` is null at runtime                       | Env variable not mapped to a value                                   | Check Solutions → Env variables → set Current value              |
 | "User can't see this row"                                      | Dataverse role privilege at User instead of BU                       | Bump to BU on the relevant role                                  |
 | Outlook event in wrong calendar                                | Env variable references calendar name, not ID                        | Use the ID (visible in Graph Explorer)                           |
 | Choice column saves "1" instead of "Submitted" in audit metadata | Logged the numeric value instead of FormattedValue                  | Use `@{triggerOutputs()?['body/cr_status@OData.Community.Display.V1.FormattedValue']}` |
-| Schema name shows `cr87b_*` after creating a table             | MX Connect not set as preferred solution                             | Solutions → MX Connect → ⋯ → Set as preferred solution           |
-| Choice option enum values don't match flow JSON filter         | Used your own numbering instead of the spec's                        | Re-create Choice with the values in `NAMING-CONVENTIONS.md §5`   |
+| CSV import fails on Aircraft (Base/Region/RMM)                | Lookup target rows missing or names don't match                      | Spec keeps these as Text in Phase 1 — re-import. If you switched to Lookup, switch back. |
 
 ---
 
-# Part D — When to use Copilot
-
-⚠️ **Read `copilot-prompts.md §READ FIRST` before any Copilot run** —
-Plan mode cannot be paused once submitted, and our worst day so far
-involved a frozen Plan-mode build.
-
-Copilot in Power Apps + Power Automate is licensed in your Premium plan.
-Use it as a scaffold, then layer the spec on top.
-
-## Tables — scaffold from a CSV
-
-```
-Solutions → MX Connect → + New → Table → Get data → Excel/CSV
-   Upload one of the populated CSVs (e.g., 04-aircraft.csv)
-   Copilot auto-infers column types from the data
-   Review and tweak per the spec — it gets ~70% right
-```
-
-Saves the most time on tables with many text columns
-(`cr_personnel_maintenance` with 17 columns, `cr_aircraft` with 14).
-
-**Important:** verify the schema name shows `cr_*` (not `cr87b_*`)
-after the table is created. If wrong, you're back to the rebuild
-sequence.
-
-## Flow — Copilot prompt
-
-See `copilot-prompts.md` for chunked prompts.
-
-## What Copilot can't help with
-
-- Choice column enum values (you still configure those — see `NAMING-CONVENTIONS.md §5`)
-- Security roles (no Copilot UI yet)
-- Business unit hierarchy (manual)
-- Item-level relationship configurations
-- Reading the existing Power Fx in the canvas app (it can suggest
-  formulas in isolation, but won't reason across screens)
-
----
-
-# Part E — Order of operations summary
-
-Here's the all-in-one path:
+# Part D — Order of operations summary
 
 ```
 Day 1 (3-4h)
-   1. Create solution + publisher (set as preferred!)
-   2. Set up business units in admin center
-   3. Build global Choice options (~22 of them, names per NAMING-CONVENTIONS.md §4)
-   4. Build lookup tables: cr_region, cr_aircraft_type, cr_base
-   5. Build cr_aircraft, cr_personnel_maintenance
+   1. Create solution + IHC publisher (set as preferred!)
+   2. Set up business units in admin center (12 regions per CSV)
+   3. Build 10 Choice columns per spec (most are local; Aircraft Class is shared)
+   4. Build cr_region, cr_aircraft_type, cr_base
+   5. Build cr_aircraft, cr_personnel_maintenance, cr_personnel_crew
 
-Day 2 (3-4h)
-   6. Build cr_mx_request, cr_audit (the flow's primary targets)
-   7. Build module tables: cr_operational_bulletin, cr_safety_report,
-      cr_*_status_log, cr_mx_request_comment, cr_user_filter_pref,
-      cr_schedule_event, cr_personnel_crew
-   8. Verify all relationships in Schema → Relationships
+Day 2 (2-3h)
+   6. Build cr_mx_request, cr_audit
+   7. Verify all relationships in Schema → Relationships
+   8. Import canonical CSV seed data per `tables/README.md` import order
 
 Day 3 (2-3h)
-   9. Create environment variables (12 of them)
-   10. Create connection references (3 of them)
-   11. Build mxr-approval-flow-v2 (manual or Copilot-assisted)
-   12. Smoke test: manually add a row to cr_mx_request → confirm flow fires
+   9. Create environment variables (8 for canonical)
+   10. Create connection references (3)
+   11. Build mxr-approval-flow-v2 (manual canonical 2-decision build)
+   12. Smoke test: manually add a row → confirm flow fires + card lands
 
-Day 4 (1-2h)
-   13. Create 8 security roles
-   14. Assign roles to test users (yourself + 1-2 others)
-   15. Verify BU-scoped visibility works (RMM only sees their region)
-
-Day 5+ — Move to canvas app build
+Day 4+ (canvas app)
    See powerfx/canvas-app.md
 ```
 
-Total: roughly a working week of focused effort to get the data layer
-+ flow live before touching the canvas app.
+Total to a working canonical Phase 1 data layer + flow: ~10 hours of
+focused work.
 
 ---
 
 ## Companion docs
 
-- `NAMING-CONVENTIONS.md` — **canonical reference**; resolve any naming dispute against this
-- `tables/README.md` — table index + dependencies
-- `tables/cr_*.md` — column-by-column specs
-- `flows/mxr-approval-flow-v2.json` — flow recipe
+- `tables/README.md` — table index (canonical 11 + extension 7)
+- `tables/cr_*.md` — column-by-column specs (each derives from a canonical CSV)
+- `flows/mxr-approval-flow-v2.json` — flow recipe (extension scope: 4-decision Switch)
 - `connections.md` — security role privilege grid
 - `runbook.md` — week-by-week deployment runbook
 - `rebuild-from-clean-state.md` — recovery if Plan mode poisoned the publisher
-- `copilot-prompts.md` — AI prompts (chunked + safety notes)
-- `powerfx/canvas-app.md` — canvas app build guide (Day 5+)
+- `powerfx/canvas-app.md` — canvas app build guide (Day 4+)
+- `../sharepoint-lists/` — **canonical CSV truth** for all 11 tables
