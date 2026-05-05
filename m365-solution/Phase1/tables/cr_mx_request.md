@@ -29,8 +29,9 @@ Audit Log.
 ## Canonical Phase 1 columns
 
 Matches `m365-solution/sharepoint-lists/06-mx-requests.csv` (the 6
-seed rows) plus the **4-decision** approval columns. Build all of
-these for Phase 1.
+seed rows) plus the **4-decision** approval columns plus the
+`cr_requested_by_email` companion column the flow needs to DM the
+requestor. Build all of these for Phase 1.
 
 | Schema name              | Display              | Type                       | Required | Default     | Notes                                                                                |
 | ------------------------ | -------------------- | -------------------------- | -------- | ----------- | ------------------------------------------------------------------------------------ |
@@ -45,8 +46,9 @@ these for Phase 1.
 | `cr_priority`            | Priority             | Choice                     | Yes      | Normal      | `Normal` / `High` / `AOG`. Priority=AOG forces Routing=Director.                      |
 | `cr_status`              | Status               | Choice                     | Yes      | Submitted   | See § *Choice values*. Flow trigger filters on this.                                  |
 | `cr_routing`             | Routing              | Choice                     | Yes      | RMM         | `RMM` / `Director`. Drives channel selection in flow.                                |
-| `cr_requested_by`        | Requested By         | Text (60)                  | Yes      | —           | CSV stores requestor name. Phase 2: convert to Lookup → `systemuser`.                  |
-| `cr_approver`            | Approver             | Text (60)                  | No       | —           | Set by flow on Adaptive Card response. Phase 2: convert to Lookup.                   |
+| `cr_requested_by`        | Requested By         | Text (60)                  | Yes      | —           | CSV stores requestor display name (e.g., `Mason Littledike`). Phase 2: convert to Lookup → `systemuser`. |
+| `cr_requested_by_email`  | Requested By Email   | Text (100)                 | No       | —           | UPN / email of the requestor. Set by canvas Patch on submit (`varCurrentUser.Email`). Flow uses this as the Teams DM recipient. CSV seed rows have this blank, so flow DM step skips when empty. |
+| `cr_approver`            | Approver             | Text (60)                  | No       | —           | Set by flow on Adaptive Card response (responder display name). Phase 2: convert to Lookup. |
 | `cr_decision`            | Decision             | Choice                     | No       | —           | See § *Choice values*. 4 values: Approved / Denied / Escalated / Returned. Set by flow. |
 | `cr_decision_reason`     | Decision Reason      | Multiline text (1000)      | No       | —           | Required when Decision = Denied. The written reason.                                  |
 | `cr_more_info_request`   | More Info Request    | Multiline text (1000)      | No       | —           | Required when Decision = Returned. The question to the submitter.                    |
@@ -58,7 +60,17 @@ these for Phase 1.
 
 **Why Requested By + Approver are Text in Phase 1:** the canonical CSV
 stores them as name strings (e.g., `Mason Littledike`, `Nate Horstmeier`).
-Phase 2 normalizes to Lookup → `systemuser`.
+Keeping them as Text makes CSV import work without a per-row name →
+`systemuser` lookup. Phase 2 normalizes to Lookup → `systemuser`.
+
+**Why a separate `cr_requested_by_email` column:** Teams
+`PostMessageToConversation` needs a UPN or user GUID for the
+recipient. With `cr_requested_by` as Text, there's no Lookup-style
+`_cr_requested_by_value` token to feed Teams. The companion
+`cr_requested_by_email` column (set by canvas at submit time from
+`varCurrentUser.Email`) gives the flow a stable email to DM. CSV seed
+rows imported without this column will have it blank — the flow's DM
+actions guard against empty values and skip the DM in that case.
 
 **Note on cr_decision vs cr_status:** `cr_decision` is set when the
 approver responds to the Adaptive Card. `cr_status` is then updated as
@@ -190,4 +202,7 @@ N407BY, N407CH.
 The seed CSV doesn't yet have rows demonstrating Decision = Returned
 or Decision = Escalated as separate states (only end-state Status
 values). When you import, all seed rows will have `cr_decision` =
-blank since the column was added after the CSV authoring.
+blank since the column was added after the CSV authoring. Same for
+`cr_requested_by_email` — imported seed rows will have it blank, and
+the flow's DM steps will no-op for those rows (they're for testing,
+not live notifications).
