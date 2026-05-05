@@ -1,5 +1,22 @@
 # Table: `cr_personnel_status_log`
 
+> **⚠️ EXTENSION TABLE — NOT IN CANONICAL CSV.**
+>
+> This table was added during the role-capability-matrix expansion
+> (MC Documentation v3). It does **not** appear in
+> `m365-solution/sharepoint-lists/` and has no canonical seed data.
+>
+> **Don't build this table for the canonical Phase 1 deployment.** The
+> canonical 11 tables cover the documented IHC requirements. This
+> table is reserved for the **Status + My Team modules** from the role
+> matrix — append-only history of Personnel.Status changes,
+> reassignments, and shift toggles.
+>
+> If you proceed with this table, treat the spec as speculative —
+> column names + Choice enums are not validated against real IHC data.
+
+---
+
 Append-only history. Captures three event types: status changes
 (Available / Unavailable / Red Status), reassignments (base change),
 and shift toggles (On Shift / Off Shift).

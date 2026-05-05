@@ -1,5 +1,22 @@
 # Table: `cr_safety_report`
 
+> **⚠️ EXTENSION TABLE — NOT IN CANONICAL CSV.**
+>
+> This table was added during the role-capability-matrix expansion
+> (MC Documentation v3). It does **not** appear in
+> `m365-solution/sharepoint-lists/` and has no canonical seed data.
+>
+> **Don't build this table for the canonical Phase 1 deployment.** The
+> canonical 11 tables cover the documented IHC requirements. This
+> table is reserved for the **Safety Report module** from the role
+> matrix — anonymous-friendly safety concern reporting with permanent
+> retention.
+>
+> If you proceed with this table, treat the spec as speculative —
+> column names + Choice enums are not validated against real IHC data.
+
+---
+
 Anonymous-friendly safety concern reporting. Stored separately from
 `cr_mx_request` because retention is permanent (never deleted) and
 item-level security is stricter (anonymous reporters cannot read back).
