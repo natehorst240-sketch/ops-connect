@@ -26,8 +26,8 @@ Matches `m365-solution/sharepoint-lists/07-audit-log.csv` (5 seed rows):
 | `cr_event_at`            | Event At             | Date and time              | Yes      | UTC. `utcNow()` from the flow.                                                 |
 | `cr_actor`               | Actor                | Text (60)                  | Yes      | Name string per CSV. May be `System` for auto-actions. Phase 2: Lookup → `systemuser`. |
 | `cr_actor_role`          | Actor Role           | Text (32)                  | Yes      | `AMT`, `RMM`, `Director`, `QA`, `System`. CSV also has `Supervisor / RMM` for cross-role users (Sean Brown). |
-| `cr_action`              | Action               | Choice                     | Yes      | See § *Choice values*. Canonical 4: submitted / approved / denied / escalated. |
-| `cr_subject_table`       | Subject Table        | Text (40)                  | Yes      | The plural display name. CSV uses `MX Requests`. Phase 2 cross-table audit may use `Operational Bulletins` etc. |
+| `cr_action`              | Action               | Choice                     | Yes      | See § *Choice values*. Canonical 7 actions cover the 4 decisions + submit + cancel + outlook.created. |
+| `cr_subject_table`       | Subject Table        | Text (40)                  | Yes      | The plural display name. CSV uses `MX Requests`.                              |
 | `cr_subject_id`          | Subject ID           | Text (50)                  | Yes      | The subject row's primary identifier. CSV uses request number like `MXR-00001` (not GUID). |
 | `cr_audit_correlation`   | Audit Correlation    | Text (50)                  | Yes      | Joins to `cr_mx_request.cr_audit_correlation`.                                  |
 | `cr_comment`             | Comment              | Text (500)                 | No       | The decision comment, when applicable.                                         |
@@ -47,14 +47,15 @@ parallel `cr_actor_user` Lookup column for live joins, while keeping
 
 ### `cr_action` — canonical Phase 1
 
-| Label                              | Value | Subject Table   | CSV row count | Notes                                          |
-| ---------------------------------- | ----- | --------------- | ------------- | ---------------------------------------------- |
-| `mx_request.submitted`             | 1     | `MX Requests`   | 1             | New row added by canvas.                       |
-| `mx_request.approved`              | 2     | `MX Requests`   | 2             | Approver clicked Approve.                      |
-| `mx_request.denied`                | 3     | `MX Requests`   | 1             | Approver clicked Deny.                         |
-| `mx_request.escalated`             | 4     | `MX Requests`   | 1             | Auto-escalated past timeout to Director.       |
-| `mx_request.cancelled`             | 5     | `MX Requests`   | 0             | Submitter cancelled. Not in seed but supported. |
-| `mx_request.outlook_created`       | 10    | `MX Requests`   | 0             | Outlook calendar event created on approve.     |
+| Label                              | Value | Subject Table   | Notes                                                            |
+| ---------------------------------- | ----- | --------------- | ---------------------------------------------------------------- |
+| `mx_request.submitted`             | 1     | `MX Requests`   | New row added by canvas. CSV: 1 row.                             |
+| `mx_request.approved`              | 2     | `MX Requests`   | Approver clicked Approve. CSV: 2 rows.                           |
+| `mx_request.denied`                | 3     | `MX Requests`   | Approver clicked Deny. CSV: 1 row.                               |
+| `mx_request.escalated`             | 4     | `MX Requests`   | Approver clicked Escalate, OR auto-escalated past 24h timeout. CSV: 1 row. |
+| `mx_request.returned`              | 5     | `MX Requests`   | Approver clicked Return (request more info). Not in seed.        |
+| `mx_request.cancelled`             | 6     | `MX Requests`   | Submitter cancelled. Not in seed but supported.                   |
+| `mx_request.outlook_created`       | 10    | `MX Requests`   | Outlook calendar event created on Approved.                       |
 
 ### `cr_action` — extension (NOT in canonical CSV)
 
@@ -63,7 +64,6 @@ into the extension scope.
 
 | Label                              | Value | Subject Table                  |
 | ---------------------------------- | ----- | ------------------------------ |
-| `mx_request.more_info_requested`   | 6     | `MX Requests`                  |
 | `mx_request.comment_added`         | 7     | `MX Requests`                  |
 | `bulletin.posted`                  | 20    | `Operational Bulletins`        |
 | `bulletin.resolved`                | 21    | `Operational Bulletins`        |
