@@ -5,6 +5,10 @@ Click-by-click steps to build the 15 Dataverse tables and the
 Read this alongside the column-by-column specs in `tables/cr_*.md` and
 the flow JSON at `flows/mxr-approval-flow-v2.json`.
 
+> **All names below conform to `NAMING-CONVENTIONS.md`.** If you spot a
+> name that disagrees with the conventions doc, the conventions doc
+> wins — file a fix here.
+
 **Time estimate:** 4–6 hours for tables, 2–3 hours for the flow.
 
 ---
@@ -28,15 +32,15 @@ make.powerapps.com → left nav → Solutions → + New solution
    Publisher:     + New publisher
                      Display name: IHC
                      Name:         ihc
-                     Prefix:       cr     (or ihc — your call; cr is the default)
+                     Prefix:       cr     ← MUST be cr (or whatever you committed to in NAMING-CONVENTIONS.md §1)
                      Save
    Version:       0.1.0.0
    Save
 ```
 
-The solution is your container. Everything you build (tables, flows,
-canvas app, env variables, roles) goes inside. When you export later,
-you ship the whole bundle.
+After creating: `Solutions → MX Connect → ⋯ → Set as preferred solution`.
+This is the step that prevents tables from leaking into the Default
+Publisher with a `cr87b_*` prefix.
 
 ## A.2 Build order (dependency-aware)
 
@@ -44,22 +48,25 @@ Build tables in this order or you'll hit "referenced table doesn't
 exist" errors:
 
 ```
-1. cr_region                  (no dependencies)
-2. cr_aircraft_type           (no dependencies)
-3. cr_base                    → cr_region
-4. cr_aircraft                → cr_aircraft_type, cr_base, cr_region, systemuser
-5. cr_personnel_maintenance   → cr_region, cr_base, systemuser
-6. cr_personnel_crew          → cr_region, cr_base, systemuser
-7. cr_mx_request              → cr_aircraft, cr_base, systemuser
-8. cr_audit                   → systemuser
-9. cr_operational_bulletin    → cr_region, systemuser
-10. cr_safety_report          → cr_region, cr_base, cr_aircraft, systemuser
-11. cr_aircraft_status_log    → cr_aircraft, systemuser
-12. cr_personnel_status_log   → cr_personnel_maintenance, systemuser
-13. cr_mx_request_comment     → cr_mx_request, systemuser
-14. cr_user_filter_pref       (no dependencies)
-15. cr_schedule_event         → cr_mx_request, cr_aircraft, systemuser
+1.  cr_region                  (no dependencies)
+2.  cr_aircraft_type           (no dependencies)
+3.  cr_base                    → cr_region
+4.  cr_aircraft                → cr_aircraft_type, cr_base, cr_region, systemuser
+5.  cr_personnel_maintenance   → cr_region, cr_base, systemuser
+6.  cr_personnel_crew          → cr_region, cr_base, systemuser
+7.  cr_mx_request              → cr_aircraft, cr_base, systemuser
+8.  cr_audit                   → systemuser
+9.  cr_operational_bulletin    → cr_region, systemuser
+10. cr_safety_report           → cr_region, cr_base, cr_aircraft, systemuser
+11. cr_aircraft_status_log     → cr_aircraft, systemuser
+12. cr_personnel_status_log    → cr_personnel_maintenance, systemuser
+13. cr_mx_request_comment      → cr_mx_request, systemuser
+14. cr_user_filter_pref        (no dependencies)
+15. cr_schedule_event          → cr_mx_request, cr_aircraft, systemuser
 ```
+
+Display names follow `NAMING-CONVENTIONS.md §2` — e.g.,
+`Personnel - Maintenance` (regular hyphen, **not em dash**).
 
 ## A.3 Generic table creation flow
 
@@ -167,7 +174,7 @@ Status both reference the same global Choice).
 ```
 Solutions → MX Connect → + New → More → Choice
 
-   Display name:  Status (MX Requests)
+   Display name:  Status (MX Request)              ← singular, per NAMING-CONVENTIONS.md §4
    Name:          cr_mx_request_status
    Choices:
       Submitted              (value: 1)
@@ -181,7 +188,7 @@ Solutions → MX Connect → + New → More → Choice
 ```
 
 The numeric values matter — they're what the Power Automate flow filters
-on. Use the values from each spec's "Choice values" section.
+on. Use the values from `NAMING-CONVENTIONS.md §5`.
 
 #### Then, add the Choice column to the table
 
@@ -189,38 +196,38 @@ on. Use the values from each spec's "Choice values" section.
 + New column
    Display name:  Status
    Data type:     Choice
-   Sync this choice with: Status (MX Requests)    ← pick the global choice
+   Sync this choice with: Status (MX Request)    ← pick the global choice
    Default:       Submitted
    Required:      Required
    Save
 ```
 
-Repeat the global Choice creation for:
+Build all 22 global Choices per `NAMING-CONVENTIONS.md §4`:
 
-| Choice (global)                | Used by                                       |
-| ------------------------------ | --------------------------------------------- |
-| `Status (MX Requests)`         | cr_mx_request                                 |
-| `Routing (MX Requests)`        | cr_mx_request                                 |
-| `Decision (MX Requests)`       | cr_mx_request                                 |
-| `Priority (MX Requests)`       | cr_mx_request                                 |
-| `Request Type (MX Requests)`   | cr_mx_request                                 |
-| `Audience (MX Requests)`       | cr_mx_request, cr_operational_bulletin        |
-| `Status (Aircraft)`            | cr_aircraft, cr_aircraft_status_log           |
-| `Status (Personnel)`           | cr_personnel_maintenance, cr_personnel_status_log |
-| `Action Type (Personnel Status Log)` | cr_personnel_status_log                 |
-| `Action (Audit Log)`           | cr_audit                                      |
-| `Level (Operational Bulletins)`| cr_operational_bulletin                       |
-| `Status (Operational Bulletins)`| cr_operational_bulletin                      |
-| `Severity (Safety Reports)`    | cr_safety_report                              |
-| `Status (Safety Reports)`      | cr_safety_report                              |
-| `Visible To Roles (MX Request Comments)` | cr_mx_request_comment               |
-| `View (User Filter Preferences)` | cr_user_filter_pref                         |
-| `Class (Aircraft Type)`        | cr_aircraft_type, cr_aircraft                 |
-| `Type (Region)`                | cr_region                                     |
-| `Operations (Base)`            | cr_base                                       |
-| `Role (Personnel Maintenance)` | cr_personnel_maintenance                      |
-| `Role (Personnel Crew)`        | cr_personnel_crew                             |
-| `Specialty (Personnel Crew)`   | cr_personnel_crew                             |
+| Choice (display name)                       | Used by                                              |
+| ------------------------------------------- | ---------------------------------------------------- |
+| `Status (MX Request)`                       | cr_mx_request                                        |
+| `Routing (MX Request)`                      | cr_mx_request                                        |
+| `Decision (MX Request)`                     | cr_mx_request                                        |
+| `Priority (MX Request)`                     | cr_mx_request                                        |
+| `Request Type (MX Request)`                 | cr_mx_request                                        |
+| `Audience (MX Request)`                     | cr_mx_request, cr_operational_bulletin               |
+| `Status (Aircraft)`                         | cr_aircraft, cr_aircraft_status_log                  |
+| `Status (Personnel - Maintenance)`          | cr_personnel_maintenance, cr_personnel_status_log    |
+| `Action Type (Personnel Status Log)`        | cr_personnel_status_log                              |
+| `Action (MX Audit)`                         | cr_audit                                             |
+| `Level (Operational Bulletin)`              | cr_operational_bulletin                              |
+| `Status (Operational Bulletin)`             | cr_operational_bulletin                              |
+| `Severity (Safety Report)`                  | cr_safety_report                                     |
+| `Status (Safety Report)`                    | cr_safety_report                                     |
+| `Visible To Roles (MX Request Comment)`     | cr_mx_request_comment                                |
+| `View (User Filter Preference)`             | cr_user_filter_pref                                  |
+| `Class (Aircraft Type)`                     | cr_aircraft_type, cr_aircraft                        |
+| `Type (Region)`                             | cr_region                                            |
+| `Operations (Base)`                         | cr_base                                              |
+| `Role (Personnel - Maintenance)`            | cr_personnel_maintenance                             |
+| `Role (Personnel - Crew)`                   | cr_personnel_crew                                    |
+| `Specialty (Personnel - Crew)`              | cr_personnel_crew                                    |
 
 Tedious upfront but pays off on every Patch / Filter formula.
 
@@ -232,7 +239,7 @@ Same as Choice but check the "Allow multiple selections" box:
 + New column
    Display name:  Audience
    Data type:     Choice
-   Sync this choice with: Audience (MX Requests)
+   Sync this choice with: Audience (MX Request)
    Allow multiple selections: ☑ Yes
    Save
 ```
@@ -440,7 +447,7 @@ Click the trigger card to expand:
 
 ```
 Change type:        Added or Modified
-Table name:         MX Requests
+Table name:         MX Requests          (Power Automate uses plural display name in dropdown)
 Scope:              Organization
 Filter columns:     cr_status,cr_decision
 Filter rows:        cr_status eq 1 and cr_decision eq null
@@ -468,7 +475,7 @@ order. For each one:
 | 1 | Initialize variable — vAuditCorrelation | Built-in | Initialize variable                    |
 | 2 | Initialize variable — vRouting   | Built-in        | Initialize variable                    |
 | 3 | Initialize variable — vRecipientChannel | Built-in | Initialize variable                    |
-| 4 | Audit submitted                  | Dataverse       | Add a new row → table cr_audit         |
+| 4 | Audit submitted                  | Dataverse       | Add a new row → table MX Audits        |
 | 5 | Compose card body                | Built-in        | Compose                                 |
 | 6 | Post card and wait               | Teams           | Post adaptive card and wait for response |
 | 7 | Decision — Switch                | Built-in        | Switch                                 |
@@ -484,7 +491,7 @@ order. For each one:
 For each Dataverse action:
 
 ```
-Table name:    MX Requests / MX Audit / etc.
+Table name:    MX Requests / MX Audits / etc.   (Power Automate dropdown shows plural)
 Row ID:        @{triggerOutputs()?['body/cr_mx_requestid']}
 Fields:        Click "Show advanced options" to see all columns;
                populate per the JSON's parameters object
@@ -564,12 +571,12 @@ timeout.
 
 ## B.9 Environment variables
 
-Before the flow can run, set values:
+Before the flow can run, set values per `NAMING-CONVENTIONS.md §9`:
 
 ```
 Solutions → MX Connect → + New → More → Environment variable
 
-   For each of the 11 mx_* parameters in the flow JSON:
+   For each of the 12 mx_* parameters in the flow JSON:
       Display name:    mx_approver_team_id
       Name:            cr_mx_approver_team_id
       Data type:       Text
@@ -639,10 +646,16 @@ single most common bug is missing `cr_decision eq null`.
 | "User can't see this row"                                      | Dataverse role privilege at User instead of BU                       | Bump to BU on the relevant role                                  |
 | Outlook event in wrong calendar                                | Env variable references calendar name, not ID                        | Use the ID (visible in Graph Explorer)                           |
 | Choice column saves "1" instead of "Submitted" in audit metadata | Logged the numeric value instead of FormattedValue                  | Use `@{triggerOutputs()?['body/cr_status@OData.Community.Display.V1.FormattedValue']}` |
+| Schema name shows `cr87b_*` after creating a table             | MX Connect not set as preferred solution                             | Solutions → MX Connect → ⋯ → Set as preferred solution           |
+| Choice option enum values don't match flow JSON filter         | Used your own numbering instead of the spec's                        | Re-create Choice with the values in `NAMING-CONVENTIONS.md §5`   |
 
 ---
 
 # Part D — When to use Copilot
+
+⚠️ **Read `copilot-prompts.md §READ FIRST` before any Copilot run** —
+Plan mode cannot be paused once submitted, and our worst day so far
+involved a frozen Plan-mode build.
 
 Copilot in Power Apps + Power Automate is licensed in your Premium plan.
 Use it as a scaffold, then layer the spec on top.
@@ -659,33 +672,17 @@ Solutions → MX Connect → + New → Table → Get data → Excel/CSV
 Saves the most time on tables with many text columns
 (`cr_personnel_maintenance` with 17 columns, `cr_aircraft` with 14).
 
+**Important:** verify the schema name shows `cr_*` (not `cr87b_*`)
+after the table is created. If wrong, you're back to the rebuild
+sequence.
+
 ## Flow — Copilot prompt
 
-```
-Power Automate → + New flow → Describe it to design it →
-
-Prompt:
-"When a Dataverse row is added or modified to MX Requests where Status
-is Submitted and Decision is null, look up the related Aircraft, then
-post an Adaptive Card to a Microsoft Teams channel based on the
-Routing column (RMM channel for Routing=RMM, Director channel for
-Routing=Director, Scheduler channel for Routing=Scheduler). Wait for
-the user's response. Then update the MX Requests row with Decision
-and Status, post a Teams DM to the requestor, and create a row in MX
-Audit. If the wait times out after 24 hours, escalate to Director."
-```
-
-Copilot generates ~70% of the flow structure. You'll still need to:
-- Add the Switch with 4 cases (it usually only does 2)
-- Wire up environment variable references
-- Tune the Adaptive Card body
-- Add the timeout / failure branch
-
-But it gets you past the empty-canvas-syndrome.
+See `copilot-prompts.md` for chunked prompts.
 
 ## What Copilot can't help with
 
-- Choice column enum values (you still configure those)
+- Choice column enum values (you still configure those — see `NAMING-CONVENTIONS.md §5`)
 - Security roles (no Copilot UI yet)
 - Business unit hierarchy (manual)
 - Item-level relationship configurations
@@ -700,9 +697,9 @@ Here's the all-in-one path:
 
 ```
 Day 1 (3-4h)
-   1. Create solution + publisher
+   1. Create solution + publisher (set as preferred!)
    2. Set up business units in admin center
-   3. Build global Choice options (~22 of them)
+   3. Build global Choice options (~22 of them, names per NAMING-CONVENTIONS.md §4)
    4. Build lookup tables: cr_region, cr_aircraft_type, cr_base
    5. Build cr_aircraft, cr_personnel_maintenance
 
@@ -714,8 +711,8 @@ Day 2 (3-4h)
    8. Verify all relationships in Schema → Relationships
 
 Day 3 (2-3h)
-   9. Create environment variables
-   10. Create connection references
+   9. Create environment variables (12 of them)
+   10. Create connection references (3 of them)
    11. Build mxr-approval-flow-v2 (manual or Copilot-assisted)
    12. Smoke test: manually add a row to cr_mx_request → confirm flow fires
 
@@ -735,9 +732,12 @@ Total: roughly a working week of focused effort to get the data layer
 
 ## Companion docs
 
+- `NAMING-CONVENTIONS.md` — **canonical reference**; resolve any naming dispute against this
 - `tables/README.md` — table index + dependencies
 - `tables/cr_*.md` — column-by-column specs
 - `flows/mxr-approval-flow-v2.json` — flow recipe
 - `connections.md` — security role privilege grid
 - `runbook.md` — week-by-week deployment runbook
+- `rebuild-from-clean-state.md` — recovery if Plan mode poisoned the publisher
+- `copilot-prompts.md` — AI prompts (chunked + safety notes)
 - `powerfx/canvas-app.md` — canvas app build guide (Day 5+)
