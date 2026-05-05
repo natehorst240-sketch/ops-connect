@@ -91,12 +91,12 @@ Write-Host ""
 # 5. Reminder for environment variables
 Write-Host "[4/4] Environment variables…" -ForegroundColor Yellow
 Write-Host "  Update these in Solutions > MXConnect > Environment variables:" -ForegroundColor Gray
-Write-Host "    - mx_approver_team_id" -ForegroundColor Gray
-Write-Host "    - mx_approver_channel_id" -ForegroundColor Gray
-Write-Host "    - mx_outlook_calendar" -ForegroundColor Gray
-Write-Host "    - mx_request_timeout_hours" -ForegroundColor Gray
-Write-Host "    - mx_audit_retention_days" -ForegroundColor Gray
-Write-Host "    - mx_app_deeplink_base" -ForegroundColor Gray
+Write-Host "    - cr_approver_team_id" -ForegroundColor Gray
+Write-Host "    - cr_approver_channel_id" -ForegroundColor Gray
+Write-Host "    - cr_outlook_calendar" -ForegroundColor Gray
+Write-Host "    - cr_request_timeout_hours" -ForegroundColor Gray
+Write-Host "    - cr_audit_retention_days" -ForegroundColor Gray
+Write-Host "    - cr_app_deeplink_base" -ForegroundColor Gray
 Write-Host ""
 
 Write-Host "=== Deploy complete ===" -ForegroundColor Green

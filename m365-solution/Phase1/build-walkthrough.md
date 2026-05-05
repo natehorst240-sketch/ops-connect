@@ -526,7 +526,7 @@ The comment input feeds different fields per action:
 ```
 Post as:           Flow bot
 Post in:           Channel
-Team:              @{parameters('mx_approver_team_id')}
+Team:              @{parameters('cr_approver_team_id')}
 Channel:           @{variables('vRecipientChannel')}
 Adaptive Card:     @{outputs('Compose_card_body')}
 Update message:    Decision recorded.
@@ -602,16 +602,16 @@ Routing=Director, then reset Status + Decision to re-arm).
 ```
 Solutions → MX Connect → + New → More → Environment variable
 
-   Display name:    mx_approver_team_id
-   Name:            cr_mx_approver_team_id
+   Display name:    cr_approver_team_id
+   Name:            cr_cr_approver_team_id
    Data type:       Text
    Default value:   19:abc123...@thread.tacv2
    Save
 ```
 
-Repeat for: `mx_approver_channel_id`, `mx_director_channel_id`,
-`mx_outlook_calendar`, `mx_request_timeout_hours`,
-`mx_audit_retention_days`, `mx_app_deeplink_base`, `mx_director_email`.
+Repeat for: `cr_approver_channel_id`, `cr_director_channel_id`,
+`cr_outlook_calendar`, `cr_request_timeout_hours`,
+`cr_audit_retention_days`, `cr_app_deeplink_base`, `cr_director_email`.
 
 8 env vars for canonical Phase 1. (The matrix-extension scope adds
 `mx_scheduler_channel_id`, `mx_safety_channel_id`,

@@ -65,14 +65,14 @@ Define these in the solution before week 2.
 
 | Variable                        | Type   | Example value                       | Notes                                              |
 | ------------------------------- | ------ | ----------------------------------- | -------------------------------------------------- |
-| `mx_approver_team_id`           | String | `19:abc123...@thread.tacv2`         | IHC Life Flight Team ID                            |
-| `mx_approver_channel_id`        | String | `19:def456...@thread.tacv2`         | Default RMM channel — `cr_routing = RMM`           |
-| `mx_director_channel_id`        | String | `19:jkl012...@thread.tacv2`         | Director channel — `cr_routing = Director` + escalations |
-| `mx_outlook_calendar`           | String | `Logan MX Calendar`                  | Shared calendar name (or ID)                       |
-| `mx_request_timeout_hours`      | Number | `24`                                 | Approval SLA before auto-escalation                |
-| `mx_audit_retention_days`       | Number | `2555`                               | 7 years (HIPAA)                                    |
-| `mx_app_deeplink_base`          | String | `https://make.powerapps.com/…`       | URL prefix for deep-links from emails / DMs        |
-| `mx_director_email`             | String | `directors@ihc.org`                  | Recipient for timeout escalation emails             |
+| `cr_approver_team_id`           | String | `19:abc123...@thread.tacv2`         | IHC Life Flight Team ID                            |
+| `cr_approver_channel_id`        | String | `19:def456...@thread.tacv2`         | Default RMM channel — `cr_routing = RMM`           |
+| `cr_director_channel_id`        | String | `19:jkl012...@thread.tacv2`         | Director channel — `cr_routing = Director` + escalations |
+| `cr_outlook_calendar`           | String | `Logan MX Calendar`                  | Shared calendar name (or ID)                       |
+| `cr_request_timeout_hours`      | Number | `24`                                 | Approval SLA before auto-escalation                |
+| `cr_audit_retention_days`       | Number | `2555`                               | 7 years (HIPAA)                                    |
+| `cr_app_deeplink_base`          | String | `https://make.powerapps.com/…`       | URL prefix for deep-links from emails / DMs        |
+| `cr_director_email`             | String | `directors@ihc.org`                  | Recipient for timeout escalation emails             |
 
 8 env vars for canonical Phase 1. (The matrix-extension scope adds
 `mx_scheduler_channel_id`, `mx_safety_channel_id`,
@@ -87,8 +87,8 @@ values:
 
 | Routing    | Default request types                            | Channel                       |
 | ---------- | ------------------------------------------------ | ----------------------------- |
-| `RMM`      | Phase Inspection, Repair, Overhaul, Time Off, Open Shift | `mx_approver_channel_id` |
-| `Director` | AOG-priority requests; Escalated-decision re-routes; auto-escalations on timeout | `mx_director_channel_id` |
+| `RMM`      | Phase Inspection, Repair, Overhaul, Time Off, Open Shift | `cr_approver_channel_id` |
+| `Director` | AOG-priority requests; Escalated-decision re-routes; auto-escalations on timeout | `cr_director_channel_id` |
 
 The canvas form's submit handler sets Routing based on Priority
 (Priority=AOG forces Routing=Director, otherwise default RMM). The
@@ -332,7 +332,7 @@ Switch on:  outputs('Post_card_and_wait')?['body/data/action']
    (Approved), `cr_decided_at`, `cr_decision_comment`, `cr_approver`
 2. **Conditional** — skip Outlook step if Request Type is Time Off
    (request_type = 4) since time-off doesn't need a calendar event
-3. **Create event V4** — Outlook calendar from `mx_outlook_calendar`
+3. **Create event V4** — Outlook calendar from `cr_outlook_calendar`
 4. **Update row** — `cr_outlook_event_id` from Create event output
 5. **Post message** — Teams DM to requestor
 6. **Create row** — `cr_audit` action 2 (`mx_request.approved`)

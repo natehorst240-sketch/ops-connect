@@ -28,45 +28,45 @@
 
         "_comment_environment_variables": "All mx_* parameters bind to Dataverse environment variables at import time. Default values are dev fallbacks; real values set per-environment in Solutions > MXConnect > Environment variables.",
 
-        "mx_approver_team_id": {
+        "cr_approver_team_id": {
           "defaultValue": "",
           "type":         "String",
-          "metadata": { "schemaName":  "cr_mx_approver_team_id", "description": "Microsoft Teams Team ID where Adaptive Cards are posted (e.g., 19:abc123...@thread.tacv2)" }
+          "metadata": { "schemaName":  "cr_cr_approver_team_id", "description": "Microsoft Teams Team ID where Adaptive Cards are posted (e.g., 19:abc123...@thread.tacv2)" }
         },
-        "mx_approver_channel_id": {
+        "cr_approver_channel_id": {
           "defaultValue": "",
           "type":         "String",
-          "metadata": { "schemaName":  "cr_mx_approver_channel_id", "description": "Channel ID for the Routing=RMM default path (regional RMM channel)" }
+          "metadata": { "schemaName":  "cr_cr_approver_channel_id", "description": "Channel ID for the Routing=RMM default path (regional RMM channel)" }
         },
-        "mx_director_channel_id": {
+        "cr_director_channel_id": {
           "defaultValue": "",
           "type":         "String",
-          "metadata": { "schemaName":  "cr_mx_director_channel_id", "description": "Channel ID for Routing=Director (AOG-priority + Escalated re-routes + timeout escalations)" }
+          "metadata": { "schemaName":  "cr_cr_director_channel_id", "description": "Channel ID for Routing=Director (AOG-priority + Escalated re-routes + timeout escalations)" }
         },
-        "mx_outlook_calendar": {
+        "cr_outlook_calendar": {
           "defaultValue": "",
           "type":         "String",
-          "metadata": { "schemaName":  "cr_mx_outlook_calendar", "description": "Shared Outlook calendar name or ID for approved MX events" }
+          "metadata": { "schemaName":  "cr_cr_outlook_calendar", "description": "Shared Outlook calendar name or ID for approved MX events" }
         },
-        "mx_request_timeout_hours": {
+        "cr_request_timeout_hours": {
           "defaultValue": 24,
           "type":         "Int",
-          "metadata": { "schemaName":  "cr_mx_request_timeout_hours", "description": "Hours to wait for decision before auto-escalating to Director" }
+          "metadata": { "schemaName":  "cr_cr_request_timeout_hours", "description": "Hours to wait for decision before auto-escalating to Director" }
         },
-        "mx_audit_retention_days": {
+        "cr_audit_retention_days": {
           "defaultValue": 2555,
           "type":         "Int",
-          "metadata": { "schemaName":  "cr_mx_audit_retention_days", "description": "Days to retain cr_audit rows (default 2555 = 7 years per HIPAA)" }
+          "metadata": { "schemaName":  "cr_cr_audit_retention_days", "description": "Days to retain cr_audit rows (default 2555 = 7 years per HIPAA)" }
         },
-        "mx_app_deeplink_base": {
+        "cr_app_deeplink_base": {
           "defaultValue": "https://make.powerapps.com/",
           "type":         "String",
-          "metadata": { "schemaName":  "cr_mx_app_deeplink_base", "description": "URL prefix for deep-links from Outlook events / Teams DMs back into MX Connect" }
+          "metadata": { "schemaName":  "cr_cr_app_deeplink_base", "description": "URL prefix for deep-links from Outlook events / Teams DMs back into MX Connect" }
         },
-        "mx_director_email": {
+        "cr_director_email": {
           "defaultValue": "",
           "type":         "String",
-          "metadata": { "schemaName":  "cr_mx_director_email", "description": "Director-group email for timeout escalations (e.g., directors@ihc.org)" }
+          "metadata": { "schemaName":  "cr_cr_director_email", "description": "Director-group email for timeout escalations (e.g., directors@ihc.org)" }
         }
       },
       "triggers": {
@@ -112,7 +112,7 @@
             "variables": [{
               "name":  "vRecipientChannel",
               "type":  "string",
-              "value": "@{if(equals(variables('vRouting'),'Director'), parameters('mx_director_channel_id'), parameters('mx_approver_channel_id'))}"
+              "value": "@{if(equals(variables('vRouting'),'Director'), parameters('cr_director_channel_id'), parameters('cr_approver_channel_id'))}"
             }]
           },
           "runAfter": { "Initialize_routing": ["Succeeded"] }
@@ -149,7 +149,7 @@
               "item/cr_subject_id":         "@{triggerOutputs()?['body/cr_request_number']}",
               "item/cr_audit_correlation":  "@{variables('vAuditCorrelation')}",
               "item/cr_metadata":           "@{string(triggerOutputs()?['body'])}",
-              "item/cr_retention_until":    "@{addDays(utcNow(), parameters('mx_audit_retention_days'))}"
+              "item/cr_retention_until":    "@{addDays(utcNow(), parameters('cr_audit_retention_days'))}"
             }
           },
           "runAfter": { "Initialize_requestor_email": ["Succeeded"] }
@@ -206,13 +206,13 @@
               "poster":     "Flow bot",
               "location":   "Channel",
               "messageBody": "@{outputs('Compose_card_body')}",
-              "recipient/groupId":   "@{parameters('mx_approver_team_id')}",
+              "recipient/groupId":   "@{parameters('cr_approver_team_id')}",
               "recipient/channelId": "@{variables('vRecipientChannel')}",
               "updateMessage":       "Decision recorded."
             }
           },
           "runAfter": { "Compose_card_body": ["Succeeded"] },
-          "_comment": "Routes to vRecipientChannel (RMM channel by default, Director channel when cr_routing=Director). 24h timeout fires the parallel timeout branch below. limit.timeout cannot reference @parameters() so this stays hard-coded; if mx_request_timeout_hours changes, update here too."
+          "_comment": "Routes to vRecipientChannel (RMM channel by default, Director channel when cr_routing=Director). 24h timeout fires the parallel timeout branch below. limit.timeout cannot reference @parameters() so this stays hard-coded; if cr_request_timeout_hours changes, update here too."
         },
 
         "Decision": {
@@ -248,9 +248,9 @@
                       "inputs": {
                         "host": { "connectionName": "shared_office365", "operationId": "V4CalendarPostItem", "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365" },
                         "parameters": {
-                          "calendar": "@{parameters('mx_outlook_calendar')}",
+                          "calendar": "@{parameters('cr_outlook_calendar')}",
                           "event/subject":  "@{triggerOutputs()?['body/cr_aircraft_tail']} · @{triggerOutputs()?['body/cr_request_type@OData.Community.Display.V1.FormattedValue']}",
-                          "event/body":     "<a href='@{parameters('mx_app_deeplink_base')}@{triggerOutputs()?['body/cr_mx_requestid']}'>Open in MX Connect</a>",
+                          "event/body":     "<a href='@{parameters('cr_app_deeplink_base')}@{triggerOutputs()?['body/cr_mx_requestid']}'>Open in MX Connect</a>",
                           "event/start":    "@{triggerOutputs()?['body/cr_window_start']}",
                           "event/end":      "@{triggerOutputs()?['body/cr_window_end']}",
                           "event/timeZone": "Mountain Standard Time"
@@ -283,7 +283,7 @@
                           "item/cr_subject_id":         "@{triggerOutputs()?['body/cr_request_number']}",
                           "item/cr_audit_correlation":  "@{variables('vAuditCorrelation')}",
                           "item/cr_metadata":           "@{string(outputs('Create_outlook_event')?['body'])}",
-                          "item/cr_retention_until":    "@{addDays(utcNow(), parameters('mx_audit_retention_days'))}"
+                          "item/cr_retention_until":    "@{addDays(utcNow(), parameters('cr_audit_retention_days'))}"
                         }
                       },
                       "runAfter": { "Save_outlook_event_id": ["Succeeded"] }
@@ -332,7 +332,7 @@
                       "item/cr_audit_correlation":  "@{variables('vAuditCorrelation')}",
                       "item/cr_comment":            "@{outputs('Post_card_and_wait')?['body/data/comment']}",
                       "item/cr_metadata":           "@{string(outputs('Post_card_and_wait')?['body'])}",
-                      "item/cr_retention_until":    "@{addDays(utcNow(), parameters('mx_audit_retention_days'))}"
+                      "item/cr_retention_until":    "@{addDays(utcNow(), parameters('cr_audit_retention_days'))}"
                     }
                   },
                   "runAfter": { "Skip_DM_if_no_email_approve": ["Succeeded"] }
@@ -396,7 +396,7 @@
                       "item/cr_audit_correlation":  "@{variables('vAuditCorrelation')}",
                       "item/cr_comment":            "@{outputs('Post_card_and_wait')?['body/data/comment']}",
                       "item/cr_metadata":           "@{string(outputs('Post_card_and_wait')?['body'])}",
-                      "item/cr_retention_until":    "@{addDays(utcNow(), parameters('mx_audit_retention_days'))}"
+                      "item/cr_retention_until":    "@{addDays(utcNow(), parameters('cr_audit_retention_days'))}"
                     }
                   },
                   "runAfter": { "Skip_DM_if_no_email_deny": ["Succeeded"] }
@@ -449,7 +449,7 @@
                       "item/cr_audit_correlation":  "@{variables('vAuditCorrelation')}",
                       "item/cr_comment":            "@{concat('Manually escalated by ', outputs('Post_card_and_wait')?['body/responder/displayName'], '. ', outputs('Post_card_and_wait')?['body/data/comment'])}",
                       "item/cr_metadata":           "@{string(outputs('Post_card_and_wait')?['body'])}",
-                      "item/cr_retention_until":    "@{addDays(utcNow(), parameters('mx_audit_retention_days'))}"
+                      "item/cr_retention_until":    "@{addDays(utcNow(), parameters('cr_audit_retention_days'))}"
                     }
                   },
                   "runAfter": { "Reset_decision_for_re_entry": ["Succeeded"] }
@@ -488,7 +488,7 @@
                           "poster":     "Flow bot",
                           "location":   "Chat with Flow bot",
                           "recipient":  "@{variables('vRequestorEmail')}",
-                          "messageBody/content": "<b>@{outputs('Post_card_and_wait')?['body/responder/displayName']}</b> returned your request <b>@{triggerOutputs()?['body/cr_request_number']}</b> and needs more info before deciding.<br><br>Question: @{outputs('Post_card_and_wait')?['body/data/comment']}<br><br>Open <a href='@{parameters('mx_app_deeplink_base')}@{triggerOutputs()?['body/cr_mx_requestid']}'>MX Connect</a> to add the answer and resubmit.",
+                          "messageBody/content": "<b>@{outputs('Post_card_and_wait')?['body/responder/displayName']}</b> returned your request <b>@{triggerOutputs()?['body/cr_request_number']}</b> and needs more info before deciding.<br><br>Question: @{outputs('Post_card_and_wait')?['body/data/comment']}<br><br>Open <a href='@{parameters('cr_app_deeplink_base')}@{triggerOutputs()?['body/cr_mx_requestid']}'>MX Connect</a> to add the answer and resubmit.",
                           "messageBody/contentType": "html"
                         }
                       }
@@ -512,7 +512,7 @@
                       "item/cr_audit_correlation":  "@{variables('vAuditCorrelation')}",
                       "item/cr_comment":            "@{outputs('Post_card_and_wait')?['body/data/comment']}",
                       "item/cr_metadata":           "@{string(outputs('Post_card_and_wait')?['body'])}",
-                      "item/cr_retention_until":    "@{addDays(utcNow(), parameters('mx_audit_retention_days'))}"
+                      "item/cr_retention_until":    "@{addDays(utcNow(), parameters('cr_audit_retention_days'))}"
                     }
                   },
                   "runAfter": { "Skip_DM_if_no_email_return": ["Succeeded"] }
@@ -535,7 +535,7 @@
               "recordId":   "@{triggerOutputs()?['body/cr_mx_requestid']}",
               "item/cr_status":              4,
               "item/cr_routing":             2,
-              "item/cr_decision_comment":    "@{concat('Auto-escalated to Director after ', parameters('mx_request_timeout_hours'), 'h without decision.')}"
+              "item/cr_decision_comment":    "@{concat('Auto-escalated to Director after ', parameters('cr_request_timeout_hours'), 'h without decision.')}"
             }
           },
           "runAfter": { "Post_card_and_wait": ["TimedOut", "Failed"] }
@@ -560,9 +560,9 @@
           "inputs": {
             "host": { "connectionName": "shared_office365", "operationId": "SendEmailV2", "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365" },
             "parameters": {
-              "emailMessage/To":      "@{parameters('mx_director_email')}",
+              "emailMessage/To":      "@{parameters('cr_director_email')}",
               "emailMessage/Subject": "@{concat('[MX Connect Escalation] ', triggerOutputs()?['body/cr_request_number'], ' · ', triggerOutputs()?['body/cr_aircraft_tail'], ' awaiting decision')}",
-              "emailMessage/Body":    "<p>The following MX request has been awaiting decision for over @{parameters('mx_request_timeout_hours')} hours and has been auto-escalated to Director.</p><p><strong>Request:</strong> @{triggerOutputs()?['body/cr_request_number']}<br><strong>Aircraft:</strong> @{triggerOutputs()?['body/cr_aircraft_tail']} · @{triggerOutputs()?['body/cr_aircraft_type']}<br><strong>Type:</strong> @{triggerOutputs()?['body/cr_request_type@OData.Community.Display.V1.FormattedValue']}<br><strong>Window:</strong> @{formatDateTime(triggerOutputs()?['body/cr_window_start'], 'ddd MMM d · HH:mm')} → @{formatDateTime(triggerOutputs()?['body/cr_window_end'], 'ddd MMM d · HH:mm')}<br><strong>Base:</strong> @{triggerOutputs()?['body/cr_base']}<br><strong>Requestor:</strong> @{triggerOutputs()?['body/cr_requested_by']}<br><strong>Original routing:</strong> @{variables('vRouting')}</p><p><a href='@{parameters('mx_app_deeplink_base')}@{triggerOutputs()?['body/cr_mx_requestid']}'>Open in MX Connect</a></p>",
+              "emailMessage/Body":    "<p>The following MX request has been awaiting decision for over @{parameters('cr_request_timeout_hours')} hours and has been auto-escalated to Director.</p><p><strong>Request:</strong> @{triggerOutputs()?['body/cr_request_number']}<br><strong>Aircraft:</strong> @{triggerOutputs()?['body/cr_aircraft_tail']} · @{triggerOutputs()?['body/cr_aircraft_type']}<br><strong>Type:</strong> @{triggerOutputs()?['body/cr_request_type@OData.Community.Display.V1.FormattedValue']}<br><strong>Window:</strong> @{formatDateTime(triggerOutputs()?['body/cr_window_start'], 'ddd MMM d · HH:mm')} → @{formatDateTime(triggerOutputs()?['body/cr_window_end'], 'ddd MMM d · HH:mm')}<br><strong>Base:</strong> @{triggerOutputs()?['body/cr_base']}<br><strong>Requestor:</strong> @{triggerOutputs()?['body/cr_requested_by']}<br><strong>Original routing:</strong> @{variables('vRouting')}</p><p><a href='@{parameters('cr_app_deeplink_base')}@{triggerOutputs()?['body/cr_mx_requestid']}'>Open in MX Connect</a></p>",
               "emailMessage/Importance":  "High",
               "emailMessage/Body_Type":   "HTML"
             }
@@ -583,9 +583,9 @@
               "item/cr_subject_table":      "MX Requests",
               "item/cr_subject_id":         "@{triggerOutputs()?['body/cr_request_number']}",
               "item/cr_audit_correlation":  "@{variables('vAuditCorrelation')}",
-              "item/cr_comment":            "@{concat('Auto-escalated after ', parameters('mx_request_timeout_hours'), 'h without decision; original routing was ', variables('vRouting'), '. Director email sent to ', parameters('mx_director_email'))}",
+              "item/cr_comment":            "@{concat('Auto-escalated after ', parameters('cr_request_timeout_hours'), 'h without decision; original routing was ', variables('vRouting'), '. Director email sent to ', parameters('cr_director_email'))}",
               "item/cr_metadata":           "@{string(outputs('Post_card_and_wait'))}",
-              "item/cr_retention_until":    "@{addDays(utcNow(), parameters('mx_audit_retention_days'))}"
+              "item/cr_retention_until":    "@{addDays(utcNow(), parameters('cr_audit_retention_days'))}"
             }
           },
           "runAfter": { "Email_director_escalation": ["Succeeded"] }
