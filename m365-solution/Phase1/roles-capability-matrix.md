@@ -1,9 +1,35 @@
 # Phase 1 — Role Capability Matrix
 
-Source: MC Documentation v3 (pages 3–5). This is the canonical truth for
-who can do what in MX Connect Phase 1. The Phase 1 Power Apps form,
-SharePoint group permissions, Power Automate routing, and dashboard
-visibility all derive from this matrix.
+> **⚠️ EXTENSION SCOPE — NOT canonical Phase 1.**
+>
+> This matrix (8 roles × 42 capabilities, sourced from MC Documentation
+> v3 pages 3–5) describes the role-matrix expansion of MX Connect. It
+> defines what's possible across the **8-module** canvas app, the
+> **8-role** access model, and the **6 extension tables**.
+>
+> **Canonical Phase 1** is a much smaller scope:
+> - 5 roles (`MXC AMT` / `MXC RMM` / `MXC Director` / `MXC QA` / `MXC Service`) — not 8
+> - 8 canonical tables — not 14 (8 canonical + 6 extension)
+> - 1 module (the MX Request submit + 4-decision approval workflow) —
+>   not 8
+>
+> Pilot / PR / Scheduler / Payroll roles below are extension scope.
+> The Pilot Training / Aircraft Movement (PR) / Ask Leadership / Safety
+> Report submission types and their approval rules below are extension
+> scope. The Bulletins, MX Tracking dashboards, and Status
+> dashboards are extension scope.
+>
+> **Build per this matrix only if you've explicitly opted into the
+> matrix-extension scope** (Week 9+ in `runbook.md`). For canonical
+> Phase 1 follow `runbook.md` + `build-walkthrough.md` instead.
+
+---
+
+Source: MC Documentation v3 (pages 3–5). This is the canonical truth
+for who can do what in MX Connect under the **matrix-extension scope**.
+The Power Apps form, SharePoint group permissions (or Dataverse role
+privileges), Power Automate routing, and dashboard visibility all
+derive from this matrix.
 
 **Legend:** ✓ Full Access · ✗ No Access · View Only · Part. =
 Partial / region-only · — N/A
@@ -44,7 +70,7 @@ Partial / region-only · — N/A
 | Approve Pilot Training Request                               | ✗   | ✗   | ✗        | ✗  | ✗    | ✓         | ✗   | ✗       |
 | Approve Employee Time Off Request                            | ✗   | ✓   | ✓        | ✓  | ✗    | ✗         | ✗   | ✗       |
 | Deny Request with Written Reason                             | ✗   | ✓   | ✓        | ✓  | ✗    | ✓         | ✗   | ✗       |
-| Request More Information from Submitter                      | ✗   | ✓   | ✓        | ✓  | ✗    | ✓         | ✗   | ✗       |
+| Return for More Information                                  | ✗   | ✓   | ✓        | ✓  | ✗    | ✓         | ✗   | ✗       |
 | Escalate Ask or Safety to Director                           | ✗   | ✓   | ✗        | ✓  | ✗    | ✗         | ✗   | ✗       |
 | Resolve and Archive Operational Bulletin                     | ✗   | ✓   | ✓        | ✓  | ✗    | ✗         | ✗   | ✗       |
 | Permanently Delete from Bulletin Archive                     | ✗   | ✗   | ✓        | ✗  | ✗    | ✗         | ✗   | ✗       |
@@ -78,82 +104,50 @@ Partial / region-only · — N/A
 | Document Library — Upload & Manage                           | ✗   | ✓       | ✓        | ✓  | ✗    | ✓         | ✗    | ✗       |
 | On Shift / Off Shift Toggle                                  | ✓   | ✓       | ✓        | ✓  | ✗    | ✓         | ✗    | ✗       |
 
-## How this maps to SharePoint security
+## How this maps to Dataverse security (extension scope)
 
-Each role becomes a SharePoint Group on the MXConnect site. Group members
-get list-level + item-level permissions per the matrix above.
+Under canonical Phase 1, only 5 of these roles exist as Dataverse
+roles. The full 8-role mapping for matrix-extension scope:
 
-| Group              | List-level rights                                                                                       |
-| ------------------ | ------------------------------------------------------------------------------------------------------- |
-| `MXC AMT`          | Contribute on MX Requests + Aircraft Status Log + Personnel Status Log + Safety Reports; Read elsewhere |
-| `MXC RMM`          | Edit on MX Requests + Operational Bulletins; Contribute on Audit Log; Read elsewhere                    |
-| `MXC Director`     | Full Control on Operational Bulletins (delete); Edit on MX Requests; Read elsewhere                     |
-| `MXC QA`           | Edit on MX Requests + Operational Bulletins; Contribute on Audit Log; Read elsewhere                    |
-| `MXC Pilot`        | Contribute on MX Requests (filtered to Ask Leadership, Safety, Pilot Training only); Read MX Tracking   |
-| `MXC Scheduler`    | Full Control on Schedule Events; Edit on MX Requests (PR + Pilot Training only); Edit on Aircraft       |
-| `MXC PR`           | Contribute on MX Requests (Aircraft Movement, Ask Leadership, Safety only); Read MX Tracking            |
-| `MXC Payroll`      | Read on a SharePoint **filtered view link** of `Personnel — Maintenance` + on-call schedule. No app login. |
-
-Item-level permissions (set on each list, "Item-level Permissions" panel):
-
-- **MX Requests** — AMT/Pilot/PR can Read+Edit own only. RMM/Director/QA/Scheduler can Read+Edit all.
-- **Safety Reports** — Reporters can Read+Edit own only. RMM/Director/QA can Read+Edit all. **Anonymous reporters write but cannot read back** (handled by setting Created By to a service account when Anonymous=Yes).
-- **Audit Log** — Read for all groups; Append for service account only (flow runs as service account).
-- **Operational Bulletins** — Read for everyone except Payroll. Edit for RMM/Director/QA. Permanent Delete for Director only.
-
-## How this maps to Power Apps form branching
-
-The Power Apps canvas form's "Submit" screen shows one of nine action
-buttons per persona based on this matrix. Each button branches to a
-type-specific form section, then writes to the right SharePoint List on
-Patch.
-
-```
-Pilot logged in        →  shows: [Ask Leadership] [Safety Report] [Pilot Training]
-AMT logged in          →  shows: all 9 except [Pilot Training] [Operational Bulletin]
-RMM/Director/QA in     →  shows: all 9
-Scheduler in           →  shows: [Ask Leadership] [Safety Report] [Aircraft Movement]
-PR in                  →  shows: [Ask Leadership] [Safety Report] [Aircraft Movement]
-Payroll                →  redirected to SharePoint filtered view; no form access
-```
-
-Implementation: a `varAvailableActions` collection populated in
-`App.OnStart` from a User().Email lookup against `Personnel — Maintenance`.
-Buttons render with `Visible = varAvailableActions.[ActionName]`.
+| Role             | Dataverse role name                                                                                        |
+| ---------------- | ---------------------------------------------------------------------------------------------------------- |
+| AMT              | `MXC AMT` (canonical)                                                                                       |
+| RMM              | `MXC RMM` (canonical)                                                                                       |
+| Director         | `MXC Director` (canonical)                                                                                  |
+| QA               | `MXC QA` (canonical)                                                                                        |
+| Pilot            | `MXC Pilot` (extension)                                                                                     |
+| Scheduler        | `MXC Scheduler` (extension)                                                                                 |
+| PR               | `MXC PR` (extension)                                                                                        |
+| Payroll          | `MXC Payroll` (extension; effectively no app login — Power BI / Dataverse view link only)                  |
 
 ## How this maps to Power Automate routing
 
-The existing `mxr-approval-flow-sharepoint` already branches on the
-`Routing` Choice column (RMM / Director). Extending to the full matrix
-adds a `Decision` Choice on the response side and per-type approval
-chains:
+The `mxr-approval-flow-v2` flow branches on the `cr_routing` Choice
+column. Under canonical scope it has 2 values; under extension scope
+it gains a 3rd:
 
-| Submission                  | Default approver                    | Escalation path           | Outlook event? |
-| --------------------------- | ----------------------------------- | ------------------------- | :------------: |
-| MX Schedule Request         | RMM (regional) or Scheduler         | RMM → Director on timeout | Yes            |
-| PR Aircraft Movement        | Scheduler                           | Director on timeout       | Yes            |
-| Pilot Training Request      | Scheduler                           | Director on timeout       | Yes            |
-| Time Off                    | RMM (regional)                      | Director on timeout       | Yes            |
-| Ask Leadership              | RMM (regional)                      | Director on Escalate      | No             |
-| Safety Report               | RMM (regional)                      | Director on Escalate      | No             |
-| Aircraft Status Change      | (write-through — no approval)       | n/a                       | No             |
-| Personnel Status Change     | (write-through — no approval)       | n/a                       | No             |
-| Operational Bulletin Post   | (write-through — no approval)       | n/a                       | No             |
+| Submission                  | Default approver                    | Routing value (canonical / extension)            |
+| --------------------------- | ----------------------------------- | ------------------------------------------------ |
+| Phase Inspection / Repair / Overhaul / Open Shift | RMM (regional)    | RMM (canonical)                                  |
+| Time Off                    | RMM (regional)                      | RMM (canonical)                                  |
+| AOG (priority)              | Director                            | Director (canonical — forced by Priority=AOG)    |
+| Aircraft Movement (PR)      | Scheduler                           | Scheduler (extension)                            |
+| Pilot Training Request      | Scheduler                           | Scheduler (extension)                            |
+| Ask Leadership              | Director                            | Director (extension request type)                |
+| Safety Report               | RMM regional / Director on escalate | (separate `safety-report-triage-flow` — extension) |
+| Aircraft Status / Personnel Status / Operational Bulletin Post | (write-through — no approval) | n/a (extension write-through tables) |
 
-Decision actions on every approval card:
+Decision actions on every approval card (canonical 4):
 
 ```
-[ Approve ]  [ Deny — write reason ]  [ Request More Info ]  [ Escalate to Director ]
+[ Approve ]  [ Deny — write reason ]  [ Return — ask for more info ]  [ Escalate to Director ]
 ```
 
-`Approve` and `Deny` are already wired in the Phase 1 flow. `Request More
-Info` and `Escalate` are net-new switch cases — see
-`flows/mxr-approval-flow-sharepoint.json` for the patch points
-(`Decision` switch's `default` block becomes two new cases).
+All 4 are wired in `mxr-approval-flow-v2`.
 
 ## Companion docs
 
-- `application-modules.md` — the 8-module breakdown from page 6
-- `runbook.md` — operational runbook (referenced from this matrix)
-- `connections.md` — connection references + service account model
-- `../sharepoint-lists/phase1-blank-templates/README.md` — schema reference
+- `application-modules.md` — the 8-module breakdown from page 6 (also extension scope)
+- `runbook.md` — canonical Phase 1 deployment runbook
+- `connections.md` — 5 canonical Dataverse roles + 4 extension roles
+- `tables/cr_*.md` — Dataverse table specs (8 canonical + 7 extension)
