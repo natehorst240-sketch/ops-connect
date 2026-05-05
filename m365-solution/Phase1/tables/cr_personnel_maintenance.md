@@ -1,11 +1,16 @@
 # Table: `cr_personnel_maintenance`
 
-Maintenance roster. ~85 active maintenance personnel: AMTs, supervisors,
-RMMs, DOM, QA, Parts, Schedulers.
+Maintenance roster. **~85 rows** per the canonical CSV. AMTs,
+supervisors, RMMs, DOMs, QA, QA Manager, Parts, Schedulers, plus the
+Senior Director Aviation Operations.
 
 ## Display name
 
 **Personnel — Maintenance**
+
+Use a regular hyphen (`Personnel - Maintenance`) for ease of typing in
+formulas and CSV imports. Power Apps Studio renders both versions the
+same.
 
 ## Schema name
 
@@ -19,56 +24,54 @@ RMMs, DOM, QA, Parts, Schedulers.
 
 | Schema name              | Display              | Type                       | Required | Default     | Notes                                                              |
 | ------------------------ | -------------------- | -------------------------- | -------- | ----------- | ------------------------------------------------------------------ |
-| `cr_full_name`           | Full name            | Text (100)                 | Yes      | —           | `First Last`. Primary column.                                      |
-| `cr_first_name`          | First name           | Text (50)                  | Yes      | —           |                                                                    |
-| `cr_last_name`           | Last name            | Text (50)                  | Yes      | —           |                                                                    |
-| `cr_email`               | Email                | Email                      | Yes      | —           | Joined to `systemuser.internalemailaddress` for app-user lookups.  |
-| `cr_phone`               | Phone                | Phone                      | No       | —           | Formatted with hyphens.                                            |
+| `cr_full_name`           | Full Name            | Text (100)                 | Yes      | —           | `First Last`. Primary column.                                      |
+| `cr_first_name`          | First Name           | Text (50)                  | Yes      | —           |                                                                    |
+| `cr_last_name`           | Last Name            | Text (50)                  | Yes      | —           |                                                                    |
+| `cr_email`               | Email                | Email                      | Yes      | —           | E.g., `Nathan.Horstmeier@imail.org`.                              |
+| `cr_phone`               | Phone                | Phone                      | No       | —           | E.g., `801-946-2497`. CSV has 5 rows with blank phone.            |
 | `cr_role`                | Role                 | Choice                     | Yes      | —           | See § *Choice values*.                                            |
-| `cr_region_id`           | Region               | Lookup → `cr_region`       | No       | —           |                                                                    |
-| `cr_primary_base_id`     | Primary base         | Lookup → `cr_base`         | No       | —           |                                                                    |
-| `cr_coverage_bases`      | Coverage bases       | Multiline text (500)       | No       | —           | Semicolon-delimited base names.                                    |
-| `cr_leader`              | Leader               | Lookup → `systemuser`      | No       | —           | Direct manager.                                                    |
-| `cr_active`              | Active               | Yes/No                     | Yes      | Yes         |                                                                    |
-| `cr_status`              | Status               | Choice                     | No       | Available   | `Available` / `Unavailable` / `Red Status`.                        |
-| `cr_status_reason`       | Status reason        | Text (200)                 | No       | —           |                                                                    |
-| `cr_status_updated_at`   | Status updated at    | Date and time              | No       | —           |                                                                    |
-| `cr_status_updated_by`   | Status updated by    | Lookup → `systemuser`      | No       | —           |                                                                    |
-| `cr_on_shift`            | On Shift             | Yes/No                     | No       | No          | User toggles from home screen.                                     |
-| `cr_notes`               | Notes                | Multiline text (1000)      | No       | —           |                                                                    |
+| `cr_region`              | Region               | Text (16)                  | No       | —           | Free-text in CSV. Includes `ALL` for org-wide roles (Senior Director, DOMs). Phase 2: split into Lookup + a separate org-wide flag. |
+| `cr_primary_base`        | Primary Base         | Text (50)                  | No       | —           | Free-text in CSV. Includes `Rover` for the 3 AMT (Rover) personnel. Phase 2: convert to Lookup once Rover-base records added. |
+| `cr_coverage_bases`      | Coverage Bases       | Multiline text (500)       | No       | —           | Semicolon-delimited base names. CSV has `ALL` for org-wide roles. |
+| `cr_leader`              | Leader               | Text (60)                  | No       | —           | CSV stores leader as a name string. Phase 2: convert to Lookup → `systemuser`. |
+| `cr_active`              | Active               | Yes/No                     | Yes      | Yes         | All 85 CSV rows = Yes.                                            |
+| `cr_notes`               | Notes                | Multiline text (1000)      | No       | —           | E.g., "Phone missing in source", "Cross-region".                  |
+
+**Why Region / Primary Base / Leader are Text in the canonical schema:**
+the CSV has values that don't map cleanly to Lookup targets:
+- Region `ALL` for Senior Director Aviation Operations + DOMs (3 rows)
+- Region `RW Rover` for the 3 AMT (Rover) rows
+- Primary Base `Rover` for the 3 AMT (Rover) rows (no Rover row in `cr_base`)
+- Leader stored as full name string, not a `systemuser` reference
+
+Phase 1 keeps them as text to import the CSV verbatim. Phase 2 normalizes.
 
 ## Choice values
 
 ### `cr_role`
 
-| Label                                  | Value |
-| -------------------------------------- | ----- |
-| AMT                                    | 1     |
-| AMT (Rover)                            | 2     |
-| Supervisor                             | 3     |
-| RMM                                    | 4     |
-| DOM                                    | 5     |
-| QA                                     | 6     |
-| QA Manager                             | 7     |
-| Parts                                  | 8     |
-| Scheduler                              | 9     |
-| Senior Director Aviation Operations    | 10    |
-| ADOM                                   | 11    |
+Values actually used in the canonical CSV (10 distinct roles):
 
-### `cr_status`
+| Label                                  | Value | CSV row count |
+| -------------------------------------- | ----- | ------------- |
+| AMT                                    | 1     | ~64           |
+| AMT (Rover)                            | 2     | 3             |
+| Supervisor                             | 3     | 3             |
+| RMM                                    | 4     | 8             |
+| DOM                                    | 5     | 3             |
+| QA                                     | 6     | 2             |
+| QA Manager                             | 7     | 1             |
+| Parts                                  | 8     | 3             |
+| Scheduler                              | 9     | 2             |
+| Senior Director Aviation Operations    | 10    | 1             |
 
-| Label       | Value | Notes                                                       |
-| ----------- | ----- | ----------------------------------------------------------- |
-| Available   | 1     | Default.                                                    |
-| Unavailable | 2     | Out, time off, etc.                                         |
-| Red Status  | 3     | Health-flagged; only RMM regional + Director DM (privacy).  |
+**`ADOM` is not in the canonical CSV** — don't add it as a role option.
+If needed in Phase 2, document the addition there.
 
 ## Permissions
 
 - **Read:** All app users (regional scoping for AMT/RMM via BU).
 - **Create / Update general fields:** Director, DOM, RMM (regional), QA.
-- **Update Status / On Shift on self:** Self.
-- **Update Status on others:** RMM (regional), Director, QA, Supervisor.
 - **Reassign (change Primary Base):** RMM (regional), Director, DOM.
 - **Delete:** Director, DOM (rare — personnel offboarding).
 
@@ -76,11 +79,21 @@ RMMs, DOM, QA, Parts, Schedulers.
 
 - `cr_email` — used as the natural key for app user lookups.
 - `cr_role` — dashboard filters.
-- `cr_region_id` — region scoping.
-- `cr_primary_base_id` — base scoping.
-- `cr_on_shift` — on-call dashboard.
+- `cr_region` — region scoping (text contains-match).
 
 ## Seed data
 
 Populate from `m365-solution/sharepoint-lists/05-personnel-maintenance.csv`.
-85 rows.
+**~85 rows.**
+
+Key RMMs (used as Aircraft.RMM string references):
+- Nate Horstmeier — 109 UT (8 AW109SP tails + 2 floats)
+- Tevita Silatolu — WY/MT
+- John Cutright — ID/NV
+- Chris Gibson — CO/NM
+- Dwight Brooks — UT/AZ
+- Sean Brown — PAGE (also tagged Supervisor in personnel; functions as RMM in aircraft refs)
+- Casey Stockall — NC Region
+- Chris Eells — WI Region
+- Scott Winberg — SLC FW
+- Martin Hodo — WOODSCROSS

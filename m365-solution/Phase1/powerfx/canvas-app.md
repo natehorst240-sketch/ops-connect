@@ -1,24 +1,101 @@
 # Canvas App Build Guide — MX Connect Dashboard (Dataverse)
 
+> **⚠️ EXTENSION SCOPE — most of this doc describes the role-matrix
+> expansion (8 modules, 15 tables).**
+>
+> **Canonical Phase 1 canvas app needs only:**
+> - **1 submit screen** — Universal MX Request form (the 6 canonical
+>   Request Types: Phase Inspection / Repair / Overhaul / Time Off /
+>   Open Shift / AOG)
+> - **1 approval screen** — In-app mirror of the Adaptive Card inbox
+>   (Approve / Deny / Escalate / Return — 4 buttons matching the flow)
+> - **Optional: a home with a fleet status read-out** — list of
+>   `cr_aircraft` rows
+>
+> Everything below — Bulletins, Safety, Status Log, My Team, MX
+> Tracking, Docs modules; the 8-module side nav; the role-matrix
+> capability gating; the `'Operational Bulletin'` / `'Safety Report'`
+> Patch examples — is **extension scope**. Skip those sections unless
+> you've opted into the role-matrix expansion (Week 9+ in
+> `runbook.md`).
+>
+> The Dataverse-vs-SharePoint Power Fx differences in §3 and the
+> `Patch` shapes in §15 still apply for canonical scope.
+
+## Canonical Phase 1 canvas app — minimal sketch
+
+Three screens:
+
+```
+scr_Home          (optional — fleet status read-out)
+scr_NewMXRequest  (universal submit form, 6 canonical Request Types)
+scr_RequestConfirm (post-submit confirmation)
+scr_ApprovalInbox (approver's view; mirrors Adaptive Card with 4 buttons)
+```
+
+Data sources to add (just **8 canonical Phase 1 tables**):
+
+```
+View → Data → + Add data → Dataverse → MXConnect environment →
+   ☑ MX Request                       (cr_mx_request)
+   ☑ MX Audit                         (cr_audit)
+   ☑ Aircraft                         (cr_aircraft)
+   ☑ Aircraft Type                    (cr_aircraft_type)
+   ☑ Personnel - Maintenance          (cr_personnel_maintenance)
+   ☑ Personnel - Crew                 (cr_personnel_crew)    ← schema only, header-only CSV
+   ☑ Region                           (cr_region)
+   ☑ Base                             (cr_base)
+```
+
+For canonical scope, the key formulas are in §6 (Approval Inbox
+buttons) and §8 (Submit form Patch). The 4 Approval Inbox buttons
+should match the canonical Decision values:
+
+```powerapps
+// btn_Approve  → Decision = Approved   (value 1)
+// btn_Deny     → Decision = Denied     (value 2; Decision Reason required)
+// btn_Escalate → Decision = Escalated  (value 3; Routing → Director, then re-arm)
+// btn_Return   → Decision = Returned   (value 4; More Info Request required)
+```
+
+The submit form's Routing logic is simpler in canonical (only RMM or
+Director — no Scheduler):
+
+```powerapps
+Routing: If(
+    dd_Priority.Selected.Value = "AOG",
+    'Routing (MX Requests)'.Director,
+    'Routing (MX Requests)'.RMM
+)
+```
+
+When you opt into the matrix-extension scope, the rest of this doc
+(Modules 1–8, capability gating, etc.) becomes the canvas app's full
+scope.
+
+---
+
 A single Power Apps canvas app that hosts the full Phase 1 workflow:
 role-based home, all 8 application modules, in-app approval inbox, plus
 the universal MX Request submission form. Phone form factor (Tablet works
 with minor padding tweaks).
 
 **Backing data layer: Dataverse.** The app binds to the 15 Dataverse
-tables in `../tables/`. SharePoint Lists are the deprecated fallback —
-not covered here.
+tables in `../tables/` (8 canonical + 7 extension). For canonical
+scope, only the 8 canonical tables are needed.
 
 This guide is sequential. Build in the order below — every section
 depends on the previous's variables and screens.
 
 ## Companion docs
 
-- `../roles-capability-matrix.md` — who can do what
-- `../application-modules.md` — what each module does
+- `../roles-capability-matrix.md` — who can do what (extension scope reference)
+- `../application-modules.md` — what each module does (extension scope reference)
 - `../tables/README.md` — Dataverse table index + build order
-- `../flows/mxr-approval-flow-v2.json` — the approval flow
-- `../connections.md` — connection references + Dataverse roles
+- `../flows/mxr-approval-flow-v2.json` — the approval flow (4-decision canonical)
+- `../connections.md` — connection references + Dataverse roles (canonical 5)
+- `../runbook.md` — canonical Phase 1 deployment runbook
+- `../build-walkthrough.md` — click-by-click table + flow build
 
 ## Dataverse vs SharePoint syntax cheat sheet
 
@@ -59,6 +136,17 @@ because Power Apps Studio resolves them to logical names automatically.
 
 ---
 
+> **Sections 1–17 below describe the extension-scope full-fat 8-module
+> canvas app.** For canonical Phase 1, the relevant sections are §1
+> (create app), §2 (data sources — but only the 8 canonical tables),
+> §6 (Approval Inbox — but with the 4 canonical buttons matching
+> Approved/Denied/Escalated/Returned), §8 (Submit form — but
+> simplified Routing logic and the 6 canonical Request Types only).
+>
+> The button labels in §6 below say "Request Info" — for canonical,
+> use **Return** (matches the flow's button label and the Decision
+> value `Returned`).
+
 # 1. Create the app
 
 ```
@@ -85,23 +173,23 @@ Add the 15 Dataverse tables from the `MXConnect` solution.
 View → Data → + Add data → Dataverse → MXConnect environment →
    ☑ MX Request                       (cr_mx_request)
    ☑ MX Audit                         (cr_audit)
-   ☑ Operational Bulletin             (cr_operational_bulletin)
-   ☑ Safety Report                    (cr_safety_report)
+   ☑ Operational Bulletin             (cr_operational_bulletin)         ← extension
+   ☑ Safety Report                    (cr_safety_report)                ← extension
    ☑ Aircraft                         (cr_aircraft)
    ☑ Aircraft Type                    (cr_aircraft_type)
-   ☑ Aircraft Status Log              (cr_aircraft_status_log)
-   ☑ Personnel — Maintenance          (cr_personnel_maintenance)
-   ☑ Personnel — Crew                 (cr_personnel_crew)
-   ☑ Personnel Status Log             (cr_personnel_status_log)
-   ☑ MX Request Comment               (cr_mx_request_comment)
-   ☑ Schedule Event                   (cr_schedule_event)
-   ☑ User Filter Preference           (cr_user_filter_pref)
+   ☑ Aircraft Status Log              (cr_aircraft_status_log)          ← extension
+   ☑ Personnel - Maintenance          (cr_personnel_maintenance)
+   ☑ Personnel - Crew                 (cr_personnel_crew)
+   ☑ Personnel Status Log             (cr_personnel_status_log)         ← extension
+   ☑ MX Request Comment               (cr_mx_request_comment)           ← extension
+   ☑ Schedule Event                   (cr_schedule_event)               ← Phase 2
+   ☑ User Filter Preference           (cr_user_filter_pref)             ← extension
    ☑ Region                           (cr_region)
    ☑ Base                             (cr_base)
 ```
 
 Power Apps surfaces tables by display name in formulas (e.g.,
-`'Personnel — Maintenance'`). The `cr_*` logical names are visible in the
+`'Personnel - Maintenance'`). The `cr_*` logical names are visible in the
 data pane but you don't reference them in Power Fx.
 
 # 3. App-level state
@@ -116,19 +204,19 @@ the most recent bulletins. Fires once per session.
 Set(varCurrentUser, User());
 Set(varUserPersonnel,
     LookUp(
-        'Personnel — Maintenance',
+        'Personnel - Maintenance',
         Email = varCurrentUser.Email
     )
 );
 
 // --- Role detection ---
 //   Personnel.Role drives every visibility check.
-//   Pilot fallback checks Personnel — Crew.
+//   Pilot fallback checks Personnel - Crew.
 //   Payroll users have no Personnel row → fall through via Entra group lookup.
 Set(varRole,
     Coalesce(
         varUserPersonnel.Role,
-        LookUp('Personnel — Crew', Email = varCurrentUser.Email).Role,
+        LookUp('Personnel - Crew', Email = varCurrentUser.Email).Role,
         // Payroll fallback (Phase 2: replace with Entra group membership lookup)
         If(
             varCurrentUser.Email in [
@@ -160,7 +248,7 @@ Set(varCan,
         ApprovePilotTraining:   varRole in ["Scheduler"],
         ApproveTimeOff:         varRole in ["RMM","DOM","Director","QA","ADOM"],
         DenyWithReason:         varRole in ["RMM","DOM","Director","QA","Scheduler","ADOM"],
-        RequestMoreInfo:        varRole in ["RMM","DOM","Director","QA","Scheduler","ADOM"],
+        Return:                 varRole in ["RMM","DOM","Director","QA","Scheduler","ADOM"],
         EscalateToDirector:     varRole in ["RMM","QA","ADOM"],
         ResolveBulletin:        varRole in ["RMM","DOM","Director","QA","ADOM"],
         DeleteBulletin:         varRole in ["Director","DOM"],
@@ -177,7 +265,7 @@ Set(varCan,
     }
 );
 
-// --- Bulletin feed (cache) ---
+// --- Bulletin feed (cache) — extension scope ---
 ClearCollect(colBulletins,
     Filter(
         'Operational Bulletin',
@@ -185,7 +273,7 @@ ClearCollect(colBulletins,
     )
 );
 
-// --- Pending approvals for this user ---
+// --- Pending approvals for this user (canonical) ---
 ClearCollect(colMyApprovals,
     Filter(
         'MX Request',
@@ -194,7 +282,6 @@ ClearCollect(colMyApprovals,
         Or(
             (varRole = "RMM" && 'Aircraft Tail'.RMM.Email = varCurrentUser.Email),
             (varRole in ["Director","DOM"] && Routing = 'Routing (MX Requests)'.Director),
-            (varRole = "Scheduler" && Routing = 'Routing (MX Requests)'.Scheduler),
             (varRole in ["QA","ADOM"])
         )
     )
@@ -327,7 +414,6 @@ ClearCollect(colMyApprovals,
         Or(
             (varRole = "RMM" && 'Aircraft Tail'.RMM.Email = varCurrentUser.Email),
             (varRole in ["Director","DOM"] && Routing = 'Routing (MX Requests)'.Director),
-            (varRole = "Scheduler" && Routing = 'Routing (MX Requests)'.Scheduler),
             (varRole in ["QA","ADOM"])
         )
     )
@@ -367,7 +453,7 @@ SortByColumns(
 | Tile             | KPI label             | Number formula                                                  | OnSelect                                          |
 | ---------------- | --------------------- | --------------------------------------------------------------- | ------------------------------------------------- |
 | Pending Approvals | "Pending Approvals"  | `CountRows(colMyApprovals)`                                     | `Navigate(scr_ApprovalInbox, ScreenTransition.Fade)` |
-| On Call Now       | "On Call Now"        | `CountRows(Filter('Personnel — Maintenance', 'On Shift' = true && Region = varUserPersonnel.Region))` | `Navigate(scr_MyTeam, ScreenTransition.Fade)` |
+| On Call Now       | "On Call Now"        | `CountRows(Filter('Personnel - Maintenance', 'On Shift' = true && Region = varUserPersonnel.Region))` | `Navigate(scr_MyTeam, ScreenTransition.Fade)` |
 
 Hide the second tile if `varRole in ["Pilot","PR","Payroll"]`.
 
@@ -378,16 +464,16 @@ Hide the second tile if `varRole in ["Pilot","PR","Payroll"]`.
 CountRows(Filter(Aircraft, Status = 'Status (Aircraft)'.AOG))
 
 // lbl_RedStatusCount.Text
-CountRows(Filter('Personnel — Maintenance', Status = 'Status (Personnel)'.'Red Status'))
+CountRows(Filter('Personnel - Maintenance', Status = 'Status (Personnel)'.'Red Status'))
 
 // cnt_StatusTile.Visible
 varCan.StatusDashboard
 ```
 
-# 6. Approval Inbox — `scr_ApprovalInbox`
+# 6. Approval Inbox — `scr_ApprovalInbox` (canonical scope!)
 
 In-app mirror of the Teams Adaptive Card. Same flow back-end picks up
-the Patch.
+the Patch. **This screen is canonical Phase 1** — build it.
 
 ## scr_ApprovalInbox.OnVisible
 
@@ -399,20 +485,19 @@ ClearCollect(colMyApprovals,
         Status in [
             'Status (MX Requests)'.Submitted,
             'Status (MX Requests)'.Escalated,
-            'Status (MX Requests)'.'More Info Requested'
+            'Status (MX Requests)'.Returned
         ],
         IsBlank(Decision),
         Or(
             (varRole = "RMM" && 'Aircraft Tail'.RMM.Email = varCurrentUser.Email),
             (varRole in ["Director","DOM"] && Routing = 'Routing (MX Requests)'.Director),
-            (varRole = "Scheduler" && Routing = 'Routing (MX Requests)'.Scheduler),
             (varRole in ["QA","ADOM"])
         )
     )
 )
 ```
 
-## Action buttons — Approve / Deny / Request Info / Escalate
+## Action buttons — Approve / Deny / Escalate / Return
 
 The flow trigger condition is `cr_status eq 1 AND cr_decision eq null`,
 so once we Patch a Decision the flow knows to skip the Adaptive Card.
@@ -424,8 +509,8 @@ The flow handles audit + DM + Outlook downstream.
 Patch('MX Request', ThisItem,
     {
         Status:             'Status (MX Requests)'.Approved,
-        Decision:           'Decision (MX Requests)'.Approve,
-        Approver:           varCurrentUser,
+        Decision:           'Decision (MX Requests)'.Approved,
+        Approver:           varCurrentUser.FullName,
         'Decided At':       Now(),
         'Decision Comment': txt_Comment.Text
     }
@@ -433,7 +518,7 @@ Patch('MX Request', ThisItem,
 Notify("Approved.", NotificationType.Success);
 Reset(txt_Comment);
 ClearCollect(colMyApprovals,
-    Filter(colMyApprovals, 'MX Request' <> ThisItem.'MX Request')
+    Filter(colMyApprovals, 'Request Number' <> ThisItem.'Request Number')
 )
 ```
 
@@ -445,9 +530,9 @@ If(IsBlank(txt_Comment.Text),
     Patch('MX Request', ThisItem,
         {
             Status:             'Status (MX Requests)'.Denied,
-            Decision:           'Decision (MX Requests)'.Deny,
+            Decision:           'Decision (MX Requests)'.Denied,
             'Decision Reason':  txt_Comment.Text,
-            Approver:           varCurrentUser,
+            Approver:           varCurrentUser.FullName,
             'Decided At':       Now(),
             'Decision Comment': txt_Comment.Text
         }
@@ -455,27 +540,7 @@ If(IsBlank(txt_Comment.Text),
     Notify("Denied with reason.", NotificationType.Success);
     Reset(txt_Comment);
     ClearCollect(colMyApprovals,
-        Filter(colMyApprovals, 'MX Request' <> ThisItem.'MX Request')
-    )
-)
-```
-
-### `btn_RequestInfo.OnSelect`
-
-```powerapps
-If(IsBlank(txt_Comment.Text),
-    Notify("Type the question for the submitter first.", NotificationType.Warning),
-    Patch('MX Request', ThisItem,
-        {
-            Status:              'Status (MX Requests)'.'More Info Requested',
-            Decision:            'Decision (MX Requests)'.'Request Info',
-            'More Info Request': txt_Comment.Text
-        }
-    );
-    Notify("Asked for more info.", NotificationType.Success);
-    Reset(txt_Comment);
-    ClearCollect(colMyApprovals,
-        Filter(colMyApprovals, 'MX Request' <> ThisItem.'MX Request')
+        Filter(colMyApprovals, 'Request Number' <> ThisItem.'Request Number')
     )
 )
 ```
@@ -483,13 +548,13 @@ If(IsBlank(txt_Comment.Text),
 ### `btn_Escalate.OnSelect`
 
 ```powerapps
-// Two-step Patch: first set Decision=Escalate (audit trail), then clear
-// Decision and bump Routing=Director so the flow re-triggers as a
-// Director-routed request.
+// Two-step Patch: first set Decision=Escalated + Routing=Director (audit
+// trail), then clear Decision and reset Status so the flow re-triggers
+// as a Director-routed request.
 Patch('MX Request', ThisItem,
     {
         Status:             'Status (MX Requests)'.Escalated,
-        Decision:           'Decision (MX Requests)'.Escalate,
+        Decision:           'Decision (MX Requests)'.Escalated,
         Routing:            'Routing (MX Requests)'.Director,
         'Decision Comment': txt_Comment.Text
     }
@@ -503,11 +568,38 @@ Patch('MX Request', ThisItem,
 Notify("Escalated to Director.", NotificationType.Success);
 Reset(txt_Comment);
 ClearCollect(colMyApprovals,
-    Filter(colMyApprovals, 'MX Request' <> ThisItem.'MX Request')
+    Filter(colMyApprovals, 'Request Number' <> ThisItem.'Request Number')
+)
+```
+
+### `btn_Return.OnSelect`
+
+```powerapps
+If(IsBlank(txt_Comment.Text),
+    Notify("Type the question for the submitter first.", NotificationType.Warning),
+    Patch('MX Request', ThisItem,
+        {
+            Status:              'Status (MX Requests)'.Returned,
+            Decision:            'Decision (MX Requests)'.Returned,
+            'More Info Request': txt_Comment.Text,
+            Approver:            varCurrentUser.FullName,
+            'Decided At':        Now(),
+            'Decision Comment':  txt_Comment.Text
+        }
+    );
+    Notify("Returned to submitter for more info.", NotificationType.Success);
+    Reset(txt_Comment);
+    ClearCollect(colMyApprovals,
+        Filter(colMyApprovals, 'Request Number' <> ThisItem.'Request Number')
+    )
 )
 ```
 
 # 7. Module 1 — Status (`scr_Status`)
+
+> ⚠️ **Extension scope.** Status submission writes to extension tables
+> (`cr_aircraft_status_log`, `cr_personnel_status_log`). Skip for
+> canonical Phase 1.
 
 Two tabs: Aircraft and Personnel.
 
@@ -563,7 +655,7 @@ For the AOG variant, prompt for a reason via a small modal Container
 
 ## Personnel tab
 
-Same pattern, Patching `'Personnel — Maintenance'` and writing to
+Same pattern, Patching `'Personnel - Maintenance'` and writing to
 `'Personnel Status Log'` with `'Action Type'` =
 `'Action Type (Personnel Status Log)'.status_change`.
 
@@ -579,9 +671,12 @@ SortByColumns(
 
 Visibility: `varCan.StatusDashboard`.
 
-# 8. Module 2 — Schedule MX (`scr_ScheduleMX`)
+# 8. Module 2 — Schedule MX (`scr_ScheduleMX`) — canonical submit form
 
 Three sub-screens: list, submission form, confirmation.
+
+> The submission form is **canonical Phase 1** — build it. The list +
+> Gantt views are extension scope.
 
 ## scr_ScheduleMX.OnVisible
 
@@ -590,10 +685,10 @@ Set(varPageTitle, "Schedule MX");
 Refresh('MX Request');
 ClearCollect(colSchedule,
     Filter('MX Request',
-        'Request Type' = 'Request Type (MX Requests)'.'MX Schedule',
+        'Request Type' = 'Request Type (MX Requests)'.'Phase Inspection',
         Or(
             varCan.FullVisibility,
-            'Requested By'.Email = varCurrentUser.Email,
+            'Requested By' = varCurrentUser.FullName,
             (varRole = "RMM" && 'Aircraft Tail'.Region = varUserPersonnel.Region)
         )
     )
@@ -623,36 +718,36 @@ With({ hrs: DateDiff(Now(), ThisItem.'Window Start', Hours) },
 )
 ```
 
-## Submission form — `scr_NewMXRequest`
+## Submission form — `scr_NewMXRequest` (CANONICAL)
 
-Universal form for all 6 request types.
+Universal form for the **6 canonical Request Types**:
 
 ```powerapps
 // dd_RequestType.Items
-Filter(
-    [
-        { value: "MX Schedule",            show: varCan.SubmitMXSchedule },
-        { value: "Aircraft Movement (PR)", show: varCan.SubmitAircraftMovement },
-        { value: "Pilot Training",         show: varCan.SubmitPilotTraining },
-        { value: "Time Off",               show: varCan.SubmitTimeOff },
-        { value: "Ask Leadership",         show: varCan.SubmitAskLeadership },
-        { value: "Other",                  show: varCan.SubmitMXSchedule }
-    ],
-    show
-).value
+[
+    "Phase Inspection",
+    "Repair",
+    "Overhaul",
+    "Time Off",
+    "Open Shift",
+    "AOG"
+]
 ```
+
+(Extension scope adds: `Aircraft Movement (PR)`, `Pilot Training`,
+`Ask Leadership`, `Other`.)
 
 ### Conditional field visibility
 
 ```powerapps
 // dd_AircraftPicker.Visible
-dd_RequestType.Selected.Value in ["MX Schedule", "Aircraft Movement (PR)", "Pilot Training"]
+dd_RequestType.Selected.Value <> "Time Off"   // Time Off has no aircraft
 
 // dp_WindowStart.Visible / dp_WindowEnd.Visible
-dd_RequestType.Selected.Value in ["MX Schedule", "Aircraft Movement (PR)", "Pilot Training", "Time Off"]
+true   // all 6 canonical types have a window
 ```
 
-### btn_Submit.OnSelect
+### btn_Submit.OnSelect (canonical)
 
 ```powerapps
 // 1. Validate
@@ -661,9 +756,8 @@ If(
         Notify("Pick a request type.", NotificationType.Warning),
     dd_AircraftPicker.Visible && IsBlank(dd_AircraftPicker.Selected.Tail),
         Notify("Pick an aircraft.", NotificationType.Warning),
-    dp_WindowStart.Visible &&
-        DateTimeValue(Text(dp_WindowEnd.SelectedDate) & " " & dd_EndTime.Selected.Value) <=
-        DateTimeValue(Text(dp_WindowStart.SelectedDate) & " " & dd_StartTime.Selected.Value),
+    DateTimeValue(Text(dp_WindowEnd.SelectedDate) & " " & dd_EndTime.Selected.Value) <=
+    DateTimeValue(Text(dp_WindowStart.SelectedDate) & " " & dd_StartTime.Selected.Value),
         Notify("End must be after start.", NotificationType.Warning),
 
     // 2. Patch — Dataverse lookups take the full record reference
@@ -674,21 +768,15 @@ If(
                 'Aircraft Tail': If(dd_AircraftPicker.Visible, dd_AircraftPicker.Selected, Blank()),
                 'Aircraft Type': If(dd_AircraftPicker.Visible, dd_AircraftPicker.Selected.Type.Title, ""),
                 'Request Type':  Switch(dd_RequestType.Selected.Value,
-                    "MX Schedule",            'Request Type (MX Requests)'.'MX Schedule',
-                    "Aircraft Movement (PR)", 'Request Type (MX Requests)'.'Aircraft Movement (PR)',
-                    "Pilot Training",         'Request Type (MX Requests)'.'Pilot Training',
-                    "Time Off",               'Request Type (MX Requests)'.'Time Off',
-                    "Ask Leadership",         'Request Type (MX Requests)'.'Ask Leadership',
-                    "Other",                  'Request Type (MX Requests)'.Other
+                    "Phase Inspection", 'Request Type (MX Requests)'.'Phase Inspection',
+                    "Repair",           'Request Type (MX Requests)'.Repair,
+                    "Overhaul",         'Request Type (MX Requests)'.Overhaul,
+                    "Time Off",         'Request Type (MX Requests)'.'Time Off',
+                    "Open Shift",       'Request Type (MX Requests)'.'Open Shift',
+                    "AOG",              'Request Type (MX Requests)'.AOG
                 ),
-                'Window Start':  If(dp_WindowStart.Visible,
-                    DateTimeValue(Text(dp_WindowStart.SelectedDate) & " " & dd_StartTime.Selected.Value),
-                    Blank()
-                ),
-                'Window End':    If(dp_WindowEnd.Visible,
-                    DateTimeValue(Text(dp_WindowEnd.SelectedDate) & " " & dd_EndTime.Selected.Value),
-                    Blank()
-                ),
+                'Window Start':  DateTimeValue(Text(dp_WindowStart.SelectedDate) & " " & dd_StartTime.Selected.Value),
+                'Window End':    DateTimeValue(Text(dp_WindowEnd.SelectedDate) & " " & dd_EndTime.Selected.Value),
                 Base:            dd_Base.Selected,
                 Reason:          txt_Reason.Text,
                 Priority:        Switch(dd_Priority.Selected.Value,
@@ -697,18 +785,13 @@ If(
                     "AOG",    'Priority (MX Requests)'.AOG
                 ),
                 Status:          'Status (MX Requests)'.Submitted,
-                Routing:         Switch(dd_RequestType.Selected.Value,
-                    "MX Schedule",            'Routing (MX Requests)'.RMM,
-                    "Time Off",               'Routing (MX Requests)'.RMM,
-                    "Aircraft Movement (PR)", 'Routing (MX Requests)'.Scheduler,
-                    "Pilot Training",         'Routing (MX Requests)'.Scheduler,
-                    "Ask Leadership",         'Routing (MX Requests)'.Director,
-                    "Other",                  'Routing (MX Requests)'.RMM
+                Routing:         If(
+                    dd_Priority.Selected.Value = "AOG",
+                    'Routing (MX Requests)'.Director,
+                    'Routing (MX Requests)'.RMM
                 ),
-                'Requested By':       varCurrentUser,
-                'Audit Correlation':  GUID(),
-                'Comments Count':     0,
-                Anonymous:            false
+                'Requested By':       varCurrentUser.FullName,
+                'Audit Correlation':  GUID()
             }
         )
     );
@@ -736,11 +819,7 @@ insert — no manual `Last(...).ID + 1` math needed.
 
 // lbl_ConfirmBody.Text
 "Sent to " & varNewRequest.Routing.Value & " for review. " &
-"You'll get a Microsoft Teams DM when " &
-Switch(varNewRequest.'Request Type'.Value,
-    "Ask Leadership", "leadership decides.",
-    "the approver decides."
-)
+"You'll get a Microsoft Teams DM when the approver decides."
 
 // btn_New.OnSelect
 Reset(dd_RequestType); Reset(dd_AircraftPicker); Reset(dp_WindowStart); Reset(dp_WindowEnd);
@@ -751,7 +830,13 @@ Navigate(scr_NewMXRequest, ScreenTransition.UnCover)
 Navigate(scr_Home, ScreenTransition.Fade)
 ```
 
-# 9. Module 3 — Ask Leadership (`scr_AskLeadership`)
+---
+
+> **Sections 9–14 below are all extension scope** (Ask Leadership,
+> Safety, Docs, My Team, MX Tracking, Bulletins). Skip for canonical
+> Phase 1.
+
+# 9. Module 3 — Ask Leadership (`scr_AskLeadership`) — extension
 
 ```powerapps
 // scr_AskLeadership.OnVisible
@@ -763,7 +848,7 @@ ClearCollect(colAsks,
         'Request Type' = 'Request Type (MX Requests)'.'Ask Leadership',
         Or(
             varCan.FullVisibility,
-            'Requested By'.Email = varCurrentUser.Email,
+            'Requested By' = varCurrentUser.FullName,
             varCan.AskLeadershipDashboard
         )
     )
@@ -810,7 +895,7 @@ If(IsBlank(txt_NewComment.Text),
 )
 ```
 
-# 10. Module 4 — Safety Report (`scr_Safety`)
+# 10. Module 4 — Safety Report (`scr_Safety`) — extension
 
 ## btn_SubmitSafety.OnSelect
 
@@ -873,11 +958,10 @@ SortByColumns(
 )
 ```
 
-# 11. Module 5 — Docs (`scr_Docs`)
+# 11. Module 5 — Docs (`scr_Docs`) — extension
 
-The Docs module backs to a SharePoint Document Library (Phase 1 still
-uses SharePoint for the file blob even though data is in Dataverse) or
-to a Dataverse File column on a `cr_doc` table (Phase 2).
+The Docs module backs to a SharePoint Document Library or to a Dataverse
+File column on a `cr_doc` table (Phase 2).
 
 ## btn_OpenDocs.OnSelect
 
@@ -899,14 +983,14 @@ SortByColumns(
 )
 ```
 
-# 12. Module 6 — My Team (`scr_MyTeam`)
+# 12. Module 6 — My Team (`scr_MyTeam`) — extension
 
 ## On Call view
 
 ```powerapps
 // gal_OnCall.Items
 SortByColumns(
-    Filter('Personnel — Maintenance',
+    Filter('Personnel - Maintenance',
         'On Shift' = true,
         Or(
             varCan.FullVisibility,
@@ -932,7 +1016,7 @@ Launch("sms:" & ThisItem.Phone)
 varUserPersonnel.'On Shift'
 
 // tgl_OnShift.OnChange
-Patch('Personnel — Maintenance', varUserPersonnel,
+Patch('Personnel - Maintenance', varUserPersonnel,
     { 'On Shift': Self.Value }
 );
 With({ correlationId: GUID() },
@@ -948,10 +1032,10 @@ With({ correlationId: GUID() },
         }
     )
 );
-Set(varUserPersonnel, LookUp('Personnel — Maintenance', Email = varCurrentUser.Email))
+Set(varUserPersonnel, LookUp('Personnel - Maintenance', Email = varCurrentUser.Email))
 ```
 
-# 13. Module 7 — MX Tracking (`scr_MXTracking`)
+# 13. Module 7 — MX Tracking (`scr_MXTracking`) — extension
 
 ## Save filter button
 
@@ -996,7 +1080,7 @@ Notify("Filters saved.", NotificationType.Success)
 // gal_UpcomingInspections.Items
 SortByColumns(
     Filter('MX Request',
-        'Request Type' = 'Request Type (MX Requests)'.'MX Schedule',
+        'Request Type' = 'Request Type (MX Requests)'.'Phase Inspection',
         Status = 'Status (MX Requests)'.Approved,
         'Window Start' >= Now()
     ),
@@ -1013,7 +1097,7 @@ With({ days: DateDiff(Now(), ThisItem.'Window Start', Days) },
 )
 ```
 
-# 14. Module 8 — Bulletins (`scr_Bulletins`)
+# 14. Module 8 — Bulletins (`scr_Bulletins`) — extension
 
 ## scr_Bulletins.OnVisible
 
@@ -1136,6 +1220,13 @@ If(varConfirmDelete,
 { 'Submitted At': Now() }
 ```
 
+> **Canonical Phase 1 nuance:** the spec keeps `cr_requested_by` and
+> `cr_approver` as **Text** (not Lookup → systemuser) because the CSV
+> stores them as name strings. So the Patch shape is:
+> `{ 'Requested By': varCurrentUser.FullName }` — pass the string, not
+> the user record. Phase 2 normalizes to Lookup; canvas can switch to
+> `{ 'Requested By': varCurrentUser }` then.
+
 ## Audit Correlation pattern
 
 Every primary table write generates a GUID. Audit rows reference that
@@ -1204,10 +1295,10 @@ File → Publish version
 ## Sharing — Dataverse roles, not direct app shares
 
 The cleanest pattern is to share the app with `MXC App Users` Entra
-group, while the **per-user data access** is governed by the 8
-Dataverse security roles (`MXC AMT`, `MXC RMM`, etc.). Members of the
-Entra group must also have at least one MXC role assigned in the
-environment for the app to work.
+group, while the **per-user data access** is governed by the Dataverse
+security roles (see `connections.md` — 5 canonical or 9 for full
+extension scope). Members of the Entra group must also have at least
+one MXC role assigned in the environment for the app to work.
 
 ```
 File → Share → Add: Entra group `MXC App Users` → Permission: User
@@ -1241,12 +1332,22 @@ Watch for:
 
 ## Phase 1 acceptance criteria
 
-The app is done when, in Prod:
+### Canonical Phase 1
+
+The canvas app is canonical-complete when, in Prod:
+
+- [ ] AMT can submit any of 6 canonical Request Types from a phone in
+      under 30 seconds
+- [ ] RMM/Director/QA can Approve / Deny / Escalate / Return from the
+      in-app inbox AND from the Teams Adaptive Card
+- [ ] Returned requests round-trip correctly (submitter sees the
+      question, edits, resubmits → flow re-fires)
+- [ ] App load time < 3s on cellular
+- [ ] Three weeks of clean run history in the Logan pilot
+
+### Extension scope (matrix-extension)
 
 - [ ] All 8 modules accessible from the side nav with role-based visibility
-- [ ] AMT can submit any of 6 MX Request types in under 30 seconds
-- [ ] RMM/Director/Scheduler/QA can Approve / Deny / Request Info /
-      Escalate from the in-app inbox AND from the Teams Adaptive Card
 - [ ] Bulletin feed loads on every home screen sorted by severity
 - [ ] On-Call screen shows the right region by default with tappable
       call/text buttons
@@ -1255,5 +1356,3 @@ The app is done when, in Prod:
 - [ ] Saved filter preferences restore correctly after navigation
 - [ ] Payroll users get redirected to the Power BI / Dataverse view
       (no app login)
-- [ ] App load time < 3s on cellular
-- [ ] Three weeks of clean run history in the Logan pilot

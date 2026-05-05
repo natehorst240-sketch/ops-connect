@@ -1,5 +1,21 @@
 # Table: `cr_mx_request_comment`
 
+> **⚠️ EXTENSION TABLE — NOT IN CANONICAL CSV.**
+>
+> This table was added during the role-capability-matrix expansion
+> (MC Documentation v3). It does **not** appear in
+> `m365-solution/sharepoint-lists/` and has no canonical seed data.
+>
+> **Don't build this table for the canonical Phase 1 deployment.** The
+> canonical 11 tables cover the documented IHC requirements. This
+> table is reserved for the **Ask Leadership module** from the role
+> matrix — threaded replies on Ask Leadership / Safety Report items.
+>
+> If you proceed with this table, treat the spec as speculative —
+> column names + Choice enums are not validated against real IHC data.
+
+---
+
 Threaded replies on Ask Leadership and Safety Report items. Drives the
 "full conversation thread visible to all approvers" requirement —
 Director can see + respond to any point in the thread.

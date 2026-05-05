@@ -12,18 +12,27 @@ Lookup list. 19 distinct aircraft types in the IHC fleet.
 
 ## Primary column
 
-`cr_title` — Text (32). Type designation, e.g., `Bell 407 GXi`,
-`AW109SP`, `EC135P3H`.
+`cr_title` — Text (40). Type designation, e.g., `Bell 407 GXi`,
+`Agusta AW109SP`, `Airbus EC 135 P3H`.
 
 ## Columns
 
 | Schema name | Display | Type      | Required | Notes                              |
 | ----------- | ------- | --------- | -------- | ---------------------------------- |
-| `cr_title`  | Title   | Text (32) | Yes      | Type designation. Primary column.  |
+| `cr_title`  | Title   | Text (40) | Yes      | Type designation. Primary column.  |
 | `cr_make`   | Make    | Text (32) | Yes      | E.g., `Bell`, `Agusta`, `Airbus`.  |
 | `cr_model`  | Model   | Text (32) | Yes      | E.g., `407 GXi`.                   |
 | `cr_class`  | Class   | Choice    | Yes      | `Rotary` / `Fixed Wing`.           |
 | `cr_notes`  | Notes   | Multiline text (1000) | No |                                    |
+
+## Choice values
+
+### `cr_class`
+
+| Label       | Value |
+| ----------- | ----- |
+| Rotary      | 1     |
+| Fixed Wing  | 2     |
 
 ## Permissions
 
@@ -33,4 +42,26 @@ Lookup list. 19 distinct aircraft types in the IHC fleet.
 ## Seed data
 
 Populate from `m365-solution/sharepoint-lists/03-aircraft-types.csv`.
-19 rows.
+**Verbatim 19 rows:**
+
+| Title                            | Make        | Model              | Class       | Notes                            |
+| -------------------------------- | ----------- | ------------------ | ----------- | -------------------------------- |
+| Bell 206L-4                      | Bell        | 206L-4             | Rotary      |                                  |
+| Bell 407                         | Bell        | 407                | Rotary      | Base 407 model                   |
+| Bell 407 GX                      | Bell        | 407 GX             | Rotary      |                                  |
+| Bell 407 GXi                     | Bell        | 407 GXi            | Rotary      |                                  |
+| Bell 407 GXP                     | Bell        | 407 GXP            | Rotary      |                                  |
+| Agusta AW109SP                   | Agusta      | AW109SP            | Rotary      | 109 RW fleet (109 UT region)     |
+| Pilatus PC-12/45                 | Pilatus     | PC-12/45           | Fixed Wing  |                                  |
+| Pilatus PC-12/47                 | Pilatus     | PC-12/47           | Fixed Wing  |                                  |
+| Pilatus PC-12/47E                | Pilatus     | PC-12/47E          | Fixed Wing  |                                  |
+| Beechcraft King Air C90GTi       | Beechcraft  | King Air C90GTi    | Fixed Wing  |                                  |
+| Beechcraft King Air B200         | Beechcraft  | King Air B200      | Fixed Wing  |                                  |
+| Beechcraft King Air 250          | Beechcraft  | King Air 250       | Fixed Wing  |                                  |
+| Cessna 560XLS                    | Cessna      | 560XLS             | Fixed Wing  |                                  |
+| Cessna 560XLS+                   | Cessna      | 560XLS+            | Fixed Wing  |                                  |
+| Cessna 525CJ-4                   | Cessna      | 525CJ-4            | Fixed Wing  |                                  |
+| Bombardier Challenger 604        | Bombardier  | Challenger 604     | Fixed Wing  |                                  |
+| Airbus EC 135 P2+                | Airbus      | EC 135 P2+         | Rotary      |                                  |
+| Airbus EC 135 P3H                | Airbus      | EC 135 P3H         | Rotary      |                                  |
+| Airbus EC 135 T2+                | Airbus      | EC 135 T2+         | Rotary      |                                  |

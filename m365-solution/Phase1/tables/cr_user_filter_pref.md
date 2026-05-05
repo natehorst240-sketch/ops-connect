@@ -1,5 +1,23 @@
 # Table: `cr_user_filter_pref`
 
+> **⚠️ EXTENSION TABLE — NOT IN CANONICAL CSV.**
+>
+> This table was added during the role-capability-matrix expansion
+> (MC Documentation v3). It does **not** appear in
+> `m365-solution/sharepoint-lists/` and has no canonical seed data.
+>
+> **Don't build this table for the canonical Phase 1 deployment.** The
+> canonical 11 tables cover the documented IHC requirements. This
+> table is reserved for the **MX Tracking module's saved filter
+> preferences** — per-user persistent filter state.
+>
+> Alternative: use Power Apps' built-in `SaveData` / `LoadData` for
+> device-local persistence (no Dataverse table needed). The table-backed
+> approach gains cross-device persistence; the local-storage approach is
+> simpler.
+
+---
+
 Per-user saved filter state for the MX Tracking + My Team Gantt views.
 No flow writes — canvas-only.
 
@@ -36,7 +54,7 @@ No flow writes — canvas-only.
 - `cr_user_email` + `cr_view` — composite, used as the lookup pattern
   on screen load.
 
-## Implementation note
+## Implementation note (alternative, no table needed)
 
 If you'd rather avoid a Dataverse table for trivial per-user state,
 store in the canvas app's local user settings instead:
@@ -47,5 +65,5 @@ LoadData(varSavedFilters, "mxTrackingFilters", false)
 ```
 
 The table-backed approach gives cross-device persistence; `SaveData`
-is device-local. Phase 1 ships with the table; Phase 2 may consolidate
-to a Power Apps `User().Properties` extension.
+is device-local. Pick one based on whether users expect their filters
+to follow them across devices.

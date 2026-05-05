@@ -14,8 +14,8 @@ deletes.
 The wrong publisher prefix bleeds into **every** schema name, every
 formula, every flow JSON expression for the rest of the project. The
 spec docs in this repo all assume `cr_*` schema names. Living with
-`cr87b_cr_*` means search-and-replacing every prompt, every formula,
-every JSON token from now until prod.
+`cr87b_cr_*` means search-and-replacing every formula and every JSON
+token from now until prod.
 
 Better: 45 minutes of cleanup now → 0 minutes of friction later.
 
@@ -90,44 +90,41 @@ Tables → All (left nav, not in solution view)
 The bad tables may not be in the MX Connect solution at all — they
 might live in Default Solution. You'll see them here.
 
-Write down the list. Mine looked like:
-
-```
-☐ Aircrafts          (cr87b_aircrafts)
-☐ Aircraft Types     (cr87b_aircraft_types)
-☐ Bases              (cr87b_bases)
-☐ Regions            (cr87b_regions)
-☐ Personnel — Maintenance
-☐ MX Requests
-☐ ... etc
-```
-
 ### 1.2 Note the dependency order
 
 Dataverse blocks deletion if other tables reference a table via lookup.
-So you have to delete in **reverse** build order:
+So you have to delete in **reverse** build order. Canonical Phase 1
+has 8 tables — if you also created any extension or Phase 2 tables,
+delete those first:
 
 ```
-Delete order (from spec — reverse dependency):
-1. cr_schedule_event
-2. cr_user_filter_pref
-3. cr_mx_request_comment
-4. cr_personnel_status_log
-5. cr_aircraft_status_log
-6. cr_safety_report
-7. cr_operational_bulletin
-8. cr_audit
-9. cr_mx_request
-10. cr_personnel_crew
-11. cr_personnel_maintenance
-12. cr_aircraft
-13. cr_base
-14. cr_aircraft_type
-15. cr_region
+Delete order (reverse dependency):
+
+Extension (delete first if present):
+  cr_user_filter_pref
+  cr_mx_request_comment
+  cr_personnel_status_log
+  cr_aircraft_status_log
+  cr_safety_report
+  cr_operational_bulletin
+
+Phase 2 (delete next if present):
+  cr_conflict
+  cr_fleet_position
+  cr_schedule_event
+
+Canonical Phase 1 (delete in this reverse order):
+  cr_audit
+  cr_mx_request
+  cr_personnel_crew
+  cr_personnel_maintenance
+  cr_aircraft
+  cr_base
+  cr_aircraft_type
+  cr_region
 ```
 
-You may not have all 15 — Plan mode may have stopped early. Delete
-what's there, in reverse build order.
+Delete what's there in this order.
 
 ---
 
@@ -184,8 +181,8 @@ as the recipe.
 
 ### 2.5 Delete any canvas apps Plan mode created
 
-Same path under `Solutions → MX Connect → Apps`. We'll rebuild from the
-canvas-app.md guide instead.
+Same path under `Solutions → MX Connect → Apps`. We'll rebuild from
+the `powerfx/canvas-app.md` guide instead.
 
 ---
 
@@ -257,34 +254,33 @@ right prefix.**
 
 ---
 
-## Step 5 — Rebuild correctly (incremental, ~3.5 hours)
+## Step 5 — Rebuild correctly
 
-**Do not use Plan mode this time.** Use chunked single-table prompts
-from `copilot-prompts.md`.
+**Do not use Plan mode this time.** Build manually using
+`build-walkthrough.md` as the click-by-click guide.
 
-### 5.1 Build the global Choices first (~45 min)
+### 5.1 Build the canonical 11 Choices first (~25 min)
 
-Use **Prompt 2** from the cookbook, **one Choice at a time, not all 22
-at once**:
+Per `build-walkthrough.md §A.5`, the 11 Choice columns canonical Phase 1
+needs:
 
 ```
-Solutions → MX Connect → + New → More → Choice
-   [paste Prompt 2 with the specific Choice you want]
-   Save
-   Wait → verify → next Choice
+Region Type, Operations, Aircraft Class, Aircraft Status, Personnel Role,
+MX Request Type, MX Request Priority, MX Request Status, MX Request Routing,
+MX Request Decision, Audit Action
 ```
 
-Build all 22 Choices before starting tables. Tables that reference
-Choice columns expect them to exist already.
+Build them one at a time so you can verify each before moving on.
+Tables that reference Choice columns expect them to exist already.
 
-### 5.2 Build lookup tables (~30 min)
+### 5.2 Build lookup tables (~20 min)
 
 In dependency order:
 
 ```
-1. cr_region                  → use Prompt 3
-2. cr_aircraft_type           → use Prompt 3
-3. cr_base                    → use Prompt 3 (Base references Region)
+1. cr_region          (12 rows from 01-regions.csv)
+2. cr_aircraft_type   (19 rows from 03-aircraft-types.csv)
+3. cr_base            (44 rows from 02-bases.csv)
 ```
 
 After each: verify schema name is `cr_*`, not `cr87b_*`.
@@ -292,28 +288,22 @@ After each: verify schema name is `cr_*`, not `cr87b_*`.
 ### 5.3 Build master tables (~75 min)
 
 ```
-4. cr_aircraft                → use Prompt 1 with the populated CSV
-5. cr_personnel_maintenance   → use Prompt 1 with the populated CSV
-6. cr_personnel_crew          → use Prompt 3 (no CSV; schema only for Phase 2)
+4. cr_aircraft                (61 rows from 04-aircraft.csv)
+5. cr_personnel_maintenance   (~85 rows from 05-personnel-maintenance.csv)
+6. cr_personnel_crew          (header-only — Phase 2 populates)
 ```
 
-For Prompt 1 CSV uploads: load `04-aircraft.csv`,
-`05-personnel-maintenance.csv` from
-`m365-solution/sharepoint-lists/`. **Real IHC fleet data**, not the
-fake Boeing 737s Plan mode generated.
+The spec docs (`tables/cr_aircraft.md`, etc.) explicitly keep
+Base / Region / RMM / Leader as **Text** in Phase 1 because the CSV
+has values that don't fit a Lookup (`Spare`, `Unassigned`,
+`NC Region (TBD)`, `—`, `ALL`, `Rover`). Don't try to convert to
+Lookup yet — that's Phase 2 cleanup work.
 
-### 5.4 Build transactional tables (~60 min)
+### 5.4 Build transactional tables (~45 min)
 
 ```
-7. cr_mx_request              → use Prompt 3 (largest spec)
-8. cr_audit                   → use Prompt 3
-9. cr_operational_bulletin    → use Prompt 3
-10. cr_safety_report          → use Prompt 3
-11. cr_aircraft_status_log    → use Prompt 3
-12. cr_personnel_status_log   → use Prompt 3
-13. cr_mx_request_comment     → use Prompt 3
-14. cr_user_filter_pref       → use Prompt 3
-15. cr_schedule_event         → use Prompt 3
+7. cr_mx_request   (with cr_decision + cr_decision_reason + cr_more_info_request canonical columns)
+8. cr_audit
 ```
 
 After every single one: open the table, look at one column's schema
@@ -321,11 +311,20 @@ name. If it shows `cr_*` you're good. If `cr87b_*` shows up again,
 **stop immediately** — something reverted on the publisher. Fix
 before continuing.
 
-### 5.5 Build the flow + canvas app
+### 5.5 Import canonical CSV seed data
 
-Once all 15 tables are correct:
-- Flow: follow `build-walkthrough.md §B` step by step
-- Canvas app: follow `powerfx/canvas-app.md` section by section
+Per `tables/README.md` import order, import the populated CSVs from
+`m365-solution/sharepoint-lists/`. Don't generate fake data — the
+real IHC data is in the CSVs.
+
+### 5.6 Build the flow + canvas app
+
+Once all 8 canonical tables are correct + populated:
+- Flow: follow `build-walkthrough.md §B` step by step (or import
+  `flows/mxr-approval-flow-v2.json` via `pac` if you have CLI)
+- Canvas app: follow `powerfx/canvas-app.md` for canonical scope
+  (Submit form + Approval Inbox — don't build the 8 modules unless
+  opting into extension scope)
 
 ---
 
@@ -346,25 +345,26 @@ Once all 15 tables are correct:
 
 ```
 Tables → Filter: Custom
-   Should show 15 tables, all prefixed cr_
+   Should show 8 tables, all prefixed cr_
 
-Solutions → MX Connect → Components count: 15+ tables, 22 Choices, 1 publisher
+Solutions → MX Connect → Components count: 8 tables, 11 Choices, 1 publisher
 Solutions → MX Connect → Tables → click any table → first column
    Schema name format: cr_<column_name>     ✅
                        cr87b_cr_<column>    ❌
 ```
 
 If everything checks out, you're back to clean state and ready to keep
-building per `build-walkthrough.md` and `copilot-prompts.md`.
+building per `build-walkthrough.md` and `runbook.md`.
 
 ---
 
 ## What NOT to use again
 
-- ❌ **Plan mode** for the whole foundation — chunked single prompts only
-- ❌ **"Apply to existing solution"** if a saved plan asks — always create
-  to a fresh solution then merge selectively
-- ❌ **The `cr87b_` publisher** — delete it; don't try to keep it as fallback
+- ❌ **Plan mode** for the whole foundation — manual table-by-table only
+- ❌ **"Apply to existing solution"** if a saved plan asks — always
+  create to a fresh solution then merge selectively
+- ❌ **The `cr87b_` publisher** — delete it; don't try to keep it as
+  fallback
 - ❌ Generated **seed data** that's not from your real CSV — delete and
   import the real populated CSVs from `sharepoint-lists/`
 - ❌ Auto-generated **flows / canvas apps** from Plan mode — they assume
@@ -374,7 +374,7 @@ building per `build-walkthrough.md` and `copilot-prompts.md`.
 
 ## Companion docs
 
-- `build-walkthrough.md` — manual click-by-click table + flow build
-- `copilot-prompts.md` — chunked AI prompts (use these, not Plan mode)
+- `build-walkthrough.md` — manual click-by-click table + flow build (canonical)
+- `runbook.md` — week-by-week deployment runbook (canonical)
 - `tables/README.md` + `tables/cr_*.md` — column-by-column specs
-- `flows/mxr-approval-flow-v2.json` — flow recipe
+- `flows/mxr-approval-flow-v2.json` — 4-decision flow recipe

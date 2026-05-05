@@ -1,5 +1,31 @@
 # Phase 1 — The 8 Application Modules
 
+> **⚠️ EXTENSION SCOPE — NOT in canonical Phase 1.**
+>
+> This 8-module breakdown comes from MC Documentation v3 page 6 and
+> describes the role-matrix expansion of MX Connect. **None of these
+> 8 modules are part of canonical Phase 1.**
+>
+> **Canonical Phase 1** ships only the MX Request submit + approval
+> workflow (the equivalent of Module 2's submission form + a 4-decision
+> approval inbox). The 7 other modules — Status, Ask Leadership, Safety
+> Report, Docs, My Team, MX Tracking, Bulletins — require the 6
+> extension tables (`cr_operational_bulletin`, `cr_safety_report`,
+> `cr_aircraft_status_log`, `cr_personnel_status_log`,
+> `cr_mx_request_comment`, `cr_user_filter_pref`) which have **no
+> canonical CSV data** and have not been validated against real IHC
+> requirements.
+>
+> **Build the 8 modules only if you've explicitly opted into the
+> matrix-extension scope** (Week 9+ in `runbook.md`). For canonical
+> Phase 1 follow `runbook.md` + `build-walkthrough.md` instead.
+>
+> Section text below describes the original SharePoint variant where
+> applicable. For Dataverse extension scope, the table names map 1:1 to
+> the `cr_*` Dataverse equivalents in `tables/cr_*.md`.
+
+---
+
 Source: MC Documentation v3 (page 6 of 9). Each module is an area of the
 canvas app + its backing SharePoint List(s) + supporting Power Automate
 flows.
@@ -66,8 +92,7 @@ RMM (regional default), Scheduler (alt path for PR/training requests).
 Director on escalation. QA on approve-with-comment for high-priority.
 
 ### Power Automate hook
-`mxr-approval-flow-sharepoint` (already deployed). Approve/Deny/Request
-Info/Escalate.
+`mxr-approval-flow-v2` (deployed). Approve/Deny/Escalate/Return.
 
 ### Countdown timer
 Power Apps formula on the schedule list:
@@ -81,9 +106,9 @@ Color: green if > 168h (7 days), amber if 24–168h, red if < 24h or overdue.
 ## 3. Ask Leadership
 
 **Direct question to leadership with full escalation thread.** AMT
-submits → RMM reviews → Approve / Deny / More Info / Escalate. Full
-conversation thread visible to all approvers. Director can see and
-respond to any point in the thread.
+submits → RMM reviews → Approve / Deny / Return (more info) /
+Escalate. Full conversation thread visible to all approvers. Director
+can see and respond to any point in the thread.
 
 ### Lists touched
 
@@ -100,18 +125,18 @@ RMM (regional first), Director (on Escalate). All approvers see the
 full thread; any can comment without changing state.
 
 ### Power Automate hook
-Same `mxr-approval-flow-sharepoint` flow with Routing=Director branch.
-Adds a `mxr-ask-comment-flow` that posts new comments to the Director
-channel as a reply to the original Adaptive Card.
+Same `mxr-approval-flow-v2` flow with Routing=Director branch. Adds a
+`mxr-ask-comment-flow` that posts new comments to the Director channel
+as a reply to the original Adaptive Card.
 
 ---
 
 ## 4. Safety Report
 
 **Anonymous or named safety concern reporting.** Managers can
-Acknowledge, Request More Info, or Escalate. Anonymous reporters cannot
-receive replies. Named reporters get Teams notifications at every step.
-All reports permanently archived.
+Acknowledge, Return for more info, or Escalate. Anonymous reporters
+cannot receive replies. Named reporters get Teams notifications at
+every step. All reports permanently archived.
 
 ### Lists touched
 
@@ -279,7 +304,7 @@ Sorted by Level desc (Alert > Advisory > Info), then `Posted At` desc.
 
 ## Companion docs
 
-- `roles-capability-matrix.md` — who can do what (8 roles × 42 capabilities)
-- `runbook.md` — operational deployment runbook
-- `connections.md` — connection references + service account model
-- `../sharepoint-lists/phase1-blank-templates/README.md` — column-by-column schema reference
+- `roles-capability-matrix.md` — who can do what (8 roles × 42 capabilities) — also extension scope
+- `runbook.md` — canonical Phase 1 deployment runbook
+- `connections.md` — connection references + 5 canonical Dataverse roles
+- `tables/cr_*.md` — Dataverse table specs (8 canonical + 7 extension)

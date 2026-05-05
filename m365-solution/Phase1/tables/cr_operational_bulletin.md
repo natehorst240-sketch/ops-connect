@@ -1,5 +1,22 @@
 # Table: `cr_operational_bulletin`
 
+> **⚠️ EXTENSION TABLE — NOT IN CANONICAL CSV.**
+>
+> This table was added during the role-capability-matrix expansion
+> (MC Documentation v3). It does **not** appear in
+> `m365-solution/sharepoint-lists/` and has no canonical seed data.
+>
+> **Don't build this table for the canonical Phase 1 deployment.** The
+> canonical 11 tables (8 Phase 1 + 3 Phase 2) cover the documented IHC
+> requirements. This table is reserved for the **Bulletins module**
+> from the role matrix — Director/RMM/QA-posted operational bulletins
+> with Alert/Advisory/Info levels.
+>
+> If you proceed with this table, treat the spec as speculative —
+> column names + Choice enums are not validated against real IHC data.
+
+---
+
 Director / RMM / QA-posted operational bulletins. Three levels (Alert /
 Advisory / Info) drive home-screen color treatment. Resolve requires
 written Resolution Notes.
