@@ -13,9 +13,21 @@ lands here. The Power Automate flow reads from + writes to this table.
 
 ## Primary column
 
-`cr_request_number` — **Autonumber**, format `MXR-{SEQNUM:00000}`, seed `1`.
-This is the human-readable request ID that appears in Teams DMs and the
-Audit Log.
+The modern Power Apps maker only allows Text for primary columns at
+table-creation time, so Phase 1 uses a two-column pattern:
+
+- **Primary column (Dataverse-required):** `cr_request_label` —
+  Text(100), Optional. Not used by any Phase 1 logic. Optionally
+  backfilled by canvas at submit for human-readable default views.
+- **Business-ID column (used everywhere):** `cr_request_number` —
+  **Autonumber**, prefix `MXR-`, minimum digit count `5`, seed `1`.
+  Format produces `MXR-00001`. The flow, Adaptive Card, audit Subject
+  ID, and Teams DMs all reference this column directly, never the
+  primary column.
+
+Add `cr_request_label` first (during table creation), then add
+`cr_request_number` as a regular Autonumber column after the table is
+saved.
 
 ## Ownership + scope
 
