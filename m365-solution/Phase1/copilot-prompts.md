@@ -4,6 +4,13 @@ Copy-paste prompts that actually save time during the Phase 1 build.
 Tested against Copilot in Power Apps Studio + Power Automate Studio +
 the make.powerapps.com home page.
 
+> **All names below conform to `NAMING-CONVENTIONS.md`.** Personnel
+> tables use a regular hyphen (`Personnel - Maintenance`), not an em
+> dash. Choice qualifiers use the singular table display name
+> (`Status (MX Request)`, not `Status (MX Requests)`). If you're
+> copy-pasting an old prompt from elsewhere, normalize against the
+> conventions doc first.
+
 For each prompt: **what to load first**, the **prompt itself**, and
 what to **manually fix afterward**. Copilot gets you 50–70% of the way;
 the spec docs (`tables/`, `flows/`, `powerfx/canvas-app.md`) are the
@@ -31,6 +38,9 @@ Mitigations:
    "modify" an existing table, copy the table first. If Copilot
    destroys it, you still have the copy.
 5. **Read the prompt one more time before submitting.** No takebacks.
+6. **Confirm MX Connect is set as preferred solution** before any
+   table-creation prompt. Otherwise tables go to Default Publisher
+   (`cr87b_`) — see `rebuild-from-clean-state.md`.
 
 The prompts in this doc are pre-chunked to minimize blast radius —
 each one builds **one** thing. Don't combine them into a megaprompt.
@@ -93,6 +103,7 @@ table.**
 - Add Status Updated At + Status Updated By columns (they aren't in
   the CSV)
 - Set the RMM column to Person/Group manually
+- **Verify schema name** — should be `cr_aircraft`, not `cr87b_aircraft`
 
 **Repeat for:** every table that has a populated CSV. Count: 8 tables.
 Pause for 30 seconds between each to verify the previous result.
@@ -106,7 +117,7 @@ Pause for 30 seconds between each to verify the previous result.
 **Prompt:**
 
 ```
-Create a global Choice option called "Status (MX Requests)" with
+Create a global Choice option called "Status (MX Request)" with
 schema name "cr_mx_request_status". Six values:
 
   1: Submitted (default)
@@ -117,13 +128,17 @@ schema name "cr_mx_request_status". Six values:
   6: Cancelled
 ```
 
-Run this 22 times — once per global choice in
-`build-walkthrough.md §A.4`. Yes, tedious. But each run is small and
-contained, so failures are easy to clean up.
+Run this 22 times — once per global choice in `NAMING-CONVENTIONS.md
+§4`. Yes, tedious. But each run is small and contained, so failures
+are easy to clean up.
 
 **Don't batch all 22 into one prompt.** If it mis-types one,
 it'll mis-type all of them and you lose the audit trail of what got
 created.
+
+**Use the singular table qualifier** — `Status (MX Request)`, not
+`Status (MX Requests)`. The Choice describes one entity's enum, not a
+collection. (See `NAMING-CONVENTIONS.md §4` for all 22.)
 
 ---
 
@@ -141,7 +156,7 @@ Other columns:
 - Event At: date and time (UTC), required
 - Actor: lookup to User (systemuser), required
 - Actor Role: text 32, required
-- Action: choice (use existing global choice "Action (Audit Log)")
+- Action: choice (use existing global choice "Action (MX Audit)")
 - Subject Table: text 40, required
 - Subject ID: text 50, required
 - Audit Correlation: text 50, required
@@ -161,8 +176,7 @@ table (it's a system table, not custom).
 # Flows — chunked prompts
 
 Power Automate's "Describe it to design it" runs to completion. The
-single-prompt monolith below is in §"What I used to recommend" — it
-works but is risky.
+single-prompt monolith is risky.
 
 **Better path: build the flow in 5 small prompts**, accepting each
 result before submitting the next.
@@ -202,7 +216,7 @@ Initialize three string variables in sequence:
 **Prompt:**
 
 ```
-Add a row to the MX Audit Dataverse table:
+Add a row to the MX Audits Dataverse table:
 - cr_event_at = utcNow()
 - cr_actor = bind to the systemuser whose ID is in the trigger row's
   _cr_requested_by_value
@@ -281,7 +295,7 @@ you click Accept to apply. No mid-flight surprises.
 ```
 When a row in the Aircraft table is modified and the Status column
 changes to "AOG", add a new row to the Operational Bulletins table:
-- Subject: the aircraft's Tail + " AOG — " + the aircraft's Base
+- Subject: the aircraft's Tail + " AOG - " + the aircraft's Base
 - Body: the aircraft's Status Reason
 - Level: Alert
 - Audience: All
@@ -290,7 +304,7 @@ changes to "AOG", add a new row to the Operational Bulletins table:
 - Posted At: utcNow()
 - Audit Correlation: a new GUID
 
-Then add a row to MX Audit with action aircraft.status_changed, the
+Then add a row to MX Audits with action aircraft.status_changed, the
 same audit correlation, and metadata containing a JSON blob with the
 old status, new status, and reason.
 ```
@@ -321,14 +335,14 @@ the bottom of the formula bar.
 Patch a new row to the MX Requests Dataverse table. Set:
 - Aircraft Tail to dd_AircraftPicker.Selected
 - Request Type to the selected value of dd_RequestType (use type-safe
-  choice 'Request Type (MX Requests)'.[option])
+  choice 'Request Type (MX Request)'.[option])
 - Window Start to a datetime composed from dp_WindowStart and dd_StartTime
 - Window End to a datetime composed from dp_WindowEnd and dd_EndTime
 - Base to dd_Base.Selected
 - Reason to txt_Reason.Text
-- Priority to dd_Priority.Selected.Value
-- Status to "Submitted" choice
-- Routing to "RMM" choice
+- Priority to 'Priority (MX Request)' value matching dd_Priority.Selected.Value
+- Status to 'Status (MX Request)'.Submitted
+- Routing to 'Routing (MX Request)'.RMM
 - Requested By to User()
 - Audit Correlation to a new GUID
 - Comments Count to 0
@@ -339,7 +353,7 @@ Then navigate to scr_RequestConfirm with Cover transition.
 
 **What to fix afterward:**
 - Copilot may use `{ Value: "Submitted" }` syntax — works, but
-  type-safe `'Status (MX Requests)'.Submitted` is cleaner
+  type-safe `'Status (MX Request)'.Submitted` is cleaner
 - Add validation If() block above the Patch (Copilot rarely includes it)
 
 ---
@@ -352,9 +366,9 @@ Then navigate to scr_RequestConfirm with Cover transition.
 
 ```
 On app start, set varCurrentUser to User(). Look up the current user
-in the Personnel — Maintenance Dataverse table by Email and store as
-varUserPersonnel. Determine varRole from the user's Personnel.Role,
-falling back to a Personnel — Crew lookup, then to "Payroll" if the
+in the "Personnel - Maintenance" Dataverse table by Email and store
+as varUserPersonnel. Determine varRole from the user's Personnel.Role,
+falling back to a "Personnel - Crew" lookup, then to "Payroll" if the
 email matches a hard-coded list, otherwise "Unknown".
 
 Build a record varCan with capability flags for: SubmitMXSchedule
@@ -364,17 +378,21 @@ SubmitSafetyReport (true for everyone except Unknown), PostBulletin
 (RMM, DOM, Director, QA, ADOM only), and so on for all 27 capabilities
 in the role matrix.
 
-ClearCollect colBulletins from Operational Bulletins where Status is
-Active. ClearCollect colMyApprovals from MX Requests where Status is
-Submitted, Decision is null, and the user is the appropriate approver
-based on their role.
+ClearCollect colBulletins from "Operational Bulletins" where Status is
+'Status (Operational Bulletin)'.Active.
+
+ClearCollect colMyApprovals from "MX Requests" where Status is
+'Status (MX Request)'.Submitted, Decision is null, and the user is
+the appropriate approver based on their role.
 
 Navigate to scr_Home with no transition.
 ```
 
-**What to fix afterward:** The full capability matrix has 27 flags;
-Copilot will scaffold maybe 8–10. Paste the rest from
-`powerfx/canvas-app.md §3` if it stops short.
+**What to fix afterward:** The full role matrix in
+`roles-capability-matrix.md` has 42 capabilities total; the canvas
+varCan record encodes ~27 of them as active flags. Copilot will
+scaffold maybe 8–10. Paste the rest from `powerfx/canvas-app.md §3`
+if it stops short.
 
 ---
 
@@ -391,8 +409,9 @@ the app first.
 ```
 Generate a screen called scr_ApprovalInbox bound to the MX Requests
 Dataverse table. Show a vertical gallery sorted by Submitted At
-descending, filtered to where Status is Submitted, Escalated, or
-More Info Requested AND Decision is null. Each gallery item shows:
+descending, filtered to where Status is in ['Status (MX Request)'.
+Submitted, 'Status (MX Request)'.Escalated, 'Status (MX Request)'.
+'More Info Requested'] AND Decision is null. Each gallery item shows:
 
 - Top row: Request Number (bold) and Aircraft Tail
 - Second row: Request Type and a colored Priority pill
@@ -492,7 +511,7 @@ than letting Copilot try to fix its own mess.
 ```
 Generate a sample Power Automate Post-card-and-wait response payload.
 Action = "approve", responder is a fictional RMM (Steve Taul,
-steve.taul@ihc.org), comment = "Approved — coordinated with
+steve.taul@ihc.org), comment = "Approved - coordinated with
 N251HC for cross-coverage."
 ```
 
@@ -575,7 +594,7 @@ Day 2 morning — Canvas app (suggestion-style, pause-safe):
 ```
 
 **That's roughly 10h of effective AI-assisted build** with
-chunking-and-save discipline. Slightly slower than the 8.5h megaprompt
+chunking-and-save discipline. Slightly slower than the megaprompt
 path, but **massively safer** — bad runs are bounded to one table or
 one action, not the whole solution.
 
@@ -606,8 +625,10 @@ what you want.
 
 ## Companion docs
 
+- `NAMING-CONVENTIONS.md` — **canonical reference**; resolve any naming dispute against this
 - `build-walkthrough.md` — click-by-click steps without AI
 - `tables/README.md` — table specs (paste these into Copilot prompts)
 - `flows/mxr-approval-flow-v2.json` — flow recipe
 - `powerfx/canvas-app.md` — full Power Fx reference
 - `roles-capability-matrix.md` — role × capability source of truth
+- `rebuild-from-clean-state.md` — recovery if Plan mode poisoned the publisher
