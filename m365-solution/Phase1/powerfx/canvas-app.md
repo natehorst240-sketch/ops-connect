@@ -1,5 +1,19 @@
 # Canvas App Build Guide — MX Connect Dashboard (Dataverse)
 
+## Build-time naming notes (discovered during Phase 1 build)
+
+These override anything in the spec below where they conflict.
+
+| Issue | What the spec says | What Power Apps actually needs |
+|---|---|---|
+| Data source names | `'MX Request'`, `'Personnel - Maintenance'` etc. | **Plural**: `'MX Requests'`, `'Personnel - Maintenances'`, `'Personnel - Crews'`, `Aircrafts`, `Regions`, `Bases` |
+| Status column | `Status` | **`'Status (cr_status)'`** — plain `Status` resolves to the system `statecode` column (Active/Inactive) and causes a type error |
+| Decision column | `Decision` | **`cr_decision`** — logical name, not display name |
+| Request Number | `'Request Number'` | **`cr_request_number`** — logical name of the Autonumber column |
+| Role field | `varUserPersonnel.Role` compared to `"RMM"` etc. | Role is an **OptionSet** — use **`varUserPersonnel.Role.Value`** to get a comparable string |
+| Navigate in OnStart | `Navigate(scr_ApprovalInbox, ...)` | **Not allowed in OnStart** — set `StartScreen` in App → Advanced tab instead |
+| Leading spaces in column names | — | A leading space in a column's Display Name breaks formula resolution — Power Apps falls back to the system column. Fix in the column definition and re-add the data source. |
+
 > **⚠️ EXTENSION SCOPE — most of this doc describes the role-matrix
 > expansion (8 modules, 15 tables).**
 >

@@ -8,7 +8,7 @@ App As appinfo:
         Set(varCurrentUser, User());
         Set(varUserPersonnel,
             LookUp(
-                'Personnel - Maintenance',
+                'Personnel - Maintenances',
                 Email = varCurrentUser.Email
             )
         );
@@ -19,8 +19,8 @@ App As appinfo:
         //   Payroll users have no Personnel row → fall through via Entra group lookup.
         Set(varRole,
             Coalesce(
-                varUserPersonnel.Role,
-                LookUp('Personnel - Crew', Email = varCurrentUser.Email).Role,
+                varUserPersonnel.Role.Value,
+                LookUp('Personnel - Crews', Email = varCurrentUser.Email).Role.Value,
                 // Payroll fallback (Phase 2: replace with Entra group membership lookup)
                 If(
                     varCurrentUser.Email in [
@@ -80,9 +80,9 @@ App As appinfo:
         // --- Pending approvals for this user (canonical) ---
         ClearCollect(colMyApprovals,
             Filter(
-                'MX Request',
-                Status = 'Status (MX Requests)'.Submitted,
-                IsBlank(Decision),
+                'MX Requests',
+                'Status (cr_status)' = 'Status (MX Requests)'.Submitted,
+                IsBlank(cr_decision),
                 Or(
                     (varRole = "RMM" && 'Aircraft Tail'.RMM.Email = varCurrentUser.Email),
                     (varRole in ["Director","DOM"] && Routing = 'Routing (MX Requests)'.Director),
@@ -93,7 +93,7 @@ App As appinfo:
 
         // --- Default landing screen ---
         Set(varHomeScreen, scr_Home);
-        Navigate(scr_Home, ScreenTransition.None)
+        // Navigate() not allowed in OnStart — set StartScreen in App → Advanced tab instead
 
     OnError: |
         =Notify(
