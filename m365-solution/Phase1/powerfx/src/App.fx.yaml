@@ -1,0 +1,112 @@
+# §1 app settings: Name=MX Connect, Format=Phone, Solution=MXConnect
+# Theme: Primary=#FF6A00 Secondary=#18181B Accent=#3B82F6
+# File → Settings → Theme → Custom
+
+App As appinfo:
+    OnStart: |
+        =// --- Current user identity ---
+        Set(varCurrentUser, User());
+        Set(varUserPersonnel,
+            LookUp(
+                'Personnel - Maintenances',
+                Email = varCurrentUser.Email
+            )
+        );
+
+        // --- Role detection ---
+        //   Personnel.Role drives every visibility check.
+        //   Pilot fallback checks Personnel - Crew.
+        //   Payroll users have no Personnel row → fall through via Entra group lookup.
+        Set(varRole,
+            Coalesce(
+                varUserPersonnel.Role.Value,
+                LookUp('Personnel - Crews', Email = varCurrentUser.Email).Role.Value,
+                // Payroll fallback (Phase 2: replace with Entra group membership lookup)
+                If(
+                    varCurrentUser.Email in [
+                        "payroll@ihc.org",
+                        "payroll-admin@ihc.org"
+                    ],
+                    "Payroll",
+                    "Unknown"
+                )
+            )
+        );
+
+        // --- Capability matrix (mirrors roles-capability-matrix.md) ---
+        Set(varCan,
+            {
+                // Submit
+                SubmitAircraftStatus:   varRole in ["AMT","RMM","DOM","Director","QA","Supervisor","ADOM"],
+                SubmitPersonnelStatus:  varRole in ["AMT","RMM","DOM","Director","QA","Supervisor","ADOM"],
+                SubmitMXSchedule:       varRole in ["AMT","RMM","DOM","Director","QA","Supervisor","ADOM"],
+                SubmitAskLeadership:    !(varRole in ["Unknown"]),
+                SubmitSafetyReport:     !(varRole in ["Unknown"]),
+                SubmitAircraftMovement: varRole in ["AMT","RMM","DOM","Director","QA","Scheduler","PR","ADOM","Supervisor"],
+                SubmitPilotTraining:    varRole in ["Pilot","Chief Pilot"],
+                SubmitTimeOff:          varRole in ["AMT","RMM","DOM","Director","QA","Supervisor","ADOM"],
+                PostBulletin:           varRole in ["RMM","DOM","Director","QA","ADOM"],
+                // Approve / Act
+                ApproveMXSchedule:      varRole in ["RMM","DOM","Director","QA","Scheduler","ADOM"],
+                ApprovePRMovement:      varRole in ["Director","QA","Scheduler","ADOM"],
+                ApprovePilotTraining:   varRole in ["Scheduler"],
+                ApproveTimeOff:         varRole in ["RMM","DOM","Director","QA","ADOM"],
+                DenyWithReason:         varRole in ["RMM","DOM","Director","QA","Scheduler","ADOM"],
+                Return:                 varRole in ["RMM","DOM","Director","QA","Scheduler","ADOM"],
+                EscalateToDirector:     varRole in ["RMM","QA","ADOM"],
+                ResolveBulletin:        varRole in ["RMM","DOM","Director","QA","ADOM"],
+                DeleteBulletin:         varRole in ["Director","DOM"],
+                ReassignTech:           varRole in ["RMM","DOM","Director","ADOM"],
+                EditScheduleEntries:    varRole in ["Scheduler"],
+                // See
+                StatusDashboard:        varRole in ["RMM","DOM","Director","QA","ADOM"],
+                AskLeadershipDashboard: varRole in ["RMM","DOM","Director","QA","ADOM"],
+                SafetyDashboard:        varRole in ["RMM","DOM","Director","QA","ADOM"],
+                PRPilotDashboard:       varRole in ["Director","QA","Scheduler","ADOM"],
+                EscalationsFeed:        varRole in ["Director","DOM"],
+                FullVisibility:         varRole in ["DOM","Director","QA","Scheduler","ADOM"],
+                UploadDocs:             varRole in ["RMM","DOM","Director","QA","Scheduler","ADOM"]
+            }
+        );
+
+        // --- Bulletin feed cache — extension scope (requires cr_operational_bulletin) ---
+        ClearCollect(colBulletins,
+            Filter(
+                'Operational Bulletin',
+                Status = 'Status (Operational Bulletins)'.Active
+            )
+        );
+
+        // --- Pending approvals for this user (canonical) ---
+        ClearCollect(colMyApprovals,
+            Filter(
+                'MX Requests',
+                'Status (cr_status)' = 'Status (MX Requests)'.Submitted,
+                IsBlank(cr_decision),
+                Or(
+                    (varRole = "RMM" && 'Aircraft Tail'.RMM.Email = varCurrentUser.Email),
+                    (varRole in ["Director","DOM"] && Routing = 'Routing (MX Requests)'.Director),
+                    (varRole in ["QA","ADOM"])
+                )
+            )
+        );
+
+        // --- Default landing screen ---
+        Set(varHomeScreen, scr_Home);
+        // Navigate() not allowed in OnStart — set StartScreen in App → Advanced tab instead
+
+    OnError: |
+        =Notify(
+            "Something went wrong: " & FirstError.Message,
+            NotificationType.Error,
+            5000
+        );
+        Trace(
+            "MXConnect Error",
+            TraceSeverity.Error,
+            {
+                screen:  App.ActiveScreen.Name,
+                message: FirstError.Message,
+                source:  FirstError.Source
+            }
+        )

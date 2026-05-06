@@ -1,0 +1,23 @@
+{
+  "environment": "MXConnect",
+  "note": "§2 — Add via View → Data → + Add data → Dataverse → MXConnect environment",
+  "canonical_phase1": [
+    { "displayName": "MX Request",              "logicalName": "cr_mx_request" },
+    { "displayName": "MX Audit",                "logicalName": "cr_audit" },
+    { "displayName": "Aircraft",                "logicalName": "cr_aircraft" },
+    { "displayName": "Aircraft Type",           "logicalName": "cr_aircraft_type" },
+    { "displayName": "Personnel - Maintenance", "logicalName": "cr_personnel_maintenance" },
+    { "displayName": "Personnel - Crew",        "logicalName": "cr_personnel_crew", "note": "schema only — header-only CSV" },
+    { "displayName": "Region",                  "logicalName": "cr_region" },
+    { "displayName": "Base",                    "logicalName": "cr_base" }
+  ],
+  "extension_scope": [
+    { "displayName": "Operational Bulletin",    "logicalName": "cr_operational_bulletin" },
+    { "displayName": "Safety Report",           "logicalName": "cr_safety_report" },
+    { "displayName": "Aircraft Status Log",     "logicalName": "cr_aircraft_status_log" },
+    { "displayName": "Personnel Status Log",    "logicalName": "cr_personnel_status_log" },
+    { "displayName": "MX Request Comment",      "logicalName": "cr_mx_request_comment" },
+    { "displayName": "User Filter Preference",  "logicalName": "cr_user_filter_pref" },
+    { "displayName": "Schedule Event",          "logicalName": "cr_schedule_event", "note": "Phase 2" }
+  ]
+}
