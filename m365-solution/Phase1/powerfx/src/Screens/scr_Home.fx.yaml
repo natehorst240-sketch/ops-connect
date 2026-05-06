@@ -1,0 +1,248 @@
+# §5 — Home screen
+# Optional in strict canonical (fleet status read-out), but included as the
+# default landing screen navigated to by App.OnStart.
+
+scr_Home As screen:
+    OnVisible: |
+        =Set(varPageTitle, "Home — " & varRole);
+        Concurrent(
+            Refresh('Operational Bulletin'),
+            Refresh('MX Request')
+        );
+        // Extension scope: colBulletins requires cr_operational_bulletin
+        ClearCollect(colBulletins,
+            Filter(
+                'Operational Bulletin',
+                Status = 'Status (Operational Bulletins)'.Active
+            )
+        );
+        // Canonical: colMyApprovals drives the Approvals nav badge + KPI tile
+        ClearCollect(colMyApprovals,
+            Filter(
+                'MX Request',
+                Status = 'Status (MX Requests)'.Submitted,
+                IsBlank(Decision),
+                Or(
+                    (varRole = "RMM" && 'Aircraft Tail'.RMM.Email = varCurrentUser.Email),
+                    (varRole in ["Director","DOM"] && Routing = 'Routing (MX Requests)'.Director),
+                    (varRole in ["QA","ADOM"])
+                )
+            )
+        )
+
+    // Shell component instance — add header + side nav
+    cmpAppShell_Home As cmpAppShell:
+        X: =0
+        Y: =0
+        Width: =App.Width
+        Height: =App.Height
+
+    // ── Content area (right of 64px side nav) ──────────────────────────────
+
+    cnt_Content As container:
+        X: =64
+        Y: =56
+        Width: =App.Width - 64
+        Height: =App.Height - 56
+
+        // ── KPI tile row ───────────────────────────────────────────────────
+
+        cnt_PendingApprovals As container:
+            X: =8
+            Y: =8
+            Width: =(Parent.Width - 24) / 2
+            Height: =72
+            Fill: =RGBA(255,106,0,0.1)
+            RadiusTopLeft: =8
+            RadiusTopRight: =8
+            RadiusBottomLeft: =8
+            RadiusBottomRight: =8
+            OnSelect: =Navigate(scr_ApprovalInbox, ScreenTransition.Fade)
+
+            lbl_PendingCount As label:
+                X: =0
+                Y: =8
+                Width: =Parent.Width
+                Height: =36
+                Text: =CountRows(colMyApprovals)
+                Align: =Align.Center
+                Size: =28
+                FontWeight: =FontWeight.Bold
+                Color: =RGBA(255,106,0,1)
+
+            lbl_PendingLabel As label:
+                X: =0
+                Y: =44
+                Width: =Parent.Width
+                Height: =20
+                Text: ="Pending Approvals"
+                Align: =Align.Center
+                Size: =12
+                Color: =RGBA(100,100,100,1)
+
+        // Hide for Pilot / PR / Payroll
+        cnt_OnCallNow As container:
+            X: =Parent.Width / 2 + 4
+            Y: =8
+            Width: =(Parent.Width - 24) / 2
+            Height: =72
+            Fill: =RGBA(59,130,246,0.1)
+            RadiusTopLeft: =8
+            RadiusTopRight: =8
+            RadiusBottomLeft: =8
+            RadiusBottomRight: =8
+            Visible: =!(varRole in ["Pilot","PR","Payroll"])
+            OnSelect: =Navigate(scr_MyTeam, ScreenTransition.Fade)
+
+            lbl_OnCallCount As label:
+                X: =0
+                Y: =8
+                Width: =Parent.Width
+                Height: =36
+                Text: =CountRows(Filter('Personnel - Maintenance', 'On Shift' = true && Region = varUserPersonnel.Region))
+                Align: =Align.Center
+                Size: =28
+                FontWeight: =FontWeight.Bold
+                Color: =RGBA(59,130,246,1)
+
+            lbl_OnCallLabel As label:
+                X: =0
+                Y: =44
+                Width: =Parent.Width
+                Height: =20
+                Text: ="On Call Now"
+                Align: =Align.Center
+                Size: =12
+                Color: =RGBA(100,100,100,1)
+
+        // ── Status Dashboard tile (RMM / Director / QA / ADOM only) ───────
+
+        cnt_StatusTile As container:
+            X: =8
+            Y: =88
+            Width: =Parent.Width - 16
+            Height: =80
+            Fill: =RGBA(24,24,27,0.05)
+            RadiusTopLeft: =8
+            RadiusTopRight: =8
+            RadiusBottomLeft: =8
+            RadiusBottomRight: =8
+            Visible: =varCan.StatusDashboard
+
+            lbl_AOGLabel As label:
+                X: =8
+                Y: =8
+                Width: =120
+                Height: =20
+                Text: ="AOG Aircraft"
+                Size: =12
+                Color: =RGBA(100,100,100,1)
+
+            lbl_AOGCount As label:
+                X: =8
+                Y: =28
+                Width: =120
+                Height: =40
+                Text: =CountRows(Filter(Aircraft, Status = 'Status (Aircraft)'.AOG))
+                Size: =28
+                FontWeight: =FontWeight.Bold
+                Color: =RGBA(220,38,38,1)
+
+            lbl_RedStatusLabel As label:
+                X: =Parent.Width / 2
+                Y: =8
+                Width: =120
+                Height: =20
+                Text: ="Red Status"
+                Size: =12
+                Color: =RGBA(100,100,100,1)
+
+            lbl_RedStatusCount As label:
+                X: =Parent.Width / 2
+                Y: =28
+                Width: =120
+                Height: =40
+                Text: =CountRows(Filter('Personnel - Maintenance', Status = 'Status (Personnel)'.'Red Status'))
+                Size: =28
+                FontWeight: =FontWeight.Bold
+                Color: =RGBA(220,38,38,1)
+
+        // ── Bulletin feed (extension scope — requires cr_operational_bulletin) ──
+
+        gal_BulletinFeed As gallery.BrowseLayout_Vertical_1:
+            X: =8
+            Y: =176
+            Width: =Parent.Width - 16
+            Height: =Parent.Height - 184
+            TemplateSize: =72
+            Items: |
+                =SortByColumns(
+                    AddColumns(colBulletins,
+                        "LevelOrder",
+                        Switch(Level.Value,
+                            "Alert",    1,
+                            "Advisory", 2,
+                            "Info",     3,
+                            4
+                        )
+                    ),
+                    "LevelOrder", Ascending,
+                    "'Posted At'", Descending
+                )
+
+            cnt_BullTile As container:
+                X: =0
+                Y: =0
+                Width: =Parent.Width
+                Height: =72
+                Fill: =Switch(ThisItem.Level.Value,
+                    "Alert",    RGBA(220,38,38,0.15),
+                    "Advisory", RGBA(217,119,6,0.15),
+                    "Info",     RGBA(59,130,246,0.15)
+                )
+                BorderColor: =Switch(ThisItem.Level.Value,
+                    "Alert",    RGBA(220,38,38,1),
+                    "Advisory", RGBA(217,119,6,1),
+                    "Info",     RGBA(59,130,246,1)
+                )
+                BorderThickness: =2
+                RadiusTopLeft: =6
+                RadiusTopRight: =6
+                RadiusBottomLeft: =6
+                RadiusBottomRight: =6
+                OnSelect: |
+                    =Set(varSelectedBulletin, ThisItem);
+                    Navigate(scr_BulletinDetail, ScreenTransition.Fade)
+
+                lbl_BullLevel As label:
+                    X: =8
+                    Y: =6
+                    Width: =80
+                    Height: =18
+                    Text: =Upper(ThisItem.Level.Value)
+                    Size: =10
+                    FontWeight: =FontWeight.Bold
+                    Color: =Switch(ThisItem.Level.Value,
+                        "Alert",    RGBA(220,38,38,1),
+                        "Advisory", RGBA(217,119,6,1),
+                        "Info",     RGBA(59,130,246,1)
+                    )
+
+                lbl_BullSubject As label:
+                    X: =8
+                    Y: =24
+                    Width: =Parent.Width - 16
+                    Height: =22
+                    Text: =ThisItem.Subject
+                    Size: =14
+                    FontWeight: =FontWeight.Semibold
+                    Color: =RGBA(24,24,27,1)
+
+                lbl_BullPosted As label:
+                    X: =8
+                    Y: =46
+                    Width: =Parent.Width - 16
+                    Height: =18
+                    Text: ="Posted by " & ThisItem.'Posted By'.'Full Name' & " · " & DateDiff(ThisItem.'Posted At', Now(), Hours) & "h ago"
+                    Size: =11
+                    Color: =RGBA(120,120,120,1)

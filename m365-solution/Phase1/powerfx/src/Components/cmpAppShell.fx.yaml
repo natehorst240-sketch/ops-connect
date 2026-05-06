@@ -1,0 +1,102 @@
+# §4 — Layout shell component
+# Insert → Custom → New component → name: cmpAppShell
+# Reusable across all screens. Build once; copy instance to each screen.
+
+cmpAppShell As component:
+    Width: =App.Width
+    Height: =App.Height
+
+    // ── Header (top, 56px) ──────────────────────────────────────────────────
+
+    cnt_Header As container:
+        X: =0
+        Y: =0
+        Width: =Parent.Width
+        Height: =56
+        Fill: =RGBA(255,106,0,1)
+
+        ico_Logo As image:
+            X: =8
+            Y: =8
+            Width: =40
+            Height: =40
+            // Replace with actual logo asset once uploaded
+
+        lbl_PageTitle As label:
+            X: =56
+            Y: =0
+            Width: =Parent.Width - 56 - 48
+            Height: =56
+            Text: =varPageTitle
+            Color: =RGBA(255,255,255,1)
+            FontWeight: =FontWeight.Bold
+            Size: =18
+            VerticalAlign: =VerticalAlign.Middle
+
+        cnt_Avatar As container:
+            X: =Parent.Width - 48
+            Y: =8
+            Width: =40
+            Height: =40
+            Fill: =RGBA(255,255,255,0.2)
+            RadiusTopLeft: =20
+            RadiusTopRight: =20
+            RadiusBottomLeft: =20
+            RadiusBottomRight: =20
+            OnSelect: =Navigate(scr_Profile, ScreenTransition.Fade)
+
+            lbl_UserInitials As label:
+                X: =0
+                Y: =0
+                Width: =40
+                Height: =40
+                Text: =Left(varCurrentUser.FullName, 1) & Mid(LastN(Split(varCurrentUser.FullName, " "), 1).Result, 1, 1)
+                Color: =RGBA(255,255,255,1)
+                FontWeight: =FontWeight.Bold
+                Align: =Align.Center
+                VerticalAlign: =VerticalAlign.Middle
+
+    // ── Side nav (left, 64px wide — icon-only on phone) ────────────────────
+    // Extension-scope screens (scr_Bulletins, scr_AskLeadership, scr_Safety,
+    // scr_MXTracking, scr_MyTeam, scr_Docs, scr_ScheduleMX) are present but
+    // gated by varCan / varRole so canonical users only see canonical tiles.
+
+    gal_SideNav As gallery.BrowseLayout_Vertical_1:
+        X: =0
+        Y: =56
+        Width: =64
+        Height: =Parent.Height - 56
+        TemplateSize: =64
+        ShowScrollbar: =false
+        Items: |
+            =Filter(
+                [
+                    { id: "home",      icon: Icon.Home,      label: "Home",           screen: scr_Home,          show: true },
+                    { id: "schedule",  icon: Icon.Calendar,  label: "Schedule MX",    screen: scr_ScheduleMX,    show: varCan.SubmitMXSchedule || varCan.ApproveMXSchedule },
+                    { id: "status",    icon: Icon.Health,    label: "Status",         screen: scr_Status,        show: varCan.SubmitAircraftStatus || varCan.StatusDashboard },
+                    { id: "bulletins", icon: Icon.Megaphone, label: "Bulletins",      screen: scr_Bulletins,     show: true },
+                    { id: "asks",      icon: Icon.Message,   label: "Ask Leadership", screen: scr_AskLeadership, show: true },
+                    { id: "safety",    icon: Icon.Shield,    label: "Safety",         screen: scr_Safety,        show: varCan.SubmitSafetyReport },
+                    { id: "tracking",  icon: Icon.Trending,  label: "MX Tracking",    screen: scr_MXTracking,    show: true },
+                    { id: "myteam",    icon: Icon.People,    label: "My Team",        screen: scr_MyTeam,        show: !(varRole in ["Pilot","PR","Payroll"]) },
+                    { id: "docs",      icon: Icon.DockLeft,  label: "Docs",           screen: scr_Docs,          show: true },
+                    { id: "approvals", icon: Icon.Check,     label: "Approvals",      screen: scr_ApprovalInbox, show: CountRows(colMyApprovals) > 0 }
+                ],
+                show
+            )
+
+        cnt_Tile As container:
+            X: =0
+            Y: =0
+            Width: =64
+            Height: =64
+            Fill: =If(App.ActiveScreen = ThisItem.screen, RGBA(255,106,0,0.15), RGBA(0,0,0,0))
+            OnSelect: =Navigate(ThisItem.screen, ScreenTransition.Fade)
+
+            ico_Tile As icon:
+                X: =16
+                Y: =12
+                Width: =32
+                Height: =32
+                Icon: =ThisItem.icon
+                Color: =If(App.ActiveScreen = ThisItem.screen, RGBA(255,106,0,1), RGBA(180,180,180,1))
