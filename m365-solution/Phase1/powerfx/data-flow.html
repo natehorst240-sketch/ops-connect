@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>MX Connect — Table &amp; Formula Data Flow</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 13px; background: #f8fafc; color: #1e293b; }
+  h1 { padding: 16px 20px; background: #FF6A00; color: #fff; font-size: 18px; letter-spacing: .3px; }
+  h1 span { font-weight: 400; opacity: .85; font-size: 13px; margin-left: 12px; }
+
+  .legend { display: flex; gap: 20px; padding: 10px 20px; background: #fff; border-bottom: 1px solid #e2e8f0; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #475569; }
+  .dot { width: 12px; height: 12px; border-radius: 2px; }
+
+  .canvas { display: flex; gap: 0; overflow-x: auto; padding: 0; }
+
+  /* Columns */
+  .col { display: flex; flex-direction: column; gap: 12px; padding: 16px 12px; min-width: 230px; }
+  .col-label { font-size: 10px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; color: #94a3b8; margin-bottom: 4px; }
+
+  /* Table cards */
+  .tbl { border-radius: 6px; border: 2px solid; overflow: hidden; }
+  .tbl-head { padding: 8px 10px; font-weight: 700; font-size: 13px; }
+  .tbl-cols { background: #fff; }
+  .tbl-cols ul { list-style: none; padding: 6px 0; }
+  .tbl-cols li { padding: 3px 10px; font-size: 12px; color: #334155; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; gap: 6px; }
+  .tbl-cols li:last-child { border-bottom: none; }
+  .badge { font-size: 10px; padding: 1px 5px; border-radius: 10px; font-weight: 600; white-space: nowrap; }
+
+  /* Lookup/Reference tables — green */
+  .ref { border-color: #16a34a; }
+  .ref .tbl-head { background: #dcfce7; color: #166534; }
+
+  /* Hub table — orange */
+  .hub { border-color: #FF6A00; }
+  .hub .tbl-head { background: #fff7ed; color: #9a3412; }
+
+  /* Personnel/Audit tables — blue */
+  .ent { border-color: #3b82f6; }
+  .ent .tbl-head { background: #eff6ff; color: #1e40af; }
+
+  /* Feeds section */
+  .feeds { margin-top: 4px; padding: 6px 10px; background: #f8fafc; border-top: 1px dashed #e2e8f0; }
+  .feeds-label { font-size: 10px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; color: #94a3b8; margin-bottom: 4px; }
+  .feeds ul { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 4px; }
+  .feeds li { font-size: 11px; padding: 2px 7px; border-radius: 10px; }
+
+  /* Function column */
+  .fn-card { border-radius: 6px; padding: 8px 12px; font-size: 12px; font-weight: 600; border: 1.5px solid; }
+  .fn-name { font-size: 13px; }
+  .fn-cols { font-size: 11px; color: #64748b; margin-top: 4px; line-height: 1.5; font-weight: 400; }
+
+  /* Function color classes */
+  .fn-gray  { background: #f1f5f9; border-color: #94a3b8; }
+  .fn-green { background: #f0fdf4; border-color: #22c55e; color: #166534; }
+  .fn-red   { background: #fef2f2; border-color: #ef4444; color: #991b1b; }
+  .fn-amber { background: #fffbeb; border-color: #f59e0b; color: #92400e; }
+  .fn-blue  { background: #eff6ff; border-color: #3b82f6; color: #1e40af; }
+
+  /* Feed pill colors */
+  .pill-gray  { background: #e2e8f0; color: #475569; }
+  .pill-green { background: #dcfce7; color: #166534; }
+  .pill-red   { background: #fee2e2; color: #991b1b; }
+  .pill-amber { background: #fef3c7; color: #92400e; }
+  .pill-blue  { background: #dbeafe; color: #1e40af; }
+
+  /* Badge type colors */
+  .b-auto   { background: #fef9c3; color: #713f12; }
+  .b-choice { background: #ede9fe; color: #5b21b6; }
+  .b-text   { background: #f0f9ff; color: #075985; }
+  .b-dt     { background: #fce7f3; color: #9d174d; }
+  .b-lkp    { background: #dcfce7; color: #166534; }
+  .b-bool   { background: #fef3c7; color: #92400e; }
+  .b-pk     { background: #e0f2fe; color: #0c4a6e; font-style: italic; }
+
+  .divider { width: 1px; background: #e2e8f0; margin: 16px 0; align-self: stretch; }
+
+  .arrow-col { display: flex; align-items: center; justify-content: center; padding: 0 4px; }
+  .arrow-col svg { opacity: .35; }
+
+  @media (max-width: 900px) { .canvas { flex-direction: column; } .divider { width: auto; height: 1px; } }
+</style>
+</head>
+<body>
+
+<h1>MX Connect <span>Table &amp; Formula Data Flow — Phase 1</span></h1>
+
+<div class="legend">
+  <div class="legend-item"><div class="dot" style="background:#16a34a"></div> Lookup / Reference table</div>
+  <div class="legend-item"><div class="dot" style="background:#FF6A00"></div> Hub table (MX Requests)</div>
+  <div class="legend-item"><div class="dot" style="background:#3b82f6"></div> Entity table (Personnel / Audit)</div>
+  <div class="legend-item"><div class="dot" style="background:#ede9fe;border:1px solid #7c3aed"></div> Choice — use <code>.Value</code></div>
+  <div class="legend-item"><div class="dot" style="background:#dcfce7;border:1px solid #16a34a"></div> Lookup (FK)</div>
+  <div class="legend-item"><div class="dot" style="background:#e0f2fe;border:1px solid #0284c7"></div> Primary key column</div>
+</div>
+
+<div class="canvas">
+
+  <!-- ── Column 1: Lookup / Reference tables ─────────────────────────── -->
+  <div class="col">
+    <div class="col-label">Lookup / Reference</div>
+
+    <div class="tbl ref">
+      <div class="tbl-head">Aircrafts</div>
+      <div class="tbl-cols">
+        <ul>
+          <li><span class="badge b-pk">PK</span> cr_tail</li>
+          <li><span class="badge b-lkp">Lookup</span> Aircraft Type</li>
+          <li><span class="badge b-text">Text</span> Base</li>
+          <li><span class="badge b-text">Text</span> Region</li>
+          <li><span class="badge b-text">Text</span> RMM</li>
+          <li><span class="badge b-choice">Choice</span> Status (Aircraft)</li>
+        </ul>
+      </div>
+      <div class="feeds">
+        <div class="feeds-label">Feeds</div>
+        <ul>
+          <li class="pill-blue">btn_Submit</li>
+          <li class="pill-gray">dd_AircraftPicker</li>
+          <li class="pill-gray">App.OnStart (RMM.Email)</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="tbl ref">
+      <div class="tbl-head">Aircraft Types</div>
+      <div class="tbl-cols">
+        <ul>
+          <li><span class="badge b-pk">PK</span> Title</li>
+        </ul>
+      </div>
+      <div class="feeds">
+        <div class="feeds-label">Feeds</div>
+        <ul>
+          <li class="pill-blue">btn_Submit (via Aircraft Type)</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="tbl ref">
+      <div class="tbl-head">Bases</div>
+      <div class="tbl-cols">
+        <ul>
+          <li><span class="badge b-pk">PK</span> cr_title</li>
+          <li><span class="badge b-text">Text</span> City</li>
+          <li><span class="badge b-text">Text</span> Primary Region</li>
+        </ul>
+      </div>
+      <div class="feeds">
+        <div class="feeds-label">Feeds</div>
+        <ul>
+          <li class="pill-blue">btn_Submit</li>
+          <li class="pill-gray">dd_Base</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="tbl ref">
+      <div class="tbl-head">Regions</div>
+      <div class="tbl-cols">
+        <ul>
+          <li><span class="badge b-pk">PK</span> Title</li>
+        </ul>
+      </div>
+      <div class="feeds">
+        <div class="feeds-label">Feeds</div>
+        <ul>
+          <li class="pill-gray">Personnel filter (future)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ── Column 2: MX Requests hub ──────────────────────────────────── -->
+  <div class="col" style="min-width:270px">
+    <div class="col-label">Hub Table</div>
+
+    <div class="tbl hub">
+      <div class="tbl-head">MX Requests</div>
+      <div class="tbl-cols">
+        <ul>
+          <li><span class="badge b-auto">Auto</span> cr_request_number</li>
+          <li><span class="badge b-text">Text</span> Request Label</li>
+          <li><span class="badge b-choice">Choice</span> Status (cr_status)</li>
+          <li><span class="badge b-choice">Choice</span> cr_decision</li>
+          <li><span class="badge b-text">Text</span> Decision Reason</li>
+          <li><span class="badge b-text">Text</span> Decision Comment</li>
+          <li><span class="badge b-text">Text</span> More Info Request</li>
+          <li><span class="badge b-text">Text</span> Approver</li>
+          <li><span class="badge b-dt">DateTime</span> Decided At</li>
+          <li><span class="badge b-text">Text</span> Requested By</li>
+          <li><span class="badge b-choice">Choice</span> Request Type</li>
+          <li><span class="badge b-lkp">Lookup</span> Aircraft Tail → Aircrafts</li>
+          <li><span class="badge b-choice">Choice</span> Priority</li>
+          <li><span class="badge b-choice">Choice</span> Routing</li>
+          <li><span class="badge b-lkp">Lookup</span> Base → Bases</li>
+          <li><span class="badge b-text">Text</span> Reason</li>
+          <li><span class="badge b-dt">DateTime</span> Window Start</li>
+          <li><span class="badge b-dt">DateTime</span> Window End</li>
+          <li><span class="badge b-text">Text</span> Audit Correlation</li>
+        </ul>
+      </div>
+      <div class="feeds">
+        <div class="feeds-label">Feeds</div>
+        <ul>
+          <li class="pill-gray">App.OnStart</li>
+          <li class="pill-gray">ApprovalInbox.OnVisible</li>
+          <li class="pill-gray">gal_ApprovalList</li>
+          <li class="pill-green">btn_Approve</li>
+          <li class="pill-red">btn_Deny</li>
+          <li class="pill-amber">btn_Escalate</li>
+          <li class="pill-amber">btn_Return</li>
+          <li class="pill-blue">btn_Submit</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ── Column 3: Personnel / Audit ────────────────────────────────── -->
+  <div class="col">
+    <div class="col-label">Entity Tables</div>
+
+    <div class="tbl ent">
+      <div class="tbl-head">Personnel - Maintenances</div>
+      <div class="tbl-cols">
+        <ul>
+          <li><span class="badge b-pk">PK</span> Full Name</li>
+          <li><span class="badge b-text">Text</span> Email</li>
+          <li><span class="badge b-choice">Choice</span> Role → <code>.Value</code></li>
+          <li><span class="badge b-text">Text</span> Region</li>
+          <li><span class="badge b-text">Text</span> Primary Base</li>
+          <li><span class="badge b-bool">Bool</span> On Shift</li>
+        </ul>
+      </div>
+      <div class="feeds">
+        <div class="feeds-label">Feeds</div>
+        <ul>
+          <li class="pill-gray">App.OnStart (varRole)</li>
+          <li class="pill-gray">Home KPIs (On Shift, Region)</li>
+          <li class="pill-gray">OnCallNow KPI tile</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="tbl ent">
+      <div class="tbl-head">Personnel - Crews</div>
+      <div class="tbl-cols">
+        <ul>
+          <li><span class="badge b-pk">PK</span> Full Name</li>
+          <li><span class="badge b-text">Text</span> Email</li>
+          <li><span class="badge b-choice">Choice</span> Role → <code>.Value</code></li>
+        </ul>
+      </div>
+      <div class="feeds">
+        <div class="feeds-label">Feeds</div>
+        <ul>
+          <li class="pill-gray">App.OnStart (varRole fallback)</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="tbl ent">
+      <div class="tbl-head">MX Audits</div>
+      <div class="tbl-cols">
+        <ul>
+          <li><span class="badge b-text">Text</span> Audit Correlation</li>
+          <li><span class="badge b-text">Text</span> Action</li>
+          <li><span class="badge b-text">Text</span> Audit By</li>
+          <li><span class="badge b-dt">DateTime</span> Audit At</li>
+        </ul>
+      </div>
+      <div class="feeds">
+        <div class="feeds-label">Feeds</div>
+        <ul>
+          <li class="pill-blue">btn_Submit (GUID link)</li>
+          <li class="pill-gray">Audit trail display (Phase 2)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ── Column 4: Canvas Functions ─────────────────────────────────── -->
+  <div class="col" style="min-width:280px">
+    <div class="col-label">Canvas Functions</div>
+
+    <div class="fn-card fn-gray">
+      <div class="fn-name">App.OnStart</div>
+      <div class="fn-cols">
+        Personnel-Maintenances: Email, Role.Value<br>
+        Personnel-Crews: Email, Role.Value<br>
+        MX Requests: Status, Decision, Routing, Aircraft Tail.RMM.Email
+      </div>
+    </div>
+
+    <div class="fn-card fn-gray">
+      <div class="fn-name">scr_ApprovalInbox.OnVisible</div>
+      <div class="fn-cols">
+        MX Requests: Status (cr_status), cr_decision, Routing
+      </div>
+    </div>
+
+    <div class="fn-card fn-gray">
+      <div class="fn-name">gal_ApprovalList.Items</div>
+      <div class="fn-cols">
+        colMyApprovals (cached) → Requested By, cr_request_number, Request Type, Reason
+      </div>
+    </div>
+
+    <div class="fn-card fn-green">
+      <div class="fn-name">btn_Approve.OnSelect</div>
+      <div class="fn-cols">
+        Patch: Status=Approved, Decision=Approved, Approver, Decided At, Decision Comment
+      </div>
+    </div>
+
+    <div class="fn-card fn-red">
+      <div class="fn-name">btn_Deny.OnSelect</div>
+      <div class="fn-cols">
+        Patch: Status=Denied, Decision=Denied, Decision Reason, Approver, Decided At
+      </div>
+    </div>
+
+    <div class="fn-card fn-amber">
+      <div class="fn-name">btn_Escalate.OnSelect</div>
+      <div class="fn-cols">
+        Patch: Status=Escalated, Decision=Escalated, Routing=Director
+      </div>
+    </div>
+
+    <div class="fn-card fn-amber">
+      <div class="fn-name">btn_Return.OnSelect</div>
+      <div class="fn-cols">
+        Patch: Status=Returned, Decision=Returned, More Info Request, Approver, Decided At
+      </div>
+    </div>
+
+    <div class="fn-card fn-blue">
+      <div class="fn-name">btn_Submit.OnSelect</div>
+      <div class="fn-cols">
+        Patch: Aircraft Tail (Aircrafts.cr_tail), Base (Bases.cr_title), Request Type, Priority, Routing, Requested By=User().FullName, Audit Correlation=GUID()
+      </div>
+    </div>
+
+    <div class="fn-card fn-gray">
+      <div class="fn-name">dd_AircraftPicker.Items</div>
+      <div class="fn-cols">
+        ShowColumns(SortByColumns(Aircrafts, "cr_tail", SortOrder.Ascending), "cr_tail")
+      </div>
+    </div>
+
+    <div class="fn-card fn-gray">
+      <div class="fn-name">dd_Base.Items</div>
+      <div class="fn-cols">
+        ShowColumns(SortByColumns(Bases, "cr_title", SortOrder.Ascending), "cr_title")
+      </div>
+    </div>
+
+    <div class="fn-card fn-gray">
+      <div class="fn-name">Home KPIs</div>
+      <div class="fn-cols">
+        OnCallNow: Filter(Personnel-Maintenances, On Shift=true, Region=varUserPersonnel.Region)<br>
+        AOGCount: Filter(Aircrafts, Status=AOG)
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div style="padding:12px 20px; background:#fff; border-top:1px solid #e2e8f0; color:#94a3b8; font-size:11px;">
+  MX Connect Phase 1 · Generated from powerfx/FIELD-MAP.md · Branch: claude/powerfx-canvas-app-build-bhhgt
+</div>
+
+</body>
+</html>
