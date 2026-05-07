@@ -13,6 +13,7 @@ These override anything in the spec below where they conflict.
 | Role field | `varUserPersonnel.Role` compared to `"RMM"` etc. | Role is an **OptionSet** — use **`varUserPersonnel.Role.Value`** to get a comparable string |
 | Navigate in OnStart | `Navigate(scr_ApprovalInbox, ...)` | **Not allowed in OnStart** — set `StartScreen` in App → Advanced tab instead |
 | Leading spaces in column names | — | A leading space in a column's Display Name breaks formula resolution — Power Apps falls back to the system column. Fix in the column definition and re-add the data source. |
+| Theme | `File → Settings → Theme → Custom` | **Removed** — theme is now `App → Theme` property in the formula bar. Replace `PowerAppsTheme` with a custom palette record. |
 
 > **⚠️ EXTENSION SCOPE — most of this doc describes the role-matrix
 > expansion (8 modules, 15 tables).**
@@ -173,11 +174,25 @@ Power Apps Studio → + Create → Blank app → Canvas
 Set the app theme:
 
 ```
-File → Settings → Theme → Custom
-   Primary:    #FF6A00   (IHC orange)
-   Secondary:  #18181B   (neutral-900)
-   Accent:     #3B82F6   (info blue)
+Tree view → App → Theme property (formula bar)
 ```
+
+Replace `PowerAppsTheme` with:
+
+```powerapps
+{
+    palette: {
+        themePrimary:   "#FF6A00",
+        themeDark:      "#c45200",
+        themeLight:     "#ffd4b3",
+        neutralPrimary: "#18181B"
+    }
+}
+```
+
+(The old **File → Settings → Theme → Custom** menu was removed in
+current Power Apps Studio. Theme is now a formula property on the App
+object.)
 
 # 2. Add data sources
 
