@@ -31,7 +31,7 @@ Matches the header in `m365-solution/sharepoint-lists/11-personnel-crew.csv`:
 | `cr_last_name`           | Last Name            | Text (50)                  | Yes      | —           |                                                                    |
 | `cr_email`               | Email                | Email                      | Yes      | —           |                                                                    |
 | `cr_phone`               | Phone                | Phone                      | No       | —           |                                                                    |
-| `cr_role`                | Role                 | Choice                     | Yes      | —           | Phase 2 enum (Pilot / Flight Nurse / etc.) — not yet in canonical CSV. |
+| `cr_role`                | Role                 | Choice                     | Yes      | —           | Shared global option set (`cr_role`) — same 12 values as `cr_personnel_maintenance`. |
 | `cr_specialty`           | Specialty            | Choice (multi)             | No       | —           | Phase 2.                                                          |
 | `cr_region`              | Region               | Text (16)                  | No       | —           |                                                                    |
 | `cr_primary_base`        | Primary Base         | Text (50)                  | No       | —           |                                                                    |
@@ -44,8 +44,35 @@ Matches the header in `m365-solution/sharepoint-lists/11-personnel-crew.csv`:
 | `cr_notes`               | Notes                | Multiline text (1000)      | No       | —           |                                                                    |
 
 Phase 1 builds this table empty. Phase 2 populates from external
-rosters and locks down the Choice options for Role + Specialty based
-on the actual data.
+rosters and locks down the Choice options for Specialty based on the
+actual data.
+
+## Choice values
+
+### `cr_role`
+
+References the same global option set as `cr_personnel_maintenance.cr_role`.
+Add the column using the existing global option set — do not create a new
+local option set.
+
+| Label        | Value |
+| ------------ | ----- |
+| AMT          | 1     |
+| RMM          | 2     |
+| DOM          | 3     |
+| Director     | 4     |
+| QA           | 5     |
+| ADOM         | 6     |
+| Supervisor   | 7     |
+| Scheduler    | 8     |
+| Pilot        | 9     |
+| Chief Pilot  | 10    |
+| PR           | 11    |
+| Payroll      | 12    |
+
+In Phase 1 all crew rows are header-only; crew members that actually appear
+in Power Apps will resolve to `Pilot` or `Chief Pilot` via the
+`App.OnStart` Coalesce fallback (`LookUp('Personnel - Crews', ...).Role.Value`).
 
 ## Permissions
 
