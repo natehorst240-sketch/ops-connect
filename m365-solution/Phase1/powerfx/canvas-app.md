@@ -170,14 +170,22 @@ Power Apps Studio → + Create → Blank app → Canvas
    Save to: MXConnect solution
 ```
 
-Set the app theme:
+Set the app theme (optional — cosmetic only):
+
+In modern Power Apps Studio the theme is applied from the **Themes pane**
+in the toolbar, not via a formula. Do **not** set `App.Theme` in a Power Fx
+formula — `App.Theme` is a read-only object exposing `Colors`, `Font`, etc.
+and is not assignable to a `{ palette: … }` record; doing so produces a
+type-incompatible app-level error.
 
 ```
-File → Settings → Theme → Custom
-   Primary:    #FF6A00   (IHC orange)
-   Secondary:  #18181B   (neutral-900)
-   Accent:     #3B82F6   (info blue)
+Home tab → Theme (toolbar button) → pick Coral (closest preset to IHC orange)
 ```
+
+Brand colours are applied directly on controls via hardcoded RGBA values
+(e.g. `RGBA(255,106,0,1)` for IHC orange) throughout this guide, so the
+preset theme choice does not affect formula correctness. Skip this step
+and proceed to §2 if you prefer.
 
 # 2. Add data sources
 
