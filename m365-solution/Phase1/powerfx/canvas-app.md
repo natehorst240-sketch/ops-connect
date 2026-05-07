@@ -7,7 +7,7 @@ These override anything in the spec below where they conflict.
 | Issue | What the spec says | What Power Apps actually needs |
 |---|---|---|
 | Data source names | `'MX Request'`, `'Personnel - Maintenance'` etc. | **Plural**: `'MX Requests'`, `'Personnel - Maintenances'`, `'Personnel - Crews'`, `Aircrafts`, `Regions`, `Bases` |
-| Status column | `Status` | **`'Status (cr_status)'`** — plain `Status` resolves to the system `statecode` column (Active/Inactive) and causes a type error |
+| Status column | `Status` | **`'Status (cr_status)'`** — plain `Status` resolves to the system `statecode` column (Active/Inactive) and causes a type error. For string comparison in Filter use **`Text('Status (cr_status)') = "Submitted"`** — `.Value` is not recognized on this column reference in current Studio |
 | Decision column | `Decision` | **`cr_decision`** — logical name, not display name |
 | Request Number | `'Request Number'` | **`cr_request_number`** — logical name of the Autonumber column |
 | Role field | `varUserPersonnel.Role.Value` | `Role` on `Personnel - Maintenances` and `Role` on `Personnel - Crews` are **two separate local OptionSet types** — `Coalesce` rejects them because the types don't match. Use **`Text(varUserPersonnel.Role)`** (not `.Value`) to coerce each to a plain string before `Coalesce`. `Text()` returns the display label ("AMT", "RMM", …) and returns blank on blank, so `Coalesce` works correctly. |
