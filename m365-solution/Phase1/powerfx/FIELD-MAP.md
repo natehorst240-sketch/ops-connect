@@ -131,6 +131,30 @@ table column and vice versa.
 > comparing to strings like `"RMM"`, `"Director"` etc. Direct comparison
 > causes "Incompatible types" error.
 
+### Role (cr_role) choice values — shared global option set
+
+Used by both `cr_personnel_maintenance` and `cr_personnel_crew`.
+
+| Label       | Value | Power Apps ref                  |
+|-------------|-------|---------------------------------|
+| AMT         | 1     | `'Role (Personnel)'.AMT`        |
+| RMM         | 2     | `'Role (Personnel)'.RMM`        |
+| DOM         | 3     | `'Role (Personnel)'.DOM`        |
+| Director    | 4     | `'Role (Personnel)'.Director`   |
+| QA          | 5     | `'Role (Personnel)'.QA`         |
+| ADOM        | 6     | `'Role (Personnel)'.ADOM`       |
+| Supervisor  | 7     | `'Role (Personnel)'.Supervisor` |
+| Scheduler   | 8     | `'Role (Personnel)'.Scheduler`  |
+| Pilot       | 9     | `'Role (Personnel)'.Pilot`      |
+| Chief Pilot | 10    | `'Role (Personnel)'.'Chief Pilot'` |
+| PR          | 11    | `'Role (Personnel)'.PR`         |
+| Payroll     | 12    | `'Role (Personnel)'.Payroll`    |
+
+> The OptionSet display name in Power Apps is `Role (Personnel)` — the
+> parenthetical disambiguates it from other `Role` columns in the
+> environment. If Power Apps shows a different auto-generated name,
+> note it here and update all formula refs.
+
 ---
 
 ## Formula → column dependency cross-reference

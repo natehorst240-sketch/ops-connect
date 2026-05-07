@@ -50,23 +50,33 @@ Phase 1 keeps them as text to import the CSV verbatim. Phase 2 normalizes.
 
 ### `cr_role`
 
-Values actually used in the canonical CSV (10 distinct roles):
+Shared global option set used by both `cr_personnel_maintenance` and
+`cr_personnel_crew`. Define all 12 options on the global option set;
+each table's column references the same set.
 
-| Label                                  | Value | CSV row count |
-| -------------------------------------- | ----- | ------------- |
-| AMT                                    | 1     | ~64           |
-| AMT (Rover)                            | 2     | 3             |
-| Supervisor                             | 3     | 3             |
-| RMM                                    | 4     | 8             |
-| DOM                                    | 5     | 3             |
-| QA                                     | 6     | 2             |
-| QA Manager                             | 7     | 1             |
-| Parts                                  | 8     | 3             |
-| Scheduler                              | 9     | 2             |
-| Senior Director Aviation Operations    | 10    | 1             |
+| Label        | Value |
+| ------------ | ----- |
+| AMT          | 1     |
+| RMM          | 2     |
+| DOM          | 3     |
+| Director     | 4     |
+| QA           | 5     |
+| ADOM         | 6     |
+| Supervisor   | 7     |
+| Scheduler    | 8     |
+| Pilot        | 9     |
+| Chief Pilot  | 10    |
+| PR           | 11    |
+| Payroll      | 12    |
 
-**`ADOM` is not in the canonical CSV** — don't add it as a role option.
-If needed in Phase 2, document the addition there.
+**AMT (Rover)** personnel in the CSV are imported with Role = `AMT`
+(value 1); the Rover distinction is carried by `cr_primary_base =
+"Rover"` and `cr_coverage_bases`. No separate option needed.
+
+**QA Manager / Parts / Senior Director Aviation Operations** from the
+earlier spec are collapsed: QA Manager → `QA`, Parts and Senior
+Director → `Director` or `DOM` depending on the individual. Update the
+seed CSV labels before import.
 
 ## Permissions
 

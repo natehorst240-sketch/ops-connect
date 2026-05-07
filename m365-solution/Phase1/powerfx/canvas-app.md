@@ -229,8 +229,8 @@ Set(varUserPersonnel,
 //   Payroll users have no Personnel row → fall through via Entra group lookup.
 Set(varRole,
     Coalesce(
-        varUserPersonnel.Role,
-        LookUp('Personnel - Crew', Email = varCurrentUser.Email).Role,
+        varUserPersonnel.Role.Value,
+        LookUp('Personnel - Crew', Email = varCurrentUser.Email).Role.Value,
         // Payroll fallback (Phase 2: replace with Entra group membership lookup)
         If(
             varCurrentUser.Email in [
