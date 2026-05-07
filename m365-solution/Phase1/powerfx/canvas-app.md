@@ -7,10 +7,11 @@ These override anything in the spec below where they conflict.
 | Issue | What the spec says | What Power Apps actually needs |
 |---|---|---|
 | Data source names | `'MX Request'`, `'Personnel - Maintenance'` etc. | **Plural**: `'MX Requests'`, `'Personnel - Maintenances'`, `'Personnel - Crews'`, `Aircrafts`, `Regions`, `Bases` |
-| Status column | `Status` | **`'Status (cr_status)'`** — plain `Status` resolves to the system `statecode` column (Active/Inactive) and causes a type error |
+| Status column | `Status` | **`'Status (cr_status)'`** — plain `Status` resolves to the system `statecode` column (Active/Inactive) and causes a type error. For string comparison in Filter use **`Text('Status (cr_status)') = "Submitted"`** — `.Value` is not recognized on this column reference in current Studio |
 | Decision column | `Decision` | **`cr_decision`** — logical name, not display name |
+| OptionSet values in Patch | `'Status (MX Requests)'.Approved` | Column name and OptionSet type name are different. Use column name for the field key and OptionSet type name for the value — e.g. `{ 'Status (cr_status)': 'Status (MX Requests)'.Approved, cr_decision: 'Decision (MX Requests)'.Approved }` |
 | Request Number | `'Request Number'` | **`cr_request_number`** — logical name of the Autonumber column |
-| Role field | `varUserPersonnel.Role` compared to `"RMM"` etc. | Role is an **OptionSet** — use **`varUserPersonnel.Role.Value`** to get a comparable string |
+| Role field | `varUserPersonnel.Role.Value` | `Role` on `Personnel - Maintenances` and `Role` on `Personnel - Crews` are **two separate local OptionSet types** — `Coalesce` rejects them because the types don't match. Use **`Text(varUserPersonnel.Role)`** (not `.Value`) to coerce each to a plain string before `Coalesce`. `Text()` returns the display label ("AMT", "RMM", …) and returns blank on blank, so `Coalesce` works correctly. |
 | Navigate in OnStart | `Navigate(scr_ApprovalInbox, ...)` | **Not allowed in OnStart** — set `StartScreen` in App → Advanced tab instead |
 | Leading spaces in column names | — | A leading space in a column's Display Name breaks formula resolution — Power Apps falls back to the system column. Fix in the column definition and re-add the data source. |
 | Theme | `File → Settings → Theme → Custom` | **Removed** — theme is now `App → Theme` property in the formula bar. Replace `PowerAppsTheme` with a custom palette record. |
@@ -171,7 +172,13 @@ Power Apps Studio → + Create → Blank app → Canvas
    Save to: MXConnect solution
 ```
 
-Set the app theme:
+Set the app theme (optional — cosmetic only):
+
+In modern Power Apps Studio the theme is applied from the **Themes pane**
+in the toolbar, not via a formula. Do **not** set `App.Theme` in a Power Fx
+formula — `App.Theme` is a read-only object exposing `Colors`, `Font`, etc.
+and is not assignable to a `{ palette: … }` record; doing so produces a
+type-incompatible app-level error.
 
 ```
 Tree view → App → Theme property (formula bar)
