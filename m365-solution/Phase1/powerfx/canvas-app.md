@@ -10,7 +10,7 @@ These override anything in the spec below where they conflict.
 | Status column | `Status` | **`'Status (cr_status)'`** — plain `Status` resolves to the system `statecode` column (Active/Inactive) and causes a type error |
 | Decision column | `Decision` | **`cr_decision`** — logical name, not display name |
 | Request Number | `'Request Number'` | **`cr_request_number`** — logical name of the Autonumber column |
-| Role field | `varUserPersonnel.Role` compared to `"RMM"` etc. | Role is an **OptionSet** — use **`varUserPersonnel.Role.Value`** to get a comparable string |
+| Role field | `varUserPersonnel.Role.Value` | `Role` on `Personnel - Maintenances` and `Role` on `Personnel - Crews` are **two separate local OptionSet types** — `Coalesce` rejects them because the types don't match. Use **`Text(varUserPersonnel.Role)`** (not `.Value`) to coerce each to a plain string before `Coalesce`. `Text()` returns the display label ("AMT", "RMM", …) and returns blank on blank, so `Coalesce` works correctly. |
 | Navigate in OnStart | `Navigate(scr_ApprovalInbox, ...)` | **Not allowed in OnStart** — set `StartScreen` in App → Advanced tab instead |
 | Leading spaces in column names | — | A leading space in a column's Display Name breaks formula resolution — Power Apps falls back to the system column. Fix in the column definition and re-add the data source. |
 
