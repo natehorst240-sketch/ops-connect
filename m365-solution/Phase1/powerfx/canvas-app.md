@@ -13,6 +13,7 @@ These override anything in the spec below where they conflict.
 | Role field | `varUserPersonnel.Role.Value` | `Role` on `Personnel - Maintenances` and `Role` on `Personnel - Crews` are **two separate local OptionSet types** — `Coalesce` rejects them because the types don't match. Use **`Text(varUserPersonnel.Role)`** (not `.Value`) to coerce each to a plain string before `Coalesce`. `Text()` returns the display label ("AMT", "RMM", …) and returns blank on blank, so `Coalesce` works correctly. |
 | Navigate in OnStart | `Navigate(scr_ApprovalInbox, ...)` | **Not allowed in OnStart** — set `StartScreen` in App → Advanced tab instead |
 | Leading spaces in column names | — | A leading space in a column's Display Name breaks formula resolution — Power Apps falls back to the system column. Fix in the column definition and re-add the data source. |
+| Theme | `File → Settings → Theme → Custom` | **Removed** — theme is now `App → Theme` property in the formula bar. Replace `PowerAppsTheme` with a custom palette record. |
 
 > **⚠️ EXTENSION SCOPE — most of this doc describes the role-matrix
 > expansion (8 modules, 15 tables).**
@@ -179,13 +180,25 @@ and is not assignable to a `{ palette: … }` record; doing so produces a
 type-incompatible app-level error.
 
 ```
-Home tab → Theme (toolbar button) → pick Coral (closest preset to IHC orange)
+Tree view → App → Theme property (formula bar)
 ```
 
-Brand colours are applied directly on controls via hardcoded RGBA values
-(e.g. `RGBA(255,106,0,1)` for IHC orange) throughout this guide, so the
-preset theme choice does not affect formula correctness. Skip this step
-and proceed to §2 if you prefer.
+Replace `PowerAppsTheme` with:
+
+```powerapps
+{
+    palette: {
+        themePrimary:   "#FF6A00",
+        themeDark:      "#c45200",
+        themeLight:     "#ffd4b3",
+        neutralPrimary: "#18181B"
+    }
+}
+```
+
+(The old **File → Settings → Theme → Custom** menu was removed in
+current Power Apps Studio. Theme is now a formula property on the App
+object.)
 
 # 2. Add data sources
 
