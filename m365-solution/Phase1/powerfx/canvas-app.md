@@ -1,7 +1,7 @@
 # Canvas App Build Guide — MX Connect Dashboard (Dataverse)
 
 ## Build-time naming notes (discovered during Phase 1 build)
-
+ 
 These override anything in the spec below where they conflict.
 
 | Issue | What the spec says | What Power Apps actually needs |
