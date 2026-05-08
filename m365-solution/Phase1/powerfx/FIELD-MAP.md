@@ -5,7 +5,7 @@ the `cr_` prefix. Use this doc to trace any formula error back to its
 table column and vice versa.
 
 ---
-
+ 
 ## Table name translation
 
 | Spec name                  | Power Apps data source name      | Logical name              |
