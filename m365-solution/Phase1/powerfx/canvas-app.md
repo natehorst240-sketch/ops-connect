@@ -868,68 +868,151 @@ Navigate(scr_Home, ScreenTransition.Fade)
 
 ---
 
-> **Sections 9–14 below are all extension scope** (Ask Leadership,
-> Safety, Docs, My Team, MX Tracking, Bulletins). Skip for canonical
-> Phase 1.
+> **Sections 10–14 below are extension scope** (Safety, Docs, My Team,
+> MX Tracking, Bulletins). Ask Leadership (section 9) is canonical Phase 1.
 
-# 9. Module 3 — Ask Leadership (`scr_AskLeadership`) — extension
+# 9. Module 3 — Ask Leadership
+
+## Screens
+
+- **`scr_AskLeadership`** — hub: submit new question + list of existing questions
+- **`scr_AskDetail`** — thread view for a selected question
+
+## Variables
+
+| Variable            | Type          | Set in                        |
+| ------------------- | ------------- | ----------------------------- |
+| `varSelectedRequest`| MX Request record | `gal_Asks.OnSelect`, `btn_SubmitQuestion.OnSelect` |
+| `colAsks`           | Collection    | `scr_AskLeadership.OnVisible` |
+
+---
+
+## `scr_AskLeadership`
+
+### Controls
+
+| Name                | Type           | Notes                                  |
+| ------------------- | -------------- | -------------------------------------- |
+| `cmpAppShell`       | Component      | Header + side nav                      |
+| `lbl_AskTitle`      | Label          | Text: `"Ask Leadership"`               |
+| `txt_Question`      | Text input     | Multiline. HintText: `"Type your question/request..."` |
+| `btn_SubmitQuestion`| Button         | Text: `"Submit Question"`              |
+| `gal_Asks`          | Gallery        | Vertical, blank template. Items: `colAsks` |
+| `lbl_AskItem`       | Label (template) | Inside `gal_Asks`                    |
+
+### `scr_AskLeadership.OnVisible`
 
 ```powerapps
-// scr_AskLeadership.OnVisible
 Set(varPageTitle, "Ask Leadership");
-Refresh('MX Request');
-Refresh('MX Request Comment');
+Refresh('MX Requests');
+Refresh('MX Request Comments');
 ClearCollect(colAsks,
-    Filter('MX Request',
+    Filter('MX Requests',
         'Request Type' = 'Request Type (MX Requests)'.'Ask Leadership',
-        Or(
-            varCan.FullVisibility,
-            'Requested By' = varCurrentUser.FullName,
-            varCan.AskLeadershipDashboard
-        )
+        varRole in ["RMM","DOM","Director","QA","ADOM"] ||
+        'Requested By' = varCurrentUser.FullName
     )
 )
 ```
 
-## gal_Asks.OnSelect (per item)
+> Phase 2: replace inline `varRole` check with `varCan.FullVisibility || varCan.AskLeadershipDashboard`.
+
+### `btn_SubmitQuestion.OnSelect`
 
 ```powerapps
-Set(varSelectedAsk, ThisItem);
-ClearCollect(colAskComments,
-    SortByColumns(
-        Filter('MX Request Comment', 'MX Request' = ThisItem),
-        "'Posted At'", Ascending
+If(
+    IsBlank(txt_Question.Text),
+    Notify("Please enter a question.", NotificationType.Warning),
+    Set(varSubmitting, true);
+    Set(varNewRequest,
+        Patch('MX Requests', Defaults('MX Requests'),
+            {
+                'Request Type': 'Request Type (MX Requests)'.'Ask Leadership',
+                Reason:         txt_Question.Text,
+                'Status (cr_status)': 'Status (MX Requests)'.Submitted,
+                Routing:        'Routing (MX Requests)'.Director,
+                'Requested By': varCurrentUser.FullName
+            }
+        )
+    );
+    Set(varSubmitting, false);
+    If(IsBlank(varNewRequest.cr_request_number),
+        Notify("Submission failed. Try again.", NotificationType.Error),
+        Set(varSelectedRequest, varNewRequest);
+        Navigate(scr_AskDetail, ScreenTransition.Cover)
     )
-);
-Navigate(scr_AskThread, ScreenTransition.Fade)
+)
 ```
 
-## btn_PostComment.OnSelect
+### `gal_Asks.OnSelect`
 
 ```powerapps
-If(IsBlank(txt_NewComment.Text),
-    Notify("Type a comment.", NotificationType.Warning),
-    Patch('MX Request Comment', Defaults('MX Request Comment'),
+Set(varSelectedRequest, ThisItem);
+Navigate(scr_AskDetail, ScreenTransition.Fade)
+```
+
+### `lbl_AskItem.Text` (gallery template)
+
+```powerapps
+ThisItem.Reason & Char(10) & Text(ThisItem.'Created On', DateTimeFormat.ShortDate)
+```
+
+---
+
+## `scr_AskDetail`
+
+### Controls
+
+| Name                  | Type           | Notes                                         |
+| --------------------- | -------------- | --------------------------------------------- |
+| `cmpAppShell`         | Component      | Header + side nav                             |
+| `lbl_AskDetailQuestion` | Label        | Shows the question text                       |
+| `gal_Comment`         | Gallery        | Flexible height. Thread of comments           |
+| `lbl_commentBody`     | Label (template) | Inside `gal_Comment`                        |
+| `txt_NewComment`      | Text input     | Multiline. Below gallery                      |
+| `btn_PostComment`     | Button         | Text: `"Post"`                                |
+
+### `lbl_AskDetailQuestion.Text`
+
+```powerapps
+varSelectedRequest.Reason
+```
+
+### `gal_Comment.Items`
+
+```powerapps
+Sort(
+    Filter('MX Request Comments',
+        cr_mx_request_id.cr_mx_requestid = varSelectedRequest.cr_mx_requestid
+    ),
+    'Posted at',
+    SortOrder.Ascending
+)
+```
+
+### `lbl_commentBody.Text` (gallery template)
+
+```powerapps
+ThisItem.'Posted by' & " — " & Text(ThisItem.'Posted at', DateTimeFormat.ShortDateTime) & Char(10) & ThisItem.Body
+```
+
+### `btn_PostComment.OnSelect`
+
+```powerapps
+If(
+    IsBlank(txt_NewComment.Text),
+    Notify("Enter a comment.", NotificationType.Warning),
+    Patch('MX Request Comments', Defaults('MX Request Comments'),
         {
-            'MX Request':       varSelectedAsk,
-            'Posted At':        Now(),
-            'Posted By':        varCurrentUser,
-            Body:               txt_NewComment.Text,
-            'Visible To Roles': 'Visible To Roles (MX Request Comments)'.'All approvers'
+            'MX Request':  varSelectedRequest,
+            Body:          txt_NewComment.Text,
+            'Posted at':   Now(),
+            'Posted by':   varCurrentUser.FullName
         }
     );
-    Patch('MX Request', varSelectedAsk,
-        { 'Comments Count': varSelectedAsk.'Comments Count' + 1 }
-    );
-    ClearCollect(colAskComments,
-        SortByColumns(
-            Filter('MX Request Comment', 'MX Request' = varSelectedAsk),
-            "'Posted At'", Ascending
-        )
-    );
-    Reset(txt_NewComment)
+    Reset(txt_NewComment);
+    Refresh('MX Request Comments')
 )
-```
 
 # 10. Module 4 — Safety Report (`scr_Safety`) — extension
 
