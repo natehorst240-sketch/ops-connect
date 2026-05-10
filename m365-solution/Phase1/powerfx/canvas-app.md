@@ -1014,7 +1014,303 @@ If(
     Refresh('MX Request Comments')
 )
 
-# 10. Module 4 — Safety Report (`scr_Safety`) — extension
+# 10. MX Scheduler (`scr_Scheduler`)
+
+Read-only Gantt view of MX Requests plotted on a date timeline. Director/RMM-facing. Uses Phase 1 `MX Requests` data — no Phase 2 dependency. Built entirely with standard Power Apps controls (no PCF, no external libraries).
+
+## Architecture
+
+Three layers stacked on the same coordinate space:
+
+```
+240px shell sidebar | 160px row labels | 966px bar area (14 days × ~69px/day)
+─────────────────────────────────────────────────────────────────────────────
+Y=56  [Aircraft header cell] [Mon 4][Tue 5][Wed 6]...[Sun 17]   ← gal_DateHeader
+Y=96  [AW109SP             ] [████Approved████][              ]  ← gal_GanttGrid row 0
+Y=144 [AS365               ] [      ][██Submitted██][          ]  ← row 1
+Y=192 [H145                ] [      ][      ][██AOG████████    ]  ← row 2
+```
+
+- **`gal_DateHeader`** — horizontal gallery, one cell per day
+- **`gal_RowLabels`** — vertical gallery, aircraft types down the left
+- **`gal_GanttGrid`** — outer vertical gallery (one row per aircraft); inner `gal_DayCells` horizontal gallery (one cell per day), colored by task status
+
+## Variables (set in OnVisible)
+
+| Variable | Value | Notes |
+|---|---|---|
+| `varGanttDays` | `14` | Days in current view |
+| `varGanttStart` | `DateAdd(Today(), -1, TimeUnit.Days)` | Yesterday |
+| `varGanttEnd` | `DateAdd(varGanttStart, varGanttDays - 1, TimeUnit.Days)` | +13 days |
+| `varRowH` | `48` | Row height in px |
+| `varBarAreaW` | `966` | `App.Width - 400` |
+| `varPixelsPerDay` | `varBarAreaW / varGanttDays` | ~69px for 14-day |
+
+## `scr_Scheduler.OnVisible`
+
+```powerapps
+Set(varPageTitle, "MX Scheduler");
+Set(varGanttDays, 14);
+Set(varGanttStart, DateAdd(Today(), -1, TimeUnit.Days));
+Set(varGanttEnd, DateAdd(varGanttStart, varGanttDays - 1, TimeUnit.Days));
+Set(varRowH, 48);
+Set(varBarAreaW, 966);
+Set(varPixelsPerDay, varBarAreaW / varGanttDays);
+
+// Date header cells
+ClearCollect(colGanttDates,
+    ForAll(Sequence(varGanttDays),
+        {
+            DayNum:   Value,
+            DayDate:  DateAdd(varGanttStart, Value - 1, TimeUnit.Days),
+            DayLabel: Text(DateAdd(varGanttStart, Value - 1, TimeUnit.Days), "ddd d"),
+            IsToday:  DateAdd(varGanttStart, Value - 1, TimeUnit.Days) = Today()
+        }
+    )
+);
+
+// Tasks clamped to view window
+ClearCollect(colGanttTasks,
+    AddColumns(
+        Filter('MX Requests',
+            cr_window_start <= varGanttEnd,
+            cr_window_end   >= varGanttStart
+        ),
+        "RowKey",       If(IsBlank(cr_aircraft_type), "Unassigned", cr_aircraft_type),
+        "TaskLabel",    Text('Request Type (MX Requests)'),
+        "ClampedStart", If(cr_window_start < varGanttStart, varGanttStart, cr_window_start),
+        "ClampedEnd",   If(cr_window_end   > varGanttEnd,   varGanttEnd,   cr_window_end),
+        "StatusPriority", Switch(Text('Status (cr_status)'),
+            "Denied",    4,
+            "Submitted", 2,
+            "Approved",  1,
+            0
+        ),
+        "BarColor", Switch(Text('Status (cr_status)'),
+            "Approved",  RGBA(22,163,74,1),
+            "Submitted", RGBA(217,119,6,1),
+            "Denied",    RGBA(220,38,38,1),
+            RGBA(156,163,175,1)
+        )
+    )
+);
+
+// Distinct rows with stable index for Y positioning
+Clear(colGanttRows);
+ForAll(
+    Sort(Distinct(colGanttTasks, RowKey), Value, SortOrder.Ascending),
+    Collect(colGanttRows, {RowKey: Value, RowIndex: CountRows(colGanttRows)})
+)
+```
+
+## Navigation buttons
+
+### `btn_SchPrev.OnSelect`
+```powerapps
+Set(varGanttStart, DateAdd(varGanttStart, -varGanttDays, TimeUnit.Days));
+Set(varGanttEnd, DateAdd(varGanttStart, varGanttDays - 1, TimeUnit.Days));
+ClearCollect(colGanttDates,
+    ForAll(Sequence(varGanttDays),
+        {
+            DayNum:   Value,
+            DayDate:  DateAdd(varGanttStart, Value - 1, TimeUnit.Days),
+            DayLabel: Text(DateAdd(varGanttStart, Value - 1, TimeUnit.Days), "ddd d"),
+            IsToday:  DateAdd(varGanttStart, Value - 1, TimeUnit.Days) = Today()
+        }
+    )
+);
+ClearCollect(colGanttTasks,
+    AddColumns(
+        Filter('MX Requests',
+            cr_window_start <= varGanttEnd,
+            cr_window_end   >= varGanttStart
+        ),
+        "RowKey",       If(IsBlank(cr_aircraft_type), "Unassigned", cr_aircraft_type),
+        "TaskLabel",    Text('Request Type (MX Requests)'),
+        "ClampedStart", If(cr_window_start < varGanttStart, varGanttStart, cr_window_start),
+        "ClampedEnd",   If(cr_window_end   > varGanttEnd,   varGanttEnd,   cr_window_end),
+        "StatusPriority", Switch(Text('Status (cr_status)'), "Denied", 4, "Submitted", 2, "Approved", 1, 0),
+        "BarColor", Switch(Text('Status (cr_status)'), "Approved", RGBA(22,163,74,1), "Submitted", RGBA(217,119,6,1), "Denied", RGBA(220,38,38,1), RGBA(156,163,175,1))
+    )
+);
+Clear(colGanttRows);
+ForAll(Sort(Distinct(colGanttTasks, RowKey), Value, SortOrder.Ascending),
+    Collect(colGanttRows, {RowKey: Value, RowIndex: CountRows(colGanttRows)}))
+```
+
+`btn_SchNext.OnSelect` — same formula, change `-varGanttDays` to `+varGanttDays`.
+
+### `btn_Sch7Day.OnSelect` / `btn_Sch14Day.OnSelect`
+```powerapps
+// 7 day
+Set(varGanttDays, 7);
+Set(varPixelsPerDay, varBarAreaW / 7);
+// then re-run the same ClearCollect(colGanttDates, ...) block from OnVisible
+```
+
+## Control layout
+
+### Header bar
+| Control | X / Y / W / H | Property | Value |
+|---|---|---|---|
+| `rect_SchHeader` | 240 / 0 / 1126 / 56 | Fill | `RGBA(30,30,30,1)` |
+| `lbl_SchTitle` | 256 / 14 / 300 / 28 | Text | `"MX Scheduler"` |
+| `lbl_SchTitle` | — | Color / FontWeight / Size | White / Bold / 18 |
+| `btn_SchPrev` | 860 / 12 / 40 / 32 | Text | `"‹"` |
+| `lbl_SchDateRange` | 906 / 12 / 200 / 32 | Text | `Text(varGanttStart,"mmm d") & " – " & Text(varGanttEnd,"mmm d")` |
+| `btn_SchNext` | 1112 / 12 / 40 / 32 | Text | `"›"` |
+| `btn_Sch7Day` | 1160 / 12 / 70 / 32 | Text | `"7 Day"` |
+| `btn_Sch14Day` | 1238 / 12 / 80 / 32 | Text | `"14 Day"` |
+
+### Row label header cell
+| Control | X / Y / W / H | Property | Value |
+|---|---|---|---|
+| `rect_RowLabelHdr` | 240 / 56 / 160 / 40 | Fill | `RGBA(245,245,247,1)` |
+| `rect_RowLabelHdr` | — | BorderColor / BorderThickness | `RGBA(220,220,220,1)` / 1 |
+| `lbl_RowLabelHdr` | 248 / 68 / 144 / 16 | Text | `"Aircraft"` |
+| `lbl_RowLabelHdr` | — | Size / FontWeight | 11 / Bold |
+
+### `gal_DateHeader`
+| Property | Value |
+|---|---|
+| Items | `colGanttDates` |
+| X / Y / W / H | 400 / 56 / 966 / 40 |
+| TemplateSize | `varPixelsPerDay` |
+| Direction | Horizontal |
+| ShowScrollbar | false |
+
+Template controls:
+
+| Control | Property | Value |
+|---|---|---|
+| `rect_DateCell` | W / H | `Parent.TemplateWidth` / 40 |
+| `rect_DateCell` | Fill | `If(ThisItem.IsToday, RGBA(255,106,0,0.08), RGBA(245,245,247,1))` |
+| `rect_DateCell` | BorderColor / BorderThickness | `RGBA(220,220,220,1)` / 1 |
+| `lbl_DateLabel` | Text | `ThisItem.DayLabel` |
+| `lbl_DateLabel` | Color | `If(ThisItem.IsToday, RGBA(255,106,0,1), RGBA(80,80,80,1))` |
+| `lbl_DateLabel` | FontWeight | `If(ThisItem.IsToday, FontWeight.Bold, FontWeight.Normal)` |
+| `lbl_DateLabel` | Size | 11 |
+| `lbl_DateLabel` | Align | `Align.Center` |
+
+### `gal_RowLabels`
+| Property | Value |
+|---|---|
+| Items | `colGanttRows` |
+| X / Y / W / H | 240 / 96 / 160 / `CountRows(colGanttRows) * varRowH` |
+| TemplateSize | `varRowH` |
+| ShowScrollbar | false |
+
+Template controls:
+
+| Control | Property | Value |
+|---|---|---|
+| `rect_RowLabelCell` | W / H | 160 / `varRowH` |
+| `rect_RowLabelCell` | Fill | `If(Mod(ThisItem.RowIndex, 2) = 0, RGBA(255,255,255,1), RGBA(248,248,250,1))` |
+| `rect_RowLabelCell` | BorderColor | `RGBA(235,235,235,1)` |
+| `lbl_RowName` | Text | `ThisItem.RowKey` |
+| `lbl_RowName` | X / Y | 8 / 14 |
+| `lbl_RowName` | Size / FontWeight | 12 / Bold |
+| `lbl_RowName` | Color | `RGBA(40,40,40,1)` |
+
+### `gal_GanttGrid` (outer — one row per aircraft)
+| Property | Value |
+|---|---|
+| Items | `colGanttRows` |
+| X / Y / W / H | 400 / 96 / 966 / `CountRows(colGanttRows) * varRowH` |
+| TemplateSize | `varRowH` |
+| ShowScrollbar | false |
+
+Template controls:
+
+**`lbl_HiddenRowKey`** — captures outer `ThisItem.RowKey` for the inner gallery to reference:
+
+| Property | Value |
+|---|---|
+| Text | `ThisItem.RowKey` |
+| Visible | false |
+| Width / Height | 1 / 1 |
+
+**`gal_DayCells`** — inner horizontal gallery (one cell per day):
+
+| Property | Value |
+|---|---|
+| Items | `colGanttDates` |
+| X / Y / W / H | 0 / 0 / 966 / `varRowH` |
+| TemplateSize | `varPixelsPerDay` |
+| Direction | Horizontal |
+| ShowScrollbar | false |
+
+Inner template controls:
+
+| Control | Property | Value |
+|---|---|---|
+| `rect_DayCell` | W / H | `Parent.TemplateWidth` / `varRowH` |
+| `rect_DayCell` | Fill | See cell color formula below |
+| `rect_DayCell` | BorderColor | `RGBA(235,235,235,1)` |
+| `rect_DayCell` | BorderThickness | 1 |
+| `lbl_CellTask` | Text | See cell label formula below |
+| `lbl_CellTask` | X / Y / W / H | 2 / 16 / `Parent.TemplateWidth - 4` / 14 |
+| `lbl_CellTask` | Size | 9 |
+| `lbl_CellTask` | Color | White |
+| `lbl_CellTask` | Overflow | `Overflow.Hidden` |
+
+**`rect_DayCell.Fill` formula:**
+```powerapps
+With(
+    {
+        task: First(
+            SortByColumns(
+                Filter(colGanttTasks,
+                    RowKey = lbl_HiddenRowKey.Text,
+                    ClampedStart <= ThisItem.DayDate,
+                    ThisItem.DayDate < ClampedEnd
+                ),
+                "StatusPriority", SortOrder.Descending
+            )
+        )
+    },
+    If(
+        IsBlank(task),
+        If(ThisItem.IsToday, RGBA(255,106,0,0.05), RGBA(255,255,255,1)),
+        task.BarColor
+    )
+)
+```
+
+**`lbl_CellTask.Text` formula:**
+```powerapps
+With(
+    {
+        task: First(
+            Filter(colGanttTasks,
+                RowKey = lbl_HiddenRowKey.Text,
+                ClampedStart = ThisItem.DayDate
+            )
+        )
+    },
+    If(IsBlank(task), "", task.TaskLabel)
+)
+```
+
+### Today line
+| Control | X / Y / W / H | Property | Value |
+|---|---|---|---|
+| `rect_TodayLine` | `400 + DateDiff(varGanttStart, Today(), TimeUnit.Days) * varPixelsPerDay` / 56 / 2 / `40 + CountRows(colGanttRows) * varRowH` | Fill | `RGBA(255,106,0,0.7)` |
+| `rect_TodayLine` | — | Visible | `Today() >= varGanttStart && Today() <= varGanttEnd` |
+
+### Legend
+| Control | X / Y / W / H | Property | Value |
+|---|---|---|---|
+| `rect_LegApproved` | 400 / `96 + CountRows(colGanttRows) * varRowH + 12` / 12 / 12 | Fill | `RGBA(22,163,74,1)` |
+| `lbl_LegApproved` | 416 / same Y / 80 / 14 | Text | `"Approved"` |
+| `rect_LegSubmitted` | 504 / same Y / 12 / 12 | Fill | `RGBA(217,119,6,1)` |
+| `lbl_LegSubmitted` | 520 / same Y / 80 / 14 | Text | `"Submitted"` |
+| `rect_LegDenied` | 608 / same Y / 12 / 12 | Fill | `RGBA(220,38,38,1)` |
+| `lbl_LegDenied` | 624 / same Y / 60 / 14 | Text | `"Denied"` |
+
+---
+
+# 11. Module 4 — Safety Report (`scr_Safety`) — extension
 
 ## btn_SubmitSafety.OnSelect
 

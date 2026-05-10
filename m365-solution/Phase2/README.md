@@ -33,6 +33,7 @@ systems that hold the actual schedule and the live fleet position data.
 - 3 scheduled flows: scheduler poll, fleet position poll, conflict detection
 - 2 new canvas screens: Scheduler, Fleet Map
 - Phone-form-factor refresh of the existing canvas app
+- **Responsive layout** — replace fixed pixel positions with `App.Width`/`App.Height`-relative formulas so the app adapts to both phone (AMT in the field) and desktop/tablet (Director/RMM reviewing requests). Priority screens: `scr_AskLeadership`, `scr_AskDetail`, `scr_ApprovalInbox`, `scr_Home`. Each control's `X`, `Y`, `Width`, `Height` expressed as fractions of `Parent.Width`/`Parent.Height` rather than hardcoded values.
 
 ## Dependencies on Phase 1
 
