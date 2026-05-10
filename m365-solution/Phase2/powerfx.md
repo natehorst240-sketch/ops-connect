@@ -4,6 +4,246 @@ Two new screens in the `MX Request` canvas app. Both are read-only mirrors
 of source-system data; user actions deep-link out to CompleteFlight or
 ProteanHub for edits.
 
+---
+
+## Screen — `frmOncallSchedule` *(Phase 1 ready — no API required)*
+
+MX on-call rotation board. 8-day on / 6-day off, Wednesday-to-Wednesday
+handoff. The rotation is pure date math — no SharePoint list needed for
+Phase 1. Phase 2 just swaps the computed `PersonName` / `PersonPhone`
+values for a lookup against a list CompleteFlight writes to.
+
+### How the math works
+
+```
+slotIndex = RoundDown( DateDiff(anchorDate, today, Days) / 7, 0 )
+personIndex = Mod( slotIndex + regionPhaseOffset, 2 )   // 0 = Person A, 1 = Person B
+```
+
+- **Anchor** — Wednesday April 16, 2025 (`Date(2025, 4, 16)`). Every slot is
+  `anchor + slotIndex × 7 days`. Slot 53 = Wed Apr 22, 2026 (current demo week).
+- **Phase offset** — each region is staggered by 0 or 1 slot so they're not
+  all flipping on the same Wednesday.
+- **8 days inclusive** — a person is on from their slot's Wednesday through
+  the *next* Wednesday (the handoff day counts for both outgoing and incoming).
+
+### OnVisible — initialize
+
+```powerapps
+// Anchor date — must match the JS ONCALL_ROSTER anchor
+Set(varAnchorDate, Date(2025, 4, 16));
+
+// Slot index for today
+Set(varTodaySlotIdx,
+    RoundDown(DateDiff(varAnchorDate, Today(), Days) / 7, 0));
+
+// Wednesday that opens the current slot
+Set(varCurrentSlotWed,
+    DateAdd(varAnchorDate, varTodaySlotIdx * 7, Days));
+Set(varCurrentSlotEnd,
+    DateAdd(varCurrentSlotWed, 7, Days));
+
+// Navigation offset (< > buttons shift this)
+Set(varWeekViewOffset, 0);
+
+// ── Roster: two AMTs per region, phase offset staggers them ───────────────
+ClearCollect(colRoster,
+    {Region:"109 UT",  Label:"Intermountain",   PhaseOffset:0,
+     P0:"Alec Overton",     P0Ph:"801-660-7640", P0Base:"Logan IH-15",
+     P1:"Mac Paye",         P1Ph:"916-871-6135", P1Base:"Logan IH-15"},
+    {Region:"SLC FW",  Label:"SLC Fixed Wing",  PhaseOffset:1,
+     P0:"Jean-Paul Guidry", P0Ph:"801-738-4919", P0Base:"SLC FW",
+     P1:"Bryce Low",        P1Ph:"909-744-7878", P1Base:"SLC FW"},
+    {Region:"WY/MT",   Label:"Wyoming / Montana", PhaseOffset:0,
+     P0:"Nate Anderson",    P0Ph:"360-951-3875", P0Base:"Greybull IH-23",
+     P1:"Robert Guty",      P1Ph:"307-272-2616", P1Base:"Greybull IH-23"},
+    {Region:"CO/NM",   Label:"Colorado / NM",   PhaseOffset:1,
+     P0:"Derek Jorgensen",  P0Ph:"801-707-0318", P0Base:"Glenwood Springs IH-24",
+     P1:"John Modrow",      P1Ph:"907-209-9701", P1Base:"Steamboat Springs IH-26"},
+    {Region:"ID/NV",   Label:"Idaho / Nevada",  PhaseOffset:0,
+     P0:"Rex Schwarz",      P0Ph:"208-969-0844", P0Base:"Burley IH-08",
+     P1:"Nicholas Gonzales",P1Ph:"337-519-5722", P1Base:"Elko IH-04"},
+    {Region:"UT/AZ",   Label:"Utah / Arizona",  PhaseOffset:1,
+     P0:"Jon Hankins",      P0Ph:"702-824-8755", P0Base:"Fort Mohave IH-06",
+     P1:"Brian Hyland",     P1Ph:"801-842-9086", P1Base:"Richfield IH-12"},
+    {Region:"PAGE",    Label:"Page / Southwest", PhaseOffset:0,
+     P0:"Fred Bistline",    P0Ph:"435-233-8177", P0Base:"Page IH-17-18",
+     P1:"Denton Siebrecht", P1Ph:"928-640-1840", P1Base:"Page IH-17-18"}
+);
+
+// ── Computed: current on-call for every region ────────────────────────────
+ClearCollect(
+    colCurrentOncall,
+    AddColumns(
+        colRoster,
+        "PersonIndex",   Mod(varTodaySlotIdx + PhaseOffset, 2),
+        "PersonName",    If(Mod(varTodaySlotIdx + PhaseOffset, 2) = 0, P0,    P1),
+        "PersonPhone",   If(Mod(varTodaySlotIdx + PhaseOffset, 2) = 0, P0Ph,  P1Ph),
+        "PersonBase",    If(Mod(varTodaySlotIdx + PhaseOffset, 2) = 0, P0Base,P1Base),
+        "SlotStart",     varCurrentSlotWed,
+        "SlotEnd",       varCurrentSlotEnd,
+        "HandoffDays",   DateDiff(Today(), varCurrentSlotEnd, Days)
+    )
+)
+```
+
+### Navigation buttons
+
+```powerapps
+btnPrev.OnSelect  = Set(varWeekViewOffset, varWeekViewOffset - 8)
+btnToday.OnSelect = Set(varWeekViewOffset, 0)
+btnNext.OnSelect  = Set(varWeekViewOffset, varWeekViewOffset + 8)
+```
+
+### Current on-call strip — `galCurrentOncall`
+
+Horizontal wrapping gallery. Shows who is live right now, one card per region.
+
+```powerapps
+galCurrentOncall.Items     = colCurrentOncall
+galCurrentOncall.Direction = Horizontal
+galCurrentOncall.Wrap      = true
+
+// Inside template:
+lblCOCName.Text    = ThisItem.PersonName
+lblCOCRegion.Text  = ThisItem.Region
+lblCOCBase.Text    = ThisItem.PersonBase
+lblHandoff.Text    = "Handoff in " & ThisItem.HandoffDays & " days"
+btnCall.OnSelect   = Launch("tel:" & ThisItem.PersonPhone)
+```
+
+### 8-week schedule grid
+
+**Build the grid as a flat precomputed collection** (7 regions × 8 weeks = 56 rows).
+Power Fx's `ForAll` + `Ungroup` pattern keeps the gallery simple and avoids
+the nested-gallery parent-reference gotcha.
+
+```powerapps
+// Call this on OnVisible AND whenever varWeekViewOffset changes
+ClearCollect(
+    colScheduleGrid,
+    Ungroup(
+        ForAll(
+            colRoster As reg,
+            {
+                GridRows: ForAll(
+                    Sequence(8, 0) As wk,   // wk.Value = 0..7
+                    {
+                        Region:     reg.Region,
+                        Label:      reg.Label,
+                        WeekOffset: wk.Value,
+                        SlotIdx:    varTodaySlotIdx + varWeekViewOffset + wk.Value,
+                        SlotStart:  Text(
+                                        DateAdd(varAnchorDate,
+                                            (varTodaySlotIdx + varWeekViewOffset + wk.Value) * 7,
+                                            Days),
+                                        "mmm d"),
+                        IsCurrent:  varWeekViewOffset + wk.Value = 0,
+                        PersonName: If(
+                                        Mod(varTodaySlotIdx + varWeekViewOffset + wk.Value + reg.PhaseOffset, 2) = 0,
+                                        reg.P0, reg.P1),
+                        PersonPhone:If(
+                                        Mod(varTodaySlotIdx + varWeekViewOffset + wk.Value + reg.PhaseOffset, 2) = 0,
+                                        reg.P0Ph, reg.P1Ph),
+                        PersonIndex:Mod(varTodaySlotIdx + varWeekViewOffset + wk.Value + reg.PhaseOffset, 2)
+                    }
+                )
+            }
+        ),
+        "GridRows"
+    )
+);
+```
+
+#### Week header row (8 static labels — `lblHdr0` through `lblHdr7`)
+
+```powerapps
+lblHdr0.Text = Text(DateAdd(varAnchorDate, (varTodaySlotIdx + varWeekViewOffset + 0) * 7, Days), "mmm d")
+lblHdr1.Text = Text(DateAdd(varAnchorDate, (varTodaySlotIdx + varWeekViewOffset + 1) * 7, Days), "mmm d")
+// ... repeat for 2–7
+
+// Highlight current week
+lblHdr0.Fill = If(varWeekViewOffset = 0,  RGBA(249,115,22,0.10), RGBA(0,0,0,0))
+```
+
+#### Region rows gallery — `galRegionRows`
+
+One row per region. Inside the template, 8 side-by-side containers or
+labels pull from `colScheduleGrid` filtered to this region and week.
+
+```powerapps
+galRegionRows.Items = Distinct(colScheduleGrid, Region)   // 7 unique regions
+
+// Region label
+lblRowRegion.Text = ThisItem.Result    // Distinct returns .Result
+
+// Week cell helper (repeat this pattern for lblCell0 through lblCell7):
+// lblCell0 inside galRegionRows template
+lblCell0.Text =
+    With(
+        LookUp(colScheduleGrid, Region = galRegionRows.ThisItem.Result && WeekOffset = 0),
+        PersonName
+    )
+
+// Color-code: blue = person 0, orange = person 1
+lblCell0.Fill =
+    With(
+        LookUp(colScheduleGrid, Region = galRegionRows.ThisItem.Result && WeekOffset = 0),
+        If(PersonIndex = 0,
+            RGBA(59,130,246,0.15),
+            RGBA(249,115,22,0.15))
+    )
+
+// Highlight current week column
+lblCell0.BorderColor =
+    If(varWeekViewOffset = 0, RGBA(249,115,22,1), RGBA(50,50,50,1))
+lblCell0.BorderThickness = If(varWeekViewOffset = 0, 2, 0)
+```
+
+### Phase 2 swap point
+
+When CompleteFlight writes schedule data to a Dataverse/SharePoint list
+(`cr_oncall_schedule` with columns `cr_region`, `cr_slot_start`,
+`cr_person_name`, `cr_person_phone`), replace the `colScheduleGrid`
+`ForAll` block with:
+
+```powerapps
+// Phase 2 — replace the ForAll/Ungroup block with this:
+ClearCollect(
+    colScheduleGrid,
+    AddColumns(
+        Filter(
+            cr_oncall_schedule,
+            cr_slot_start >= DateAdd(Today(), varWeekViewOffset * 7, Days) &&
+            cr_slot_start <  DateAdd(Today(), (varWeekViewOffset + 8) * 7, Days)
+        ),
+        "WeekOffset", DateDiff(Today(), cr_slot_start, Days) / 7,
+        "SlotStart",  Text(cr_slot_start, "mmm d"),
+        "IsCurrent",  DateDiff(Today(), cr_slot_start, Days) = 0,
+        "PersonName", cr_person_name,
+        "PersonPhone",cr_person_phone
+    )
+);
+// galCurrentOncall, galRegionRows, and all cell formulas stay identical.
+```
+
+### Power Fx gotchas for this screen
+
+- **`Sequence(8, 0)` produces Values 0–7.** Don't use `Sequence(8)` —
+  that gives 1–8 and breaks the week offset math.
+- **`Ungroup` column name must match exactly.** The `GridRows` key in the
+  `ForAll` record and the `"GridRows"` string in `Ungroup` must be identical.
+- **Rebuild `colScheduleGrid` when `varWeekViewOffset` changes.** Put the
+  `ClearCollect` call in `btnPrev.OnSelect`, `btnNext.OnSelect`, and
+  `btnToday.OnSelect` (after setting the variable), not just in `OnVisible`.
+- **`Distinct()` returns `.Result` not the column name.** That's why
+  `galRegionRows.ThisItem.Result` is used, not `.Region`.
+- **LookUp in cell labels fires per row.** With 7 regions × 8 weeks = 56
+  lookups against a 56-row collection, performance is fine. If you grow past
+  ~200 rows, switch to a nested horizontal gallery instead.
+
+---
+
 ## Screen — `frmScheduler`
 
 7-day per-aircraft Gantt view. Each row is an aircraft; each column is a
