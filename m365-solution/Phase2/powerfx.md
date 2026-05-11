@@ -250,6 +250,116 @@ ClearCollect(
 day. Events render as positioned rectangles via the Container `X` /
 `Width` formula trick.
 
+### Gantt reference — RonLar community sample
+
+**Why this reference, not a PCF:**
+The [Universal Gantt Chart PCF](https://pcf.gallery/universal-gantt-chart/)
+was evaluated and rejected for this project:
+- GPL-3.0 license — requires IT/legal review at a healthcare org; any
+  distribution of a modified build would require open-sourcing.
+- Last commit October 2021 — 4+ years abandoned; 25 open issues; no
+  guarantee it works against current Power Apps runtime.
+- PCF import adds a managed-solution dependency and requires a DLP review
+  cycle. Since Phase 2 is read-only, drag-and-drop editing (the PCF's
+  main advantage) is not needed.
+
+**Reference:** [RonLar community Gantt sample](https://community.powerplatform.com/galleries/gallery-posts/?postid=e4a07fa7-862c-4c4c-a031-591f69c9aa0c)
+— standard controls only, MIT-equivalent community sample, last updated
+2024, canvas apps only. Provides expand/collapse aircraft-type rows and
+day/week/month zoom via pixel-per-day recalculation — both absent from
+the Phase 1 `scr_Scheduler` build.
+
+**Features to adopt from the sample:**
+
+| Feature | RonLar pattern | Applies to `frmScheduler` |
+|---|---|---|
+| Expand/collapse rows | `Show` + `Expanded` boolean columns in the row collection; chevron `OnSelect` toggles and re-filters | Group aircraft by `cr_aircraft_type`; collapse hides individual aircraft rows and shows a summary type row |
+| Day / Week / Month zoom | Recalculate `varPixelsPerDay` = `varBarAreaW / varZoomDays`; `varZoomDays` = 7 / 30 / 90 | Add `btnZoomDay`, `btnZoomWeek`, `btnZoomMonth` that set `varZoomDays` and re-run the date header collection |
+| Label outside bar | `If(barWidth < 60, bar.X + barWidth + 4, bar.X + 4)` | Prevents task label from clipping when bar is narrow |
+| Dynamic pixel math | `varPixelsPerDay = (barAreaEnd - barAreaStart) / varZoomDays` | Same formula; `barAreaStart` = label column width |
+
+**Column mapping — RonLar flat structure → `cr_schedule_event`:**
+
+| RonLar field | `cr_schedule_event` column | Notes |
+|---|---|---|
+| `Id` | `cr_schedule_eventid` | GUID |
+| `TaskName` | `cr_event_type` | Display as label on bar |
+| `StartDate` | `cr_window_start` | DateTime |
+| `EndDate` | `cr_window_end` | DateTime |
+| `TaskLvl` | 1 = type row, 2 = aircraft row | Computed in `AddColumns` |
+| `TaskType` | `cr_event_type` | Drives `BarColor` switch |
+| `Show` | Computed: `thisTypeExpanded \|\| TaskLvl = 1` | Controls gallery row visibility |
+| `Expanded` | `varExpandedTypes` record | Store as `{AW109SP: true, H145: false, …}` |
+
+**Row collection build pattern (adapt from RonLar):**
+
+```powerapps
+// Build a flat collection: one summary row per aircraft type + one detail
+// row per aircraft, sorted so type header always precedes its children.
+ClearCollect(colGanttRows,
+    // Type-level summary rows (TaskLvl = 1)
+    AddColumns(
+        Distinct(colAircraft, cr_aircraft_type),
+        "RowId",       Result,
+        "RowLabel",    Result,
+        "TaskLvl",     1,
+        "Show",        true,
+        "Expanded",    Coalesce(LookUp(varExpandedTypes, Key = Result).Val, true),
+        "cr_tail",     Blank()
+    )
+);
+// Aircraft-level rows (TaskLvl = 2), appended after their parent type row
+ForAll(
+    Sort(colAircraft, cr_aircraft_type, SortOrder.Ascending),
+    Collect(colGanttRows,
+        {
+            RowId:    cr_tail,
+            RowLabel: cr_tail & " — " & cr_base,
+            TaskLvl:  2,
+            Show:     Coalesce(LookUp(varExpandedTypes, Key = cr_aircraft_type).Val, true),
+            Expanded: false,
+            cr_tail:  cr_tail
+        }
+    )
+)
+```
+
+**Expand/collapse chevron `OnSelect`:**
+
+```powerapps
+// btn_Chevron inside the TaskLvl=1 row template
+UpdateIf(varExpandedTypes, Key = ThisItem.RowId, {Val: !ThisItem.Expanded});
+// Re-show/hide TaskLvl=2 rows for this type
+UpdateIf(colGanttRows, RowId = ThisItem.RowId, {Expanded: !ThisItem.Expanded});
+UpdateIf(colGanttRows,
+    TaskLvl = 2 &&
+    LookUp(colAircraft, cr_tail = RowId).cr_aircraft_type = ThisItem.RowId,
+    {Show: !ThisItem.Expanded}
+)
+```
+
+**Gallery Items filter (hides collapsed rows without gallery rebuild):**
+
+```powerapps
+galRows.Items = Filter(colGanttRows, Show = true)
+```
+
+**Zoom buttons:**
+
+```powerapps
+btnZoomDay.OnSelect   = Set(varZoomDays, 7);  Set(varPixelsPerDay, varBarAreaW / 7)
+btnZoomWeek.OnSelect  = Set(varZoomDays, 30); Set(varPixelsPerDay, varBarAreaW / 30)
+btnZoomMonth.OnSelect = Set(varZoomDays, 90); Set(varPixelsPerDay, varBarAreaW / 90)
+// After either zoom button: re-run ClearCollect(colGanttDates, ...) to rebuild header
+```
+
+**Install note:** The RonLar sample is distributed as a `.zip` canvas app
+package. Import via **Apps → Import canvas app → From package (.zip)**,
+open the imported app, and copy the relevant gallery + formula patterns
+into `frmScheduler`. Do not deploy the sample app itself to production.
+
+---
+
 ### Data sources
 
 ```powerapps
