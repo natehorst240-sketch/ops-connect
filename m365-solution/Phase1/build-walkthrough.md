@@ -283,7 +283,7 @@ you go, table by table.
 | Operations                   | `cr_base` (local)                | RW / FW / RW + FW / Office / Storage / Coverage / RW + Office                                           |
 | Aircraft Class               | global (shared by AC + AC Type)  | Rotary / Fixed Wing                                                                                     |
 | Aircraft Status              | `cr_aircraft` (local)            | In Service (1) / AOG (2) / Maintenance (3) / Away from Base (4) / Unavailable (5) / Spare (6)           |
-| Personnel Role               | `cr_personnel_maintenance` (local) | AMT (1) / AMT (Rover) (2) / Supervisor (3) / RMM (4) / DOM (5) / QA (6) / QA Manager (7) / Parts (8) / Scheduler (9) / Senior Director Aviation Operations (10) |
+| Personnel Role               | global (`cr_role`) — shared by both personnel tables | AMT (1) / RMM (2) / DOM (3) / Director (4) / QA (5) / ADOM (6) / Supervisor (7) / Scheduler (8) / Pilot (9) / Chief Pilot (10) / PR (11) / Payroll (12). **Create as a Global Choice** so both `cr_personnel_maintenance` and `cr_personnel_crew` reference the same option set. In Power Apps the option set is named `Role (Personnel)`. |
 | MX Request Type              | `cr_mx_request` (local)          | Phase Inspection (1) / Repair (2) / Overhaul (3) / Time Off (4) / Open Shift (5) / AOG (6)              |
 | MX Request Priority          | `cr_mx_request` (local)          | Normal (1) / High (2) / AOG (3)                                                                          |
 | MX Request Status            | `cr_mx_request` (local)          | Submitted (1) / Approved (2) / Denied (3) / Escalated (4) / Returned (5) / Cancelled (6)                |

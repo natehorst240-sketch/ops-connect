@@ -157,6 +157,46 @@ Used by both `cr_personnel_maintenance` and `cr_personnel_crew`.
 
 ---
 
+---
+
+## MX Request Comments — column map
+
+Power Apps data source name: **`'MX Request Comments'`** (plural, with `s`).
+
+> Column `cr_comment` was created during Phase 1 build and deleted. Only
+> `cr_body` (display: `Body`) remains as the comment text column. If Power
+> Apps shows a "cr_body does not exist" error, remove and re-add the data
+> source to flush the schema cache.
+
+| Display name | Power Apps formula ref | Logical name | Type | Notes |
+|---|---|---|---|---|
+| Body | `Body` | `cr_body` | Single line of text (100) | Comment text. Phase 2: upgrade to Multiline text (2000+). No quotes needed in formula — single word. |
+| MX Request | `'MX Request'` | `cr_mx_request_id` | Lookup → `cr_mx_request` | Parent record. Quotes required — contains space. |
+| Posted At | `'Posted At'` | `cr_posted_at` | Date and time | UTC. Quotes required. |
+| Posted By | `'Posted By'` | `cr_posted_by` | Lookup → systemuser | **Set Dataverse column default = "Current User". Do NOT set in canvas Patch** — passing a string to a systemuser Lookup causes a type error. |
+
+### Phase 1 interim formula shapes
+
+```powerapps
+// gal_Comment.Items — local collection (Phase 1 interim)
+colComments
+
+// lbl_commentBody.Text (matches colComments schema)
+ThisItem.PostedBy & " — " & Text(ThisItem.PostedAt, "mmm d h:mm AM/PM") & Char(10) & ThisItem.Body
+
+// btn_PostComment.OnSelect (Phase 1 interim — colComments)
+If(IsBlank(txt_NewComment.Text),
+    Notify("Enter a comment.", NotificationType.Warning),
+    Collect(colComments, { Body: txt_NewComment.Text, PostedBy: varCurrentUser.FullName, PostedAt: Now() });
+    Reset(txt_NewComment)
+)
+
+// btn_PostComment.OnSelect (Phase 2 — Dataverse Patch)
+// See canvas-app.md §9 for full formula
+```
+
+---
+
 ## Formula → column dependency cross-reference
 
 | Formula location              | Columns consumed                                                                                          |

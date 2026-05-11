@@ -54,12 +54,59 @@ systems that hold the actual schedule and the live fleet position data.
 - `powerfx.md` — Power Fx for Scheduler + Fleet Map screens
 - `flows/` — (forthcoming) flow JSON for the 3 polling + detection flows
 
+## Deployment path decision — Full vs No Outside Help
+
+Before Phase 2 procurement starts, choose which variant to deploy.
+
+### Full Phase 2 (4 APIs)
+
+The original spec: CompleteFlight + ProteanHub + SkyRouter + Veryon.
+All four API procurement cycles required (6–14 weeks total vendor coordination).
+
+### No Outside Help variant (~90–95% of Phase 2 capability)
+
+Eliminates SkyRouter and Veryon API dependencies entirely:
+
+- **SkyRouter → self-hosted ADS-B feeder network.** 18 Raspberry Pi stations
+  across IHC's footprint (UT, WY, MT, ID, NV, CO, NM, AZ, NC, WI). Each station
+  runs `dump1090-fa` + `tar1090` and exposes `/aircraft.json`. An Azure Function
+  polls every 30 seconds and upserts `cr_fleet_position`. Sub-30-second position
+  refresh vs SkyRouter's 15-minute polling ceiling.
+- **Veryon API → nightly Excel export.** Inspection due dates batch-loaded from
+  a SharePoint-dropped Veryon export. Flight hours stay live from CompleteFlight.
+  Hours-remaining calculation: `Next Due Hours (Veryon export) − Current Hours
+  (CompleteFlight live)`. 24-hour lag on due-date threshold; operationally
+  irrelevant for 100hr/300hr/annual intervals.
+
+**Outcome:** 2 API procurement cycles instead of 4. $3,300 one-time hardware
+instead of ongoing SkyRouter + Veryon subscriptions. 7–10 week timeline vs
+10–14 weeks.
+
+**Full spec:** `../NoOutsideHelp/prospectus.md`
+
+**Choose No Outside Help if:** Veryon API is stalled, SkyRouter cost is a
+friction point, or faster Phase 2 delivery is the priority.
+
+**Choose Full Phase 2 if:** Veryon and SkyRouter are already contracted, or
+IHC IT cannot support external hardware at hospital sites.
+
+---
+
 ## Pre-flight checklist (start when Phase 1 is in UAT)
 
+### Full Phase 2
 - [ ] Veryon API key procured (typically 2–3 weeks)
 - [ ] CompleteFlight API key procured (2–4 weeks)
 - [ ] ProteanHub API key procured (2–4 weeks)
 - [ ] SkyRouter API key procured (1–2 weeks)
 - [ ] DLP review extended to cover the 4 new connectors
-- [ ] Confirm Power Automate flow run quota is sufficient (Phase 2 polling
-      adds ~144 + 96 + 96 + 96 = ~432 runs/day across the 4 polls)
+- [ ] Confirm Power Automate flow run quota (Phase 2 polling adds ~432 runs/day)
+
+### No Outside Help variant
+- [ ] CompleteFlight API key procured (2–4 weeks)
+- [ ] ProteanHub API key procured (2–4 weeks)
+- [ ] ADS-B hardware ordered — 18 × ~$150 + 2 spares + shipping (~$3,300 total)
+- [ ] IHC IT provisioned network drop at each station mount point
+- [ ] Azure Function consumption plan created (ADS-B ingest, ~$5/mo)
+- [ ] Veryon Excel export drop folder created in SharePoint
+- [ ] DLP review extended to cover 2 new connectors
