@@ -57,7 +57,7 @@ canonical 11 cover the documented IHC requirements as-of the CSVs.
 | `cr_safety_report`           | Safety Report             | Safety Report              | Extension (no CSV)   |
 | `cr_aircraft_status_log`     | Aircraft Status Log       | Status                     | Extension (no CSV)   |
 | `cr_personnel_status_log`    | Personnel Status Log      | Status + My Team           | Extension (no CSV)   |
-| `cr_mx_request_comment`      | MX Request Comment        | Ask Leadership thread      | Extension (no CSV)   |
+| `cr_mx_request_comment`      | MX Request Comment        | Ask Leadership thread      | **Built in Phase 1** — active. Power Apps name: `'MX Request Comments'`. See spec for schema-cache gotcha (`cr_body` column). |
 | `cr_user_filter_pref`        | User Filter Preference    | MX Tracking saved filters  | Extension (no CSV)   |
 
 `cr_mx_request` itself has a few **extension columns** for the role

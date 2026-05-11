@@ -980,39 +980,110 @@ varSelectedRequest.Reason
 
 ### `gal_Comment.Items`
 
+**Current (Phase 1 interim) — local collection:**
+
+```powerapps
+colComments
+```
+
+Set `gal_Comment.Items = colComments` for Phase 1. Comments live in memory for
+the session. This sidesteps the `cr_body` schema-cache issue (see
+`tables/cr_mx_request_comment.md`).
+
+**Phase 2 swap — Dataverse live query:**
+
 ```powerapps
 Sort(
     Filter('MX Request Comments',
-        cr_mx_request_id.cr_mx_requestid = varSelectedRequest.cr_mx_requestid
+        'MX Request'.cr_mx_requestid = varSelectedRequest.cr_mx_requestid
     ),
-    'Posted at',
+    'Posted At',
     SortOrder.Ascending
 )
 ```
 
+Replace `colComments` with the query above once the Dataverse Patch is
+verified end-to-end in Phase 2.
+
 ### `lbl_commentBody.Text` (gallery template)
 
 ```powerapps
-ThisItem.'Posted by' & " — " & Text(ThisItem.'Posted at', DateTimeFormat.ShortDateTime) & Char(10) & ThisItem.Body
+ThisItem.PostedBy & " — " & Text(ThisItem.PostedAt, "mmm d h:mm AM/PM") & Char(10) & ThisItem.Body
 ```
 
+Set `lbl_commentBody.AutoHeight = true` and `lbl_commentBody.Wrap = true` so
+multiline comments don't clip.
+
+**Phase 2 (Dataverse):** swap field names to `ThisItem.'Posted By'.'Full Name'`,
+`ThisItem.'Posted At'`, `ThisItem.Body`.
+
 ### `btn_PostComment.OnSelect`
+
+**Current (Phase 1 interim) — local collection:**
 
 ```powerapps
 If(
     IsBlank(txt_NewComment.Text),
     Notify("Enter a comment.", NotificationType.Warning),
-    Patch('MX Request Comments', Defaults('MX Request Comments'),
+    Collect(colComments,
         {
-            'MX Request':  varSelectedRequest,
-            Body:          txt_NewComment.Text,
-            'Posted at':   Now(),
-            'Posted by':   varCurrentUser.FullName
+            Body:     txt_NewComment.Text,
+            PostedBy: varCurrentUser.FullName,
+            PostedAt: Now()
         }
     );
+    Reset(txt_NewComment)
+)
+```
+
+**Phase 2 (Dataverse Patch):**
+
+```powerapps
+If(
+    IsBlank(txt_NewComment.Text),
+    Notify("Enter a comment.", NotificationType.Warning),
+    Set(varCommentResult,
+        Patch('MX Request Comments', Defaults('MX Request Comments'),
+            {
+                'MX Request': varSelectedRequest,
+                Body:         txt_NewComment.Text,
+                'Posted At':  Now()
+            }
+        )
+    );
+    If(
+        IsEmpty(Errors('MX Request Comments', varCommentResult)),
+        Patch('MX Requests', varSelectedRequest,
+            { cr_comments_count: Coalesce(varSelectedRequest.cr_comments_count, 0) + 1 }
+        ),
+        Notify("Failed to post comment.", NotificationType.Error)
+    );
+    Set(varSelectedRequest, LookUp('MX Requests', cr_mx_requestid = varSelectedRequest.cr_mx_requestid));
     Reset(txt_NewComment);
     Refresh('MX Request Comments')
 )
+```
+
+**Counter increment notes:**
+
+- The `Errors()` check gates the counter so it only moves when the comment row is actually created. Without it, a failed Patch still increments the count and the number drifts.
+- The `Coalesce + 1` pattern is a client-side read-modify-write. Two users posting simultaneously from the same cached `varSelectedRequest` can both write `n+1` and undercount. For Phase 2 production hardening replace the canvas counter Patch with a Power Automate instant flow triggered **"When a row is added"** on `cr_mx_request_comment` that increments `cr_comments_count` server-side — eliminating the race entirely.
+
+**Why `'Posted By'` is omitted from the Patch:** the column is a Lookup →
+`systemuser`. Passing `varCurrentUser.FullName` (a string) throws a type
+error. Set the column's Dataverse default to **"Current User"** — Dataverse
+fills it automatically on every new row without canvas involvement.
+
+**Confirmed column display names on `cr_mx_request_comment`:**
+
+| Column purpose | Display name | Schema name |
+|---|---|---|
+| Comment body | `Body` | `cr_body` |
+| Parent request | `MX Request` | `cr_mx_request_id` |
+| Timestamp | `Posted At` | `cr_posted_at` |
+| Author | `Posted By` | `cr_posted_by` (Dataverse default) |
+
+**Power Apps data source name:** `'MX Request Comments'` (plural, with `s`).
 
 # 10. MX Scheduler (`scr_Scheduler`)
 
