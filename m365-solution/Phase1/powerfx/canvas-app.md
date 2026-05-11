@@ -1042,21 +1042,32 @@ If(
 If(
     IsBlank(txt_NewComment.Text),
     Notify("Enter a comment.", NotificationType.Warning),
-    Patch('MX Request Comments', Defaults('MX Request Comments'),
-        {
-            'MX Request': varSelectedRequest,
-            Body:         txt_NewComment.Text,
-            'Posted At':  Now()
-        }
+    Set(varCommentResult,
+        Patch('MX Request Comments', Defaults('MX Request Comments'),
+            {
+                'MX Request': varSelectedRequest,
+                Body:         txt_NewComment.Text,
+                'Posted At':  Now()
+            }
+        )
     );
-    Patch('MX Requests', varSelectedRequest,
-        { cr_comments_count: Coalesce(varSelectedRequest.cr_comments_count, 0) + 1 }
+    If(
+        IsEmpty(Errors('MX Request Comments', varCommentResult)),
+        Patch('MX Requests', varSelectedRequest,
+            { cr_comments_count: Coalesce(varSelectedRequest.cr_comments_count, 0) + 1 }
+        ),
+        Notify("Failed to post comment.", NotificationType.Error)
     );
     Set(varSelectedRequest, LookUp('MX Requests', cr_mx_requestid = varSelectedRequest.cr_mx_requestid));
     Reset(txt_NewComment);
     Refresh('MX Request Comments')
 )
 ```
+
+**Counter increment notes:**
+
+- The `Errors()` check gates the counter so it only moves when the comment row is actually created. Without it, a failed Patch still increments the count and the number drifts.
+- The `Coalesce + 1` pattern is a client-side read-modify-write. Two users posting simultaneously from the same cached `varSelectedRequest` can both write `n+1` and undercount. For Phase 2 production hardening replace the canvas counter Patch with a Power Automate instant flow triggered **"When a row is added"** on `cr_mx_request_comment` that increments `cr_comments_count` server-side — eliminating the race entirely.
 
 **Why `'Posted By'` is omitted from the Patch:** the column is a Lookup →
 `systemuser`. Passing `varCurrentUser.FullName` (a string) throws a type
