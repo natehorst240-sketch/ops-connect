@@ -16,7 +16,7 @@ values for a lookup against a list CompleteFlight writes to.
 ### How the math works
 
 ```
-slotIndex = RoundDown( DateDiff(anchorDate, today, Days) / 7, 0 )
+slotIndex = RoundDown( DateDiff(anchorDate, today, TimeUnit.Days) / 7, 0 )
 personIndex = Mod( slotIndex + regionPhaseOffset, 2 )   // 0 = Person A, 1 = Person B
 ```
 
@@ -35,13 +35,13 @@ Set(varAnchorDate, Date(2025, 4, 16));
 
 // Slot index for today
 Set(varTodaySlotIdx,
-    RoundDown(DateDiff(varAnchorDate, Today(), Days) / 7, 0));
+    RoundDown(DateDiff(varAnchorDate, Today(), TimeUnit.Days) / 7, 0));
 
 // Wednesday that opens the current slot
 Set(varCurrentSlotWed,
-    DateAdd(varAnchorDate, varTodaySlotIdx * 7, Days));
+    DateAdd(varAnchorDate, varTodaySlotIdx * 7, TimeUnit.Days));
 Set(varCurrentSlotEnd,
-    DateAdd(varCurrentSlotWed, 7, Days));
+    DateAdd(varCurrentSlotWed, 7, TimeUnit.Days));
 
 // Navigation offset (< > buttons shift this)
 Set(varWeekViewOffset, 0);
@@ -82,7 +82,7 @@ ClearCollect(
         "PersonBase",    If(Mod(varTodaySlotIdx + PhaseOffset, 2) = 0, P0Base,P1Base),
         "SlotStart",     varCurrentSlotWed,
         "SlotEnd",       varCurrentSlotEnd,
-        "HandoffDays",   DateDiff(Today(), varCurrentSlotEnd, Days)
+        "HandoffDays",   DateDiff(Today(), varCurrentSlotEnd, TimeUnit.Days)
     )
 )
 ```
@@ -90,26 +90,26 @@ ClearCollect(
 ### Navigation buttons
 
 ```powerapps
-btnPrev.OnSelect  = Set(varWeekViewOffset, varWeekViewOffset - 8)
-btnToday.OnSelect = Set(varWeekViewOffset, 0)
-btnNext.OnSelect  = Set(varWeekViewOffset, varWeekViewOffset + 8)
+btn_Prev.OnSelect  = Set(varWeekViewOffset, varWeekViewOffset - 8)
+btn_Today.OnSelect = Set(varWeekViewOffset, 0)
+btn_Next.OnSelect  = Set(varWeekViewOffset, varWeekViewOffset + 8)
 ```
 
-### Current on-call strip — `galCurrentOncall`
+### Current on-call strip — `gal_CurrentOncall`
 
 Horizontal wrapping gallery. Shows who is live right now, one card per region.
 
 ```powerapps
-galCurrentOncall.Items     = colCurrentOncall
-galCurrentOncall.Direction = Horizontal
-galCurrentOncall.Wrap      = true
+gal_CurrentOncall.Items     = colCurrentOncall
+gal_CurrentOncall.Direction = Horizontal
+gal_CurrentOncall.Wrap      = true
 
 // Inside template:
-lblCOCName.Text    = ThisItem.PersonName
-lblCOCRegion.Text  = ThisItem.Region
-lblCOCBase.Text    = ThisItem.PersonBase
-lblHandoff.Text    = "Handoff in " & ThisItem.HandoffDays & " days"
-btnCall.OnSelect   = Launch("tel:" & ThisItem.PersonPhone)
+lbl_COCName.Text    = ThisItem.PersonName
+lbl_COCRegion.Text  = ThisItem.Region
+lbl_COCBase.Text    = ThisItem.PersonBase
+lbl_Handoff.Text    = "Handoff in " & ThisItem.HandoffDays & " days"
+btn_Call.OnSelect   = Launch("tel:" & ThisItem.PersonPhone)
 ```
 
 ### 8-week schedule grid
@@ -155,49 +155,49 @@ ClearCollect(
 );
 ```
 
-#### Week header row (8 static labels — `lblHdr0` through `lblHdr7`)
+#### Week header row (8 static labels — `lbl_Hdr0` through `lbl_Hdr7`)
 
 ```powerapps
-lblHdr0.Text = Text(DateAdd(varAnchorDate, (varTodaySlotIdx + varWeekViewOffset + 0) * 7, Days), "mmm d")
-lblHdr1.Text = Text(DateAdd(varAnchorDate, (varTodaySlotIdx + varWeekViewOffset + 1) * 7, Days), "mmm d")
+lbl_Hdr0.Text = Text(DateAdd(varAnchorDate, (varTodaySlotIdx + varWeekViewOffset + 0) * 7, TimeUnit.Days), "mmm d")
+lbl_Hdr1.Text = Text(DateAdd(varAnchorDate, (varTodaySlotIdx + varWeekViewOffset + 1) * 7, TimeUnit.Days), "mmm d")
 // ... repeat for 2–7
 
 // Highlight current week
-lblHdr0.Fill = If(varWeekViewOffset = 0,  RGBA(249,115,22,0.10), RGBA(0,0,0,0))
+lbl_Hdr0.Fill = If(varWeekViewOffset = 0,  RGBA(249,115,22,0.10), RGBA(0,0,0,0))
 ```
 
-#### Region rows gallery — `galRegionRows`
+#### Region rows gallery — `gal_RegionRows`
 
 One row per region. Inside the template, 8 side-by-side containers or
 labels pull from `colScheduleGrid` filtered to this region and week.
 
 ```powerapps
-galRegionRows.Items = Distinct(colScheduleGrid, Region)   // 7 unique regions
+gal_RegionRows.Items = Distinct(colScheduleGrid, Region)   // 7 unique regions
 
 // Region label
-lblRowRegion.Text = ThisItem.Result    // Distinct returns .Result
+lbl_RowRegion.Text = ThisItem.Result    // Distinct returns .Result
 
-// Week cell helper (repeat this pattern for lblCell0 through lblCell7):
-// lblCell0 inside galRegionRows template
-lblCell0.Text =
+// Week cell helper (repeat this pattern for lbl_Cell0 through lbl_Cell7):
+// lbl_Cell0 inside gal_RegionRows template
+lbl_Cell0.Text =
     With(
-        LookUp(colScheduleGrid, Region = galRegionRows.ThisItem.Result && WeekOffset = 0),
+        LookUp(colScheduleGrid, Region = gal_RegionRows.ThisItem.Result && WeekOffset = 0),
         PersonName
     )
 
 // Color-code: blue = person 0, orange = person 1
-lblCell0.Fill =
+lbl_Cell0.Fill =
     With(
-        LookUp(colScheduleGrid, Region = galRegionRows.ThisItem.Result && WeekOffset = 0),
+        LookUp(colScheduleGrid, Region = gal_RegionRows.ThisItem.Result && WeekOffset = 0),
         If(PersonIndex = 0,
             RGBA(59,130,246,0.15),
             RGBA(249,115,22,0.15))
     )
 
 // Highlight current week column
-lblCell0.BorderColor =
+lbl_Cell0.BorderColor =
     If(varWeekViewOffset = 0, RGBA(249,115,22,1), RGBA(50,50,50,1))
-lblCell0.BorderThickness = If(varWeekViewOffset = 0, 2, 0)
+lbl_Cell0.BorderThickness = If(varWeekViewOffset = 0, 2, 0)
 ```
 
 ### Phase 2 swap point
@@ -214,17 +214,17 @@ ClearCollect(
     AddColumns(
         Filter(
             cr_oncall_schedule,
-            cr_slot_start >= DateAdd(Today(), varWeekViewOffset * 7, Days) &&
-            cr_slot_start <  DateAdd(Today(), (varWeekViewOffset + 8) * 7, Days)
+            cr_slot_start >= DateAdd(Today(), varWeekViewOffset * 7, TimeUnit.Days) &&
+            cr_slot_start <  DateAdd(Today(), (varWeekViewOffset + 8) * 7, TimeUnit.Days)
         ),
-        "WeekOffset", DateDiff(Today(), cr_slot_start, Days) / 7,
+        "WeekOffset", DateDiff(Today(), cr_slot_start, TimeUnit.Days) / 7,
         "SlotStart",  Text(cr_slot_start, "mmm d"),
-        "IsCurrent",  DateDiff(Today(), cr_slot_start, Days) = 0,
+        "IsCurrent",  DateDiff(Today(), cr_slot_start, TimeUnit.Days) = 0,
         "PersonName", cr_person_name,
         "PersonPhone",cr_person_phone
     )
 );
-// galCurrentOncall, galRegionRows, and all cell formulas stay identical.
+// gal_CurrentOncall, gal_RegionRows, and all cell formulas stay identical.
 ```
 
 ### Power Fx gotchas for this screen
@@ -234,10 +234,10 @@ ClearCollect(
 - **`Ungroup` column name must match exactly.** The `GridRows` key in the
   `ForAll` record and the `"GridRows"` string in `Ungroup` must be identical.
 - **Rebuild `colScheduleGrid` when `varWeekViewOffset` changes.** Put the
-  `ClearCollect` call in `btnPrev.OnSelect`, `btnNext.OnSelect`, and
-  `btnToday.OnSelect` (after setting the variable), not just in `OnVisible`.
+  `ClearCollect` call in `btn_Prev.OnSelect`, `btn_Next.OnSelect`, and
+  `btn_Today.OnSelect` (after setting the variable), not just in `OnVisible`.
 - **`Distinct()` returns `.Result` not the column name.** That's why
-  `galRegionRows.ThisItem.Result` is used, not `.Region`.
+  `gal_RegionRows.ThisItem.Result` is used, not `.Region`.
 - **LookUp in cell labels fires per row.** With 7 regions × 8 weeks = 56
   lookups against a 56-row collection, performance is fine. If you grow past
   ~200 rows, switch to a nested horizontal gallery instead.
@@ -396,11 +396,11 @@ galEvents.Items =
 
 // Container.X (positioned bar)
 ctnEventBar.X =
-    (DateDiff(Today(), ThisItem.cr_window_start, Days) / 7) * Parent.Width
+    (DateDiff(Today(), ThisItem.cr_window_start, TimeUnit.Days) / 7) * Parent.Width
 
 // Container.Width
 ctnEventBar.Width =
-    (DateDiff(ThisItem.cr_window_start, ThisItem.cr_window_end, Days) / 7) * Parent.Width
+    (DateDiff(ThisItem.cr_window_start, ThisItem.cr_window_end, TimeUnit.Days) / 7) * Parent.Width
 
 // Container.Fill (color by event type)
 ctnEventBar.Fill =
