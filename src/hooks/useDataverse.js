@@ -1,15 +1,25 @@
 import { useMsal } from '@azure/msal-react';
+import { InteractionRequiredAuthError } from '@azure/msal-browser';
 import { dataverseScopes, ORG } from '../auth/config';
 
 export function useDataverse() {
   const { instance, accounts } = useMsal();
 
   async function getToken() {
-    const { accessToken } = await instance.acquireTokenSilent({
-      scopes: dataverseScopes,
-      account: accounts[0]
-    });
-    return accessToken;
+    if (!accounts[0]) throw new Error('Not signed in');
+    try {
+      const { accessToken } = await instance.acquireTokenSilent({
+        scopes: dataverseScopes,
+        account: accounts[0]
+      });
+      return accessToken;
+    } catch (e) {
+      if (e instanceof InteractionRequiredAuthError) {
+        const { accessToken } = await instance.acquireTokenPopup({ scopes: dataverseScopes });
+        return accessToken;
+      }
+      throw e;
+    }
   }
 
   async function query(endpoint) {
@@ -52,7 +62,8 @@ export function useDataverse() {
         Authorization: `Bearer ${token}`,
         'OData-MaxVersion': '4.0',
         'OData-Version': '4.0',
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'If-Match': '*'
       },
       body: JSON.stringify(body)
     });
