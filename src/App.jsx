@@ -3,6 +3,8 @@ import {
   Plane, Users, AlertTriangle, Calendar, Wrench, Radio, TrendingUp, Layers,
   Map as MapIcon, Grid3x3, Smartphone, GitBranch, MessageCircleQuestion,
 } from 'lucide-react';
+import { useMsal, useIsAuthenticated } from '@azure/msal-react';
+import { dataverseScopes } from './auth/config.js';
 import { PERSONAS, FLOWS } from './data';
 
 import DirectorHome from './homes/Director';
@@ -36,9 +38,33 @@ const TABS = [
 ];
 
 export default function App() {
+  const { instance } = useMsal();
+  const isAuthenticated = useIsAuthenticated();
   const [activeTab, setActiveTab] = useState('m365');
   const [personaId, setPersonaId] = useState('director');
   const persona = PERSONAS.find(p => p.id === personaId);
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-neutral-950 flex items-center justify-center">
+        <div className="text-center space-y-6">
+          <div className="w-14 h-14 rounded-xl bg-orange-500 flex items-center justify-center mx-auto shadow-lg shadow-orange-500/30">
+            <Plane size={28} className="text-black" strokeWidth={2.5} />
+          </div>
+          <div>
+            <div className="text-2xl font-semibold text-neutral-100">MX Connect</div>
+            <div className="text-sm text-neutral-500 mt-1">IHC Aviation Maintenance Operations</div>
+          </div>
+          <button
+            onClick={() => instance.loginRedirect({ scopes: dataverseScopes })}
+            className="px-6 py-3 bg-orange-500 hover:bg-orange-400 text-black font-semibold rounded-lg transition-colors"
+          >
+            Sign in with Microsoft
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-neutral-950 text-neutral-100 p-6">
