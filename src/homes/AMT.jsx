@@ -21,7 +21,7 @@ export default function AMTHome({ persona }) {
         {...getCalendarConfigForPersona(persona)}
       />
 
-      <div className="grid grid-cols-3 gap-3 mb-5">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
         <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-4 flex items-center justify-between">
           <div>
             <div className="mono text-[10px] text-neutral-500 uppercase tracking-widest mb-1">Shift Status</div>
@@ -38,7 +38,7 @@ export default function AMTHome({ persona }) {
         <Metric label="Next Due" value="04/30" sub="6 days" accent="#eab308" />
       </div>
 
-      <div className="grid grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card title="Submit a Request">
           <div className="grid grid-cols-2 gap-2">
             {[

@@ -65,7 +65,7 @@ export default function MyHome() {
 
   return (
     <div className="grid-bg min-h-full">
-      <div className="px-7 pt-6 max-w-[1400px] mx-auto">
+      <div className="px-4 sm:px-7 pt-4 sm:pt-6 max-w-[1400px] mx-auto">
         <div className="flex items-center justify-between p-4 mb-3 rounded-lg bg-gradient-to-r from-orange-500/10 to-neutral-900 border border-orange-500/20 gap-4 flex-wrap">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-full bg-orange-500 flex items-center justify-center text-black font-semibold shrink-0">
@@ -123,7 +123,7 @@ export default function MyHome() {
         </div>
       </div>
 
-      <div className="fade-slide px-7 pb-7 max-w-[1400px] mx-auto" key={persona.id}>
+      <div className="fade-slide px-4 sm:px-7 pb-7 max-w-[1400px] mx-auto" key={persona.id}>
         <Home persona={persona} />
       </div>
     </div>
