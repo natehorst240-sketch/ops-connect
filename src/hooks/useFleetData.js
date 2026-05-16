@@ -82,6 +82,8 @@ function mapMxRequest(row) {
 }
 
 function mapScheduleEvent(row) {
+  // Prefer formatted value if eventType is a choice column (returns number)
+  const eventTypeFormatted = row['cr463_eventtype@OData.Community.Display.V1.FormattedValue'];
   return {
     id:           row[Object.keys(row).find(k => k.endsWith('eventid'))],
     title:        pick(row, 'cr463_scheduleeventtitle', 'cr463_title'),
@@ -89,7 +91,7 @@ function mapScheduleEvent(row) {
     sourceSystem: pick(row, 'cr463_sourcesystem'),
     sourceEventId:pick(row, 'cr463_sourceeventid'),
     aircraftTail: pick(row, 'cr463_aircrafttail'),
-    eventType:    pick(row, 'cr463_eventtype'),
+    eventType:    eventTypeFormatted ?? String(pick(row, 'cr463_eventtype') ?? 'default'),
     windowStart:  pick(row, 'cr463_windowstart', 'cr463_windowstarttime'),
     windowEnd:    pick(row, 'cr463_windowend', 'cr463_windowendtime')
   };

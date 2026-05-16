@@ -44,8 +44,8 @@ export default function Scheduler() {
       .map((e) => ({
         id: e.id || e.eventId,
         tail: e.aircraftTail,
-        type: (e.eventType ?? 'default').toLowerCase(),
-        title: e.title || e.eventType,
+        type: String(e.eventType ?? 'default').toLowerCase(),
+        title: e.title || String(e.eventType ?? 'Event'),
         start: new Date(e.windowStart),
         endAt: new Date(e.windowEnd),
         source: e.sourceSystem
