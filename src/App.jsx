@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   Plane, Users, AlertTriangle, Calendar, Wrench, Radio, TrendingUp, Layers,
   Map as MapIcon, Grid3x3, Smartphone, GitBranch, MessageCircleQuestion, Activity,
-  Send, Inbox,
+  Send, Inbox, Megaphone, Clock,
 } from 'lucide-react';
 import { useMsal, useIsAuthenticated } from '@azure/msal-react';
 import { dataverseScopes } from './auth/config.js';
@@ -27,15 +27,21 @@ import DataverseTest from './tabs/DataverseTest';
 import Phase2Status from './tabs/Phase2Status';
 import SubmitRequest from './tabs/SubmitRequest';
 import ApprovalInbox from './tabs/ApprovalInbox';
+import Bulletins from './tabs/Bulletins';
+import OncallSchedule from './tabs/OncallSchedule';
+import Scheduler from './tabs/Scheduler';
 import { FleetDataProvider } from './contexts/FleetDataContext';
 import { useCurrentUser } from './hooks/useCurrentUser';
 
 const TABS = [
-  { id: 'submit',   label: 'Submit Request',  Icon: Send },
-  { id: 'inbox',    label: 'Approval Inbox',  Icon: Inbox },
-  { id: 'phase2',   label: 'Phase 2 Ops',     Icon: Activity },
-  { id: 'dvtest',   label: 'Dataverse Test',  Icon: Radio },
-  { id: 'm365',     label: 'M365 Build',      Icon: Grid3x3 },
+  { id: 'submit',     label: 'Submit Request',  Icon: Send },
+  { id: 'inbox',      label: 'Approval Inbox',  Icon: Inbox },
+  { id: 'bulletins',  label: 'Bulletins',       Icon: Megaphone },
+  { id: 'oncall',     label: 'On-Call',         Icon: Clock },
+  { id: 'scheduler',  label: 'Scheduler',       Icon: Calendar },
+  { id: 'phase2',     label: 'Phase 2 Ops',     Icon: Activity },
+  { id: 'dvtest',     label: 'Dataverse Test',  Icon: Radio },
+  { id: 'm365',       label: 'M365 Build',      Icon: Grid3x3 },
   { id: 'phaseFlow', label: 'Phase Flow', Icon: GitBranch },
   { id: 'app', label: 'The App', Icon: Radio },
   { id: 'map', label: 'Live Fleet', Icon: MapIcon },
@@ -85,6 +91,9 @@ export default function App() {
         <div className={`flex-1 ${activeTab === 'map' || activeTab === 'm365' ? 'overflow-hidden' : 'overflow-auto scrollbar'}`}>
           {activeTab === 'submit' && <SubmitRequest />}
           {activeTab === 'inbox' && <ApprovalInbox />}
+          {activeTab === 'bulletins' && <Bulletins />}
+          {activeTab === 'oncall' && <OncallSchedule />}
+          {activeTab === 'scheduler' && <Scheduler />}
           {activeTab === 'dvtest' && <DataverseTest />}
           {activeTab === 'phase2' && <Phase2Status />}
           {activeTab === 'app' && <AppHome persona={persona} />}
