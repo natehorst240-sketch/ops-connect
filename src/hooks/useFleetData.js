@@ -41,18 +41,19 @@ function mapAircraft(row) {
 }
 
 function mapPersonnel(row) {
-  const firstName = pick(row, 'cr463_firstname');
-  const lastName  = pick(row, 'cr463_lastname');
   return {
-    id:        row[`${TABLES.personnel.slice(0, -1)}id`] || row.id,
-    name:      pick(row, 'cr463_personnelmaintenancetitle', 'cr463_title') ?? `${firstName ?? ''} ${lastName ?? ''}`.trim(),
-    firstName,
-    lastName,
-    email:     pick(row, 'cr463_email'),
-    phone:     pick(row, 'cr463_phone'),
-    role:      pick(row, 'cr463_role'),
-    primaryBase: pick(row, 'cr463_primarybase'),
-    region:    pick(row, 'cr463_region')
+    id:          row.cr463_personnelmaintenanceid,
+    name:        pick(row, 'cr463_employeetitle'),
+    firstName:   pick(row, 'cr463_firstname'),
+    lastName:    pick(row, 'cr463_lastname'),
+    email:       pick(row, 'cr463_emailaddress'),
+    phone:       pick(row, 'cr463_phonenumber'),
+    role:        pick(row, 'cr463_role'),
+    primaryBase: pick(row, 'cr463_primarybaselocation'),
+    region:      pick(row, 'cr463_regioncode'),
+    leader:      pick(row, 'cr463_leadername'),
+    coverageBases: pick(row, 'cr463_coveragebases'),
+    isActive:    row.cr463_isactive
   };
 }
 
