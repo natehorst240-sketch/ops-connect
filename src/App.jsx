@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {
   Plane, Users, AlertTriangle, Calendar, Wrench, Radio, TrendingUp, Layers,
   Map as MapIcon, Grid3x3, Smartphone, GitBranch, MessageCircleQuestion, Activity,
+  Send, Inbox,
 } from 'lucide-react';
 import { useMsal, useIsAuthenticated } from '@azure/msal-react';
 import { dataverseScopes } from './auth/config.js';
@@ -24,12 +25,17 @@ import MobileTab from './tabs/Mobile';
 import M365Build from './m365/M365Build';
 import DataverseTest from './tabs/DataverseTest';
 import Phase2Status from './tabs/Phase2Status';
+import SubmitRequest from './tabs/SubmitRequest';
+import ApprovalInbox from './tabs/ApprovalInbox';
 import { FleetDataProvider } from './contexts/FleetDataContext';
+import { useCurrentUser } from './hooks/useCurrentUser';
 
 const TABS = [
-  { id: 'dvtest', label: 'Dataverse Test', Icon: Radio },
-  { id: 'phase2', label: 'Phase 2 Ops', Icon: Activity },
-  { id: 'm365', label: 'M365 Build', Icon: Grid3x3 },
+  { id: 'submit',   label: 'Submit Request',  Icon: Send },
+  { id: 'inbox',    label: 'Approval Inbox',  Icon: Inbox },
+  { id: 'phase2',   label: 'Phase 2 Ops',     Icon: Activity },
+  { id: 'dvtest',   label: 'Dataverse Test',  Icon: Radio },
+  { id: 'm365',     label: 'M365 Build',      Icon: Grid3x3 },
   { id: 'phaseFlow', label: 'Phase Flow', Icon: GitBranch },
   { id: 'app', label: 'The App', Icon: Radio },
   { id: 'map', label: 'Live Fleet', Icon: MapIcon },
@@ -45,7 +51,7 @@ const TABS = [
 export default function App() {
   const { instance } = useMsal();
   const isAuthenticated = useIsAuthenticated();
-  const [activeTab, setActiveTab] = useState('m365');
+  const [activeTab, setActiveTab] = useState('submit');
   const [personaId, setPersonaId] = useState('director');
   const persona = PERSONAS.find(p => p.id === personaId);
 
@@ -77,6 +83,8 @@ export default function App() {
       <div className="h-[calc(100vh-48px)] flex flex-col rounded-xl border border-neutral-800 bg-neutral-950 shadow-2xl shadow-black/60 overflow-hidden">
         <AppTopNav activeTab={activeTab} setActiveTab={setActiveTab} persona={persona} />
         <div className={`flex-1 ${activeTab === 'map' || activeTab === 'm365' ? 'overflow-hidden' : 'overflow-auto scrollbar'}`}>
+          {activeTab === 'submit' && <SubmitRequest />}
+          {activeTab === 'inbox' && <ApprovalInbox />}
           {activeTab === 'dvtest' && <DataverseTest />}
           {activeTab === 'phase2' && <Phase2Status />}
           {activeTab === 'app' && <AppHome persona={persona} />}
