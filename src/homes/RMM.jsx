@@ -5,8 +5,10 @@ import { PageHeader, Card, Metric, StatusDot, BulletinBanner } from '../ui';
 import WeekCalendar from '../shared/WeekCalendar';
 import { getEventsForPersona, getCalendarConfigForPersona } from '../shared/personaCalendarData';
 import { useFleet } from '../contexts/FleetDataContext';
+import { useNavigation } from '../contexts/NavigationContext';
 
 export default function RMMHome({ persona }) {
+  const navigate = useNavigation();
   const { aircraft: liveAircraft, mxRequests: liveReqs } = useFleet();
   const AIRCRAFT = liveAircraft.length ? liveAircraft : STATIC_AIRCRAFT;
   const PENDING_REQUESTS = liveReqs.length ? liveReqs : STATIC_REQS;
@@ -41,10 +43,10 @@ export default function RMMHome({ persona }) {
                 <div className="text-[13px] font-medium">{r.detail}</div>
                 <div className="text-[11px] text-neutral-500 mt-1 mb-2">— {r.submitter}</div>
                 <div className="flex gap-1.5">
-                  <button className="px-2.5 py-1 text-[11px] bg-green-600 hover:bg-green-500 text-white rounded font-medium">Approve</button>
-                  <button className="px-2.5 py-1 text-[11px] bg-neutral-800 border border-neutral-700 hover:bg-neutral-700 text-neutral-200 rounded">More Info</button>
-                  <button className="px-2.5 py-1 text-[11px] bg-neutral-800 border border-neutral-700 hover:bg-neutral-700 text-neutral-200 rounded">Escalate</button>
-                  <button className="px-2.5 py-1 text-[11px] bg-neutral-800 border border-neutral-700 hover:bg-red-900/30 hover:text-red-400 text-neutral-200 rounded">Deny</button>
+                  <button onClick={() => navigate('inbox')} className="px-2.5 py-1 text-[11px] bg-green-600 hover:bg-green-500 text-white rounded font-medium">Approve</button>
+                  <button onClick={() => navigate('inbox')} className="px-2.5 py-1 text-[11px] bg-neutral-800 border border-neutral-700 hover:bg-neutral-700 text-neutral-200 rounded">More Info</button>
+                  <button onClick={() => navigate('inbox')} className="px-2.5 py-1 text-[11px] bg-neutral-800 border border-neutral-700 hover:bg-neutral-700 text-neutral-200 rounded">Escalate</button>
+                  <button onClick={() => navigate('inbox')} className="px-2.5 py-1 text-[11px] bg-neutral-800 border border-neutral-700 hover:bg-red-900/30 hover:text-red-400 text-neutral-200 rounded">Deny</button>
                 </div>
               </div>
             ))}
@@ -81,14 +83,14 @@ export default function RMMHome({ persona }) {
         <Card title="Quick Actions">
           <div className="grid grid-cols-2 gap-2">
             {[
-              { label: 'Post Bulletin', icon: Bell },
-              { label: 'Submit Safety', icon: Shield },
-              { label: 'Ask Director', icon: MessageSquare },
-              { label: 'Reassign Tech', icon: Users },
+              { label: 'Post Bulletin', icon: Bell, tab: 'bulletins' },
+              { label: 'Submit Safety', icon: Shield, tab: 'submit' },
+              { label: 'Ask Director', icon: MessageSquare, tab: 'submit' },
+              { label: 'Reassign Tech', icon: Users, tab: 'inbox' },
             ].map((a, idx) => {
               const Icon = a.icon;
               return (
-                <button key={idx} className="flex items-center gap-2 p-3 bg-neutral-800/50 hover:bg-neutral-800 border border-neutral-800 rounded-md text-[12px] font-medium text-left">
+                <button key={idx} onClick={() => navigate(a.tab)} className="flex items-center gap-2 p-3 bg-neutral-800/50 hover:bg-neutral-800 border border-neutral-800 rounded-md text-[12px] font-medium text-left">
                   <Icon size={14} className="text-orange-400" />
                   {a.label}
                 </button>

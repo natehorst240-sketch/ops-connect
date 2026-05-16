@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Filter, ArrowRight, Users, ChevronLeft, ChevronRight, Phone, CalendarDays } from 'lucide-react';
 import { AIRCRAFT as STATIC_AIRCRAFT, INSPECTIONS_DUE, PENDING_REQUESTS as STATIC_REQS } from '../data';
 import { useFleet } from '../contexts/FleetDataContext';
+import { useNavigation } from '../contexts/NavigationContext';
 import { PageHeader, Card, Metric, StatusDot, BulletinBanner } from '../ui';
 import WeekCalendar from '../shared/WeekCalendar';
 import { getEventsForPersona, getCalendarConfigForPersona } from '../shared/personaCalendarData';
@@ -14,6 +15,7 @@ import {
 } from '../data/mxOncallSchedule';
 
 export default function MXSchedulerHome({ persona }) {
+  const navigate = useNavigation();
   const { aircraft: liveAircraft, mxRequests: liveReqs } = useFleet();
   const AIRCRAFT = liveAircraft.length ? liveAircraft : STATIC_AIRCRAFT;
   const PENDING_REQUESTS = liveReqs.length ? liveReqs : STATIC_REQS;
@@ -64,7 +66,7 @@ export default function MXSchedulerHome({ persona }) {
             </div>
           }
         >
-          <ResourceTimeline selectedRegion={selectedRegion} />
+          <ResourceTimeline aircraft={AIRCRAFT} selectedRegion={selectedRegion} />
         </Card>
       </div>
 
@@ -81,9 +83,9 @@ export default function MXSchedulerHome({ persona }) {
                 <div className="text-[13px] font-medium">{r.detail}</div>
                 <div className="text-[11px] text-neutral-500 mt-1 mb-2">— {r.submitter}</div>
                 <div className="flex gap-1.5 flex-wrap">
-                  <button className="px-2.5 py-1 text-[11px] bg-green-600 hover:bg-green-500 text-white rounded font-medium">Approve & Schedule</button>
-                  <button className="px-2.5 py-1 text-[11px] bg-neutral-800 border border-neutral-700 hover:bg-neutral-700 text-neutral-200 rounded">Move to Calendar</button>
-                  <button className="px-2.5 py-1 text-[11px] bg-neutral-800 border border-neutral-700 hover:bg-red-900/30 hover:text-red-400 text-neutral-200 rounded">Deny</button>
+                  <button onClick={() => navigate('inbox')} className="px-2.5 py-1 text-[11px] bg-green-600 hover:bg-green-500 text-white rounded font-medium">Approve & Schedule</button>
+                  <button onClick={() => navigate('scheduler')} className="px-2.5 py-1 text-[11px] bg-neutral-800 border border-neutral-700 hover:bg-neutral-700 text-neutral-200 rounded">Move to Calendar</button>
+                  <button onClick={() => navigate('inbox')} className="px-2.5 py-1 text-[11px] bg-neutral-800 border border-neutral-700 hover:bg-red-900/30 hover:text-red-400 text-neutral-200 rounded">Deny</button>
                 </div>
               </div>
             ))}
@@ -303,7 +305,7 @@ function OncallScheduleBoard() {
   );
 }
 
-function ResourceTimeline({ selectedRegion }) {
+function ResourceTimeline({ aircraft: AIRCRAFT, selectedRegion }) {
   const filtered = selectedRegion === 'ALL'
     ? AIRCRAFT.slice(0, 12)
     : AIRCRAFT.filter(a => a.region === selectedRegion);

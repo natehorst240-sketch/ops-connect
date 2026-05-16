@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Check, X, ChevronsUp, Undo2, AlertCircle, Loader2, Inbox, Plane } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Check, X, ChevronsUp, Undo2, AlertCircle, Loader2, Inbox, Plane, MapPin, Filter } from 'lucide-react';
 import { useDataverse } from '../hooks/useDataverse';
 import { useFleet } from '../contexts/FleetDataContext';
 import { useCurrentUser } from '../hooks/useCurrentUser';
@@ -16,15 +16,24 @@ const STATUS_CODE = {
 
 export default function ApprovalInbox() {
   const { patch, create } = useDataverse();
-  const { mxRequests, loading } = useFleet();
+  const { mxRequests, aircraft, loading } = useFleet();
   const { persona } = useCurrentUser();
   const [comment, setComment] = useState({});       // per-request comment text
   const [busy, setBusy] = useState(null);           // request id currently patching
   const [error, setError] = useState(null);
   const [updated, setUpdated] = useState({});       // optimistic status overrides
+  const [regionFilter, setRegionFilter] = useState('ALL');
+
+  // Map aircraft tail → region so we can sort/filter requests by region
+  const tailToRegion = useMemo(() => {
+    const m = new Map();
+    aircraft.forEach(a => { if (a.tail) m.set(a.tail, a.region); });
+    return m;
+  }, [aircraft]);
 
   // Filter to pending requests routed to this user's role
-  const visible = mxRequests
+  const pending = mxRequests
+    .map(r => ({ ...r, region: tailToRegion.get(r.aircraftTail) || r.region || '—' }))
     .filter((r) => {
       const liveStatus = updated[r.id]?.status ?? r.status;
       return liveStatus === 'Submitted' || liveStatus === 'Escalated';
@@ -36,6 +45,38 @@ export default function ApprovalInbox() {
       if (persona.role === 'RMM') return r.routing === 'RMM';
       return true;
     });
+
+  // Region facet: all regions present in the pending set
+  const regionOptions = useMemo(() => {
+    const set = new Set(pending.map(r => r.region || '—').filter(Boolean));
+    return ['ALL', ...[...set].sort()];
+  }, [pending]);
+
+  // When a region-scoped user (RMM) loads the inbox, default to their region
+  useEffect(() => {
+    if (regionFilter !== 'ALL') return;
+    if (persona?.role === 'RMM' && persona.region && persona.region !== 'ALL') {
+      if (regionOptions.includes(persona.region)) setRegionFilter(persona.region);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [persona?.id, regionOptions.length]);
+
+  const visible = regionFilter === 'ALL'
+    ? pending
+    : pending.filter(r => (r.region || '—') === regionFilter);
+
+  // Group visible requests by region, sorted region asc then by submitted desc
+  const grouped = useMemo(() => {
+    const byRegion = new Map();
+    [...visible]
+      .sort((a, b) => (b.submittedAt ?? '').localeCompare(a.submittedAt ?? ''))
+      .forEach(r => {
+        const k = r.region || '—';
+        if (!byRegion.has(k)) byRegion.set(k, []);
+        byRegion.get(k).push(r);
+      });
+    return [...byRegion.entries()].sort(([a], [b]) => a.localeCompare(b));
+  }, [visible]);
 
   async function decide(req, decision) {
     setBusy(req.id);
@@ -93,12 +134,38 @@ export default function ApprovalInbox() {
         <Inbox size={22} className="text-orange-400" />
         <h1 className="text-2xl font-semibold">Approval Inbox</h1>
       </div>
-      <p className="text-sm text-neutral-400 mb-6">
+      <p className="text-sm text-neutral-400 mb-4">
         Pending requests routed to <span className="text-neutral-200">{persona?.roleTitle ?? '…'}</span>
         {persona?.region && persona.region !== 'ALL' && (
           <span className="text-neutral-500"> · {persona.region}</span>
         )}
       </p>
+
+      {/* Region filter */}
+      <div className="flex items-center gap-2 mb-5 flex-wrap">
+        <Filter size={13} className="text-neutral-500" />
+        <span className="text-xs text-neutral-500 mr-1">Region:</span>
+        {regionOptions.map(r => {
+          const active = regionFilter === r;
+          const count = r === 'ALL'
+            ? pending.length
+            : pending.filter(p => (p.region || '—') === r).length;
+          return (
+            <button
+              key={r}
+              onClick={() => setRegionFilter(r)}
+              className={`px-2.5 py-1 text-xs rounded-md border transition-colors ${
+                active
+                  ? 'bg-orange-500/15 border-orange-500/50 text-orange-300'
+                  : 'bg-neutral-900 border-neutral-800 text-neutral-400 hover:border-neutral-700 hover:text-neutral-200'
+              }`}
+            >
+              {r === 'ALL' ? 'All regions' : r}
+              <span className="ml-1.5 text-[10px] text-neutral-500">{count}</span>
+            </button>
+          );
+        })}
+      </div>
 
       {error && (
         <div className="flex items-center gap-2 p-3 mb-4 rounded-lg bg-red-900/20 border border-red-800 text-red-400 text-sm">
@@ -110,20 +177,31 @@ export default function ApprovalInbox() {
       {visible.length === 0 && (
         <div className="p-12 text-center text-neutral-500 border border-neutral-800 rounded-lg bg-neutral-900/30">
           <Inbox size={32} className="mx-auto mb-3 opacity-50" />
-          No pending requests
+          {pending.length === 0 ? 'No pending requests' : `No pending requests in ${regionFilter}`}
         </div>
       )}
 
-      <div className="space-y-3">
-        {visible.map((req) => (
-          <RequestCard
-            key={req.id}
-            req={req}
-            comment={comment[req.id] ?? ''}
-            setComment={(v) => setComment((c) => ({ ...c, [req.id]: v }))}
-            onDecide={(d) => decide(req, d)}
-            busy={busy === req.id}
-          />
+      <div className="space-y-6">
+        {grouped.map(([region, list]) => (
+          <section key={region}>
+            <div className="flex items-center gap-2 mb-2 pb-2 border-b border-neutral-800">
+              <MapPin size={13} className="text-neutral-500" />
+              <span className="text-xs font-semibold uppercase tracking-widest text-neutral-300">{region}</span>
+              <span className="mono text-[10px] text-neutral-600">{list.length} request{list.length === 1 ? '' : 's'}</span>
+            </div>
+            <div className="space-y-3">
+              {list.map((req) => (
+                <RequestCard
+                  key={req.id}
+                  req={req}
+                  comment={comment[req.id] ?? ''}
+                  setComment={(v) => setComment((c) => ({ ...c, [req.id]: v }))}
+                  onDecide={(d) => decide(req, d)}
+                  busy={busy === req.id}
+                />
+              ))}
+            </div>
+          </section>
         ))}
       </div>
 
@@ -162,6 +240,7 @@ function RequestCard({ req, comment, setComment, onDecide, busy }) {
           </div>
           <div className="text-right text-xs text-neutral-500">
             <div>by {req.requestedBy}</div>
+            {req.region && <div className="mt-1 flex items-center justify-end gap-1"><MapPin size={10} />{req.region}</div>}
             {req.routing && <div className="mt-1">→ {req.routing}</div>}
           </div>
         </div>
