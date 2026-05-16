@@ -1,16 +1,33 @@
 import { useMsal } from '@azure/msal-react';
 import { useFleet } from '../contexts/FleetDataContext';
+import { useViewAs } from '../contexts/ViewAsContext';
 
 // Resolves the signed-in MSAL user against the Personnel Maintenance
-// table by email. Returns the matched personnel row plus a derived
-// persona shape compatible with the existing UI.
+// table by email, or — if a "view as" override is set — synthesizes
+// a persona from that personnel row instead. Lets us inspect every
+// role's view without re-signing-in.
 export function useCurrentUser() {
   const { accounts } = useMsal();
   const { personnel, loading } = useFleet();
+  const { viewAsId } = useViewAs();
   const account = accounts[0];
 
   if (!account || loading || personnel.length === 0) {
     return { account, persona: null, loading };
+  }
+
+  // View-as override wins
+  if (viewAsId) {
+    const target = personnel.find((p) => p.id === viewAsId);
+    if (target) {
+      return {
+        account,
+        matched: target,
+        persona: personaFrom(target),
+        viewingAs: true,
+        loading: false
+      };
+    }
   }
 
   const email = account.username?.toLowerCase();
@@ -19,7 +36,6 @@ export function useCurrentUser() {
   );
 
   if (!matched) {
-    // Fallback: build a minimal persona from the MSAL account
     return {
       account,
       persona: {
@@ -40,19 +56,23 @@ export function useCurrentUser() {
   return {
     account,
     matched,
-    persona: {
-      id:        matched.id,
-      name:      matched.name,
-      initials:  initials(matched.name),
-      role:      mapRole(matched.role),
-      roleTitle: matched.role,
-      base:      matched.primaryBase,
-      region:    matched.region,
-      email:     matched.email,
-      phone:     matched.phone,
-      onShift:   matched.isActive ?? true
-    },
+    persona: personaFrom(matched),
     loading: false
+  };
+}
+
+function personaFrom(p) {
+  return {
+    id:        p.id,
+    name:      p.name,
+    initials:  initials(p.name),
+    role:      mapRole(p.role),
+    roleTitle: p.role,
+    base:      p.primaryBase,
+    region:    p.region,
+    email:     p.email,
+    phone:     p.phone,
+    onShift:   p.isActive ?? true
   };
 }
 
@@ -71,6 +91,6 @@ function mapRole(role) {
   if (r === 'AMT' || r === 'AMT(ROVER)') return 'AMT';
   if (r === 'QA' || r === 'ADOM' || r === 'QA MANAGER') return 'QA';
   if (r === 'SCHEDULER') return 'MX_SCHEDULER';
-  if (r === 'PILOT' || r === 'CHIEF PILOT') return 'AMT'; // no pilot home yet
+  if (r === 'PILOT' || r === 'CHIEF PILOT') return 'AMT';
   return 'AMT';
 }
