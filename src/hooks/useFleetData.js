@@ -9,14 +9,34 @@ function pick(row, ...candidates) {
   return undefined;
 }
 
+// Map Dataverse numeric status codes to the strings the UI expects.
+// 1 = In Service is the most common — others guess from CSV import order.
+const STATUS_MAP = {
+  1: 'IN_SERVICE',
+  2: 'MAINTENANCE',
+  3: 'AOG',
+  4: 'SPARE'
+};
+
 function mapAircraft(row) {
+  // Prefer the formatted (display-name) value, fall back to numeric mapping
+  const formattedStatus = row['cr463_operationalstatus@OData.Community.Display.V1.FormattedValue'];
+  const rawStatus = row.cr463_operationalstatus;
+  const status =
+    (formattedStatus && formattedStatus.toUpperCase().replace(/\s+/g, '_')) ??
+    STATUS_MAP[rawStatus] ??
+    'IN_SERVICE';
+
   return {
-    tail:   pick(row, 'cr463_tail', 'cr463_aircrafttitle', 'title'),
-    type:   pick(row, 'cr463_type', 'cr463_aircrafttype'),
-    base:   pick(row, 'cr463_base'),
-    region: pick(row, 'cr463_region'),
-    status: pick(row, 'cr463_status') ?? 'IN_SERVICE',
-    intl:   pick(row, 'cr463_intl', 'cr463_international')
+    tail:   pick(row, 'cr463_tailnumber', 'cr463_title'),
+    type:   pick(row, 'cr463_helicoptertype'),
+    base:   pick(row, 'cr463_baselocation'),
+    region: pick(row, 'cr463_operatingregion'),
+    status,
+    make:   pick(row, 'cr463_manufacturer'),
+    model:  pick(row, 'cr463_modelnumber'),
+    serial: pick(row, 'cr463_serialnumber'),
+    rmm:    pick(row, 'cr463_responsiblemaintenancemanager')
   };
 }
 

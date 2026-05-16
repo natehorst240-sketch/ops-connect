@@ -29,7 +29,8 @@ export function useDataverse() {
         Authorization: `Bearer ${token}`,
         'OData-MaxVersion': '4.0',
         'OData-Version': '4.0',
-        Accept: 'application/json'
+        Accept: 'application/json',
+        Prefer: 'odata.include-annotations="OData.Community.Display.V1.FormattedValue"'
       }
     });
     if (!res.ok) throw new Error(`Dataverse query failed: ${res.status} ${endpoint}`);
