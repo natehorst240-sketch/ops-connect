@@ -123,7 +123,7 @@ export default function MapTab({ persona }) {
             onClose={() => setSelectedBase(null)}
             className="mx-popup"
           >
-            <BasePopupContent base={selectedBase} onClose={() => setSelectedBase(null)} />
+            <BasePopupContent base={selectedBase} onClose={() => setSelectedBase(null)} AIRCRAFT={AIRCRAFT} />
           </Popup>
         )}
 
@@ -241,7 +241,7 @@ function AircraftMarker({ aircraft, active }) {
 // BASE POPUP
 // ============================================================================
 
-function BasePopupContent({ base, onClose }) {
+function BasePopupContent({ base, onClose, AIRCRAFT = [] }) {
   const status = STATUS_CONFIG[base.status];
   const weather = WEATHER_CONFIG[base.weather];
 

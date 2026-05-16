@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   Plane, Users, AlertTriangle, Calendar, Wrench, Radio, TrendingUp, Layers,
   Map as MapIcon, Grid3x3, Smartphone, GitBranch, MessageCircleQuestion, Activity,
-  Send, Inbox, Megaphone, Clock,
+  Send, Inbox, Megaphone, Clock, BarChart3,
 } from 'lucide-react';
 import { useMsal, useIsAuthenticated } from '@azure/msal-react';
 import { dataverseScopes } from './auth/config.js';
@@ -30,6 +30,7 @@ import ApprovalInbox from './tabs/ApprovalInbox';
 import Bulletins from './tabs/Bulletins';
 import OncallSchedule from './tabs/OncallSchedule';
 import Scheduler from './tabs/Scheduler';
+import Dashboard from './tabs/Dashboard';
 import { FleetDataProvider } from './contexts/FleetDataContext';
 import { useCurrentUser } from './hooks/useCurrentUser';
 
@@ -39,6 +40,7 @@ const TABS = [
   { id: 'bulletins',  label: 'Bulletins',       Icon: Megaphone },
   { id: 'oncall',     label: 'On-Call',         Icon: Clock },
   { id: 'scheduler',  label: 'Scheduler',       Icon: Calendar },
+  { id: 'dashboard',  label: 'Exec Dashboard',  Icon: BarChart3 },
   { id: 'phase2',     label: 'Phase 2 Ops',     Icon: Activity },
   { id: 'dvtest',     label: 'Dataverse Test',  Icon: Radio },
   { id: 'm365',       label: 'M365 Build',      Icon: Grid3x3 },
@@ -94,6 +96,7 @@ export default function App() {
           {activeTab === 'bulletins' && <Bulletins />}
           {activeTab === 'oncall' && <OncallSchedule />}
           {activeTab === 'scheduler' && <Scheduler />}
+          {activeTab === 'dashboard' && <Dashboard />}
           {activeTab === 'dvtest' && <DataverseTest />}
           {activeTab === 'phase2' && <Phase2Status />}
           {activeTab === 'app' && <AppHome persona={persona} />}
