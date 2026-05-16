@@ -23,6 +23,7 @@ import MapTab from './tabs/Map';
 import MobileTab from './tabs/Mobile';
 import M365Build from './m365/M365Build';
 import DataverseTest from './tabs/DataverseTest';
+import { FleetDataProvider } from './contexts/FleetDataContext';
 
 const TABS = [
   { id: 'dvtest', label: 'Dataverse Test', Icon: Radio },
@@ -69,6 +70,7 @@ export default function App() {
   }
 
   return (
+    <FleetDataProvider>
     <div className="min-h-screen bg-neutral-950 text-neutral-100 p-6">
       <div className="h-[calc(100vh-48px)] flex flex-col rounded-xl border border-neutral-800 bg-neutral-950 shadow-2xl shadow-black/60 overflow-hidden">
         <AppTopNav activeTab={activeTab} setActiveTab={setActiveTab} persona={persona} />
@@ -88,6 +90,7 @@ export default function App() {
         </div>
       </div>
     </div>
+    </FleetDataProvider>
   );
 }
 
