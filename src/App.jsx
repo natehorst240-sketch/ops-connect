@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   Plane, Users, AlertTriangle, Calendar, Wrench, Radio, TrendingUp, Layers,
-  Map as MapIcon, Grid3x3, Smartphone, GitBranch, MessageCircleQuestion,
+  Map as MapIcon, Grid3x3, Smartphone, GitBranch, MessageCircleQuestion, Activity,
 } from 'lucide-react';
 import { useMsal, useIsAuthenticated } from '@azure/msal-react';
 import { dataverseScopes } from './auth/config.js';
@@ -23,10 +23,12 @@ import MapTab from './tabs/Map';
 import MobileTab from './tabs/Mobile';
 import M365Build from './m365/M365Build';
 import DataverseTest from './tabs/DataverseTest';
+import Phase2Status from './tabs/Phase2Status';
 import { FleetDataProvider } from './contexts/FleetDataContext';
 
 const TABS = [
   { id: 'dvtest', label: 'Dataverse Test', Icon: Radio },
+  { id: 'phase2', label: 'Phase 2 Ops', Icon: Activity },
   { id: 'm365', label: 'M365 Build', Icon: Grid3x3 },
   { id: 'phaseFlow', label: 'Phase Flow', Icon: GitBranch },
   { id: 'app', label: 'The App', Icon: Radio },
@@ -76,6 +78,7 @@ export default function App() {
         <AppTopNav activeTab={activeTab} setActiveTab={setActiveTab} persona={persona} />
         <div className={`flex-1 ${activeTab === 'map' || activeTab === 'm365' ? 'overflow-hidden' : 'overflow-auto scrollbar'}`}>
           {activeTab === 'dvtest' && <DataverseTest />}
+          {activeTab === 'phase2' && <Phase2Status />}
           {activeTab === 'app' && <AppHome persona={persona} />}
           {activeTab === 'map' && <MapTab persona={persona} />}
           {activeTab === 'flowA' && <FlowTab flow={FLOWS.flowA} />}
