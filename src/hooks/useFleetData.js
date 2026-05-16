@@ -41,35 +41,88 @@ function mapAircraft(row) {
 }
 
 function mapPersonnel(row) {
-  const firstName = pick(row, 'cr463_firstname');
-  const lastName  = pick(row, 'cr463_lastname');
   return {
-    id:        row[`${TABLES.personnel.slice(0, -1)}id`] || row.id,
-    name:      pick(row, 'cr463_personnelmaintenancetitle', 'cr463_title') ?? `${firstName ?? ''} ${lastName ?? ''}`.trim(),
-    firstName,
-    lastName,
-    email:     pick(row, 'cr463_email'),
-    phone:     pick(row, 'cr463_phone'),
-    role:      pick(row, 'cr463_role'),
-    primaryBase: pick(row, 'cr463_primarybase'),
-    region:    pick(row, 'cr463_region')
+    id:          row.cr463_personnelmaintenanceid,
+    name:        pick(row, 'cr463_employeetitle'),
+    firstName:   pick(row, 'cr463_firstname'),
+    lastName:    pick(row, 'cr463_lastname'),
+    email:       pick(row, 'cr463_emailaddress'),
+    phone:       pick(row, 'cr463_phonenumber'),
+    role:        pick(row, 'cr463_role'),
+    primaryBase: pick(row, 'cr463_primarybaselocation'),
+    region:      pick(row, 'cr463_regioncode'),
+    leader:      pick(row, 'cr463_leadername'),
+    coverageBases: pick(row, 'cr463_coveragebases'),
+    isActive:    row.cr463_isactive
   };
 }
 
 function mapMxRequest(row) {
   return {
-    requestNumber: pick(row, 'cr463_requestnumber'),
-    title:         pick(row, 'cr463_maintenancerequesttitle', 'cr463_title'),
-    aircraftTail:  pick(row, 'cr463_aircrafttail'),
-    aircraftType:  pick(row, 'cr463_aircrafttype'),
-    requestType:   pick(row, 'cr463_requesttype'),
-    base:          pick(row, 'cr463_base'),
-    status:        pick(row, 'cr463_status'),
-    priority:      pick(row, 'cr463_priority'),
+    id:            row.cr463_maintenancerequestid,
+    requestNumber: pick(row, 'cr463_requestnumber', 'cr463_requesttitle'),
+    title:         pick(row, 'cr463_requesttitle', 'cr463_requestnumber'),
+    aircraftTail:  pick(row, 'cr463_aircrafttailnumber'),
+    aircraftType:  pick(row, 'cr463_aircraftmodel'),
+    type:          pick(row, 'cr463_typeofrequest'),     // for legacy r.type filters
+    requestType:   pick(row, 'cr463_typeofrequest'),
+    base:          pick(row, 'cr463_baselocation'),
+    status:        pick(row, 'cr463_requeststatus@OData.Community.Display.V1.FormattedValue'),
+    priority:      pick(row, 'cr463_prioritylevel@OData.Community.Display.V1.FormattedValue'),
     requestedBy:   pick(row, 'cr463_requestedby'),
-    reason:        pick(row, 'cr463_reason'),
-    windowStart:   pick(row, 'cr463_windowstart'),
-    windowEnd:     pick(row, 'cr463_windowend')
+    approver:      pick(row, 'cr463_approvername'),
+    reason:        pick(row, 'cr463_reasonforrequest'),
+    routing:       pick(row, 'cr463_routingcode'),
+    windowStart:   pick(row, 'cr463_windowstarttime'),
+    windowEnd:     pick(row, 'cr463_windowendtime'),
+    decidedAt:     pick(row, 'cr463_decisiontimestamp'),
+    decisionComment: pick(row, 'cr463_decisioncomments'),
+    auditCorrelation: pick(row, 'cr463_auditcorrelationid')
+  };
+}
+
+function mapScheduleEvent(row) {
+  return {
+    id:           row[Object.keys(row).find(k => k.endsWith('eventid'))],
+    title:        pick(row, 'cr463_scheduleeventtitle', 'cr463_title'),
+    eventId:      pick(row, 'cr463_eventid'),
+    sourceSystem: pick(row, 'cr463_sourcesystem'),
+    sourceEventId:pick(row, 'cr463_sourceeventid'),
+    aircraftTail: pick(row, 'cr463_aircrafttail'),
+    eventType:    pick(row, 'cr463_eventtype'),
+    windowStart:  pick(row, 'cr463_windowstart', 'cr463_windowstarttime'),
+    windowEnd:    pick(row, 'cr463_windowend', 'cr463_windowendtime')
+  };
+}
+
+function mapFleetPosition(row) {
+  return {
+    id:       row[Object.keys(row).find(k => k.endsWith('positionid'))],
+    tail:     pick(row, 'cr463_tail', 'cr463_title'),
+    lat:      pick(row, 'cr463_latitude', 'cr463_lat'),
+    lon:      pick(row, 'cr463_longitude', 'cr463_lon'),
+    altitude: pick(row, 'cr463_altitude'),
+    bearing:  pick(row, 'cr463_bearing'),
+    speed:    pick(row, 'cr463_speed'),
+    inFlight: row.cr463_inflight,
+    lastSeen: pick(row, 'cr463_lastpolledat', 'cr463_lastseen'),
+    inFlightLabel: pick(row, 'cr463_inflight@OData.Community.Display.V1.FormattedValue')
+  };
+}
+
+function mapConflict(row) {
+  return {
+    id:          row[Object.keys(row).find(k => k.endsWith('conflictid'))],
+    title:       pick(row, 'cr463_conflicttitle', 'cr463_title'),
+    conflictId:  pick(row, 'cr463_conflictid'),
+    type:        pick(row, 'cr463_type'),
+    severity:    pick(row, 'cr463_severity'),
+    detail:      pick(row, 'cr463_detail'),
+    suggestion:  pick(row, 'cr463_suggestion'),
+    sourceEventId:    pick(row, 'cr463_sourceeventid'),
+    actionableSource: pick(row, 'cr463_actionablesource'),
+    actionableEventId: pick(row, 'cr463_actionableeventid'),
+    acknowledgedAt: pick(row, 'cr463_acknowledgedat')
   };
 }
 
@@ -79,6 +132,9 @@ export function useFleetData() {
     aircraft: [],
     personnel: [],
     mxRequests: [],
+    scheduleEvents: [],
+    fleetPositions: [],
+    conflicts: [],
     loading: true,
     error: null
   });
@@ -86,18 +142,25 @@ export function useFleetData() {
   useEffect(() => {
     async function load() {
       try {
-        const [aircraft, personnel, mxRequests] = await Promise.all([
+        const results = await Promise.allSettled([
           query(TABLES.aircraft),
           query(TABLES.personnel),
-          query(TABLES.mxRequest)
+          query(TABLES.mxRequest),
+          query(TABLES.scheduleEvent),
+          query(TABLES.fleetPosition),
+          query(TABLES.conflict)
         ]);
+        const [aircraft, personnel, mxRequests, scheduleEvents, fleetPositions, conflicts] = results;
 
         setState({
-          aircraft:   aircraft.map(mapAircraft),
-          personnel:  personnel.map(mapPersonnel),
-          mxRequests: mxRequests.map(mapMxRequest),
-          loading:    false,
-          error:      null
+          aircraft:       aircraft.status === 'fulfilled' ? aircraft.value.map(mapAircraft) : [],
+          personnel:      personnel.status === 'fulfilled' ? personnel.value.map(mapPersonnel) : [],
+          mxRequests:     mxRequests.status === 'fulfilled' ? mxRequests.value.map(mapMxRequest) : [],
+          scheduleEvents: scheduleEvents.status === 'fulfilled' ? scheduleEvents.value.map(mapScheduleEvent) : [],
+          fleetPositions: fleetPositions.status === 'fulfilled' ? fleetPositions.value.map(mapFleetPosition) : [],
+          conflicts:      conflicts.status === 'fulfilled' ? conflicts.value.map(mapConflict) : [],
+          loading:        false,
+          error:          null
         });
       } catch (e) {
         setState((s) => ({ ...s, loading: false, error: e.message }));
