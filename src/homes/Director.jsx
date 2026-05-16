@@ -4,8 +4,10 @@ import { PageHeader, Card, Metric, StatusDot, BulletinBanner } from '../ui';
 import WeekCalendar from '../shared/WeekCalendar';
 import { getEventsForPersona, getCalendarConfigForPersona } from '../shared/personaCalendarData';
 import { useFleet } from '../contexts/FleetDataContext';
+import { useNavigation } from '../contexts/NavigationContext';
 
 export default function DirectorHome({ persona }) {
+  const navigate = useNavigation();
   const { aircraft: liveAircraft, mxRequests: liveReqs } = useFleet();
   const AIRCRAFT = liveAircraft.length ? liveAircraft : STATIC_AIRCRAFT;
   const PENDING_REQUESTS = liveReqs.length ? liveReqs : STATIC_REQS;
@@ -58,7 +60,7 @@ export default function DirectorHome({ persona }) {
                   <div className="text-[13px] font-medium">{e.type}: {e.detail}</div>
                   <div className="text-[11px] text-neutral-500 mt-0.5">{e.submitter} · {e.region} · {e.submitted}</div>
                 </div>
-                <button className="px-3 py-1.5 text-[11px] font-medium bg-neutral-800 border border-neutral-700 rounded text-neutral-200 hover:bg-neutral-700">
+                <button onClick={() => navigate('inbox')} className="px-3 py-1.5 text-[11px] font-medium bg-neutral-800 border border-neutral-700 rounded text-neutral-200 hover:bg-neutral-700">
                   Review
                 </button>
               </div>

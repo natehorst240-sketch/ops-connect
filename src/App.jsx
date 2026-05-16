@@ -33,6 +33,7 @@ import Scheduler from './tabs/Scheduler';
 import Dashboard from './tabs/Dashboard';
 import MyHome from './tabs/MyHome';
 import { FleetDataProvider } from './contexts/FleetDataContext';
+import { NavigationProvider } from './contexts/NavigationContext';
 import { useCurrentUser } from './hooks/useCurrentUser';
 
 const TABS = [
@@ -89,6 +90,7 @@ export default function App() {
 
   return (
     <FleetDataProvider>
+    <NavigationProvider navigate={setActiveTab}>
     <div className="min-h-screen bg-neutral-950 text-neutral-100 p-6">
       <div className="h-[calc(100vh-48px)] flex flex-col rounded-xl border border-neutral-800 bg-neutral-950 shadow-2xl shadow-black/60 overflow-hidden">
         <AppTopNav activeTab={activeTab} setActiveTab={setActiveTab} persona={persona} />
@@ -116,6 +118,7 @@ export default function App() {
         </div>
       </div>
     </div>
+    </NavigationProvider>
     </FleetDataProvider>
   );
 }

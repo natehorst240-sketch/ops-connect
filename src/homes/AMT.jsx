@@ -2,12 +2,14 @@ import React from 'react';
 import { Plane, UserCircle, Wrench, MessageSquare, Shield, Calendar } from 'lucide-react';
 import { AIRCRAFT as STATIC_AIRCRAFT, INSPECTIONS_DUE } from '../data';
 import { useFleet } from '../contexts/FleetDataContext';
+import { useNavigation } from '../contexts/NavigationContext';
 import { PageHeader, Card, Metric, BulletinBanner } from '../ui';
 import WeekCalendar from '../shared/WeekCalendar';
 import { getEventsForPersona, getCalendarConfigForPersona } from '../shared/personaCalendarData';
 
 export default function AMTHome({ persona }) {
   const { aircraft: live } = useFleet();
+  const navigate = useNavigation();
   const AIRCRAFT = live.length ? live : STATIC_AIRCRAFT;
   return (
     <>
@@ -49,7 +51,7 @@ export default function AMTHome({ persona }) {
             ].map((a, idx) => {
               const Icon = a.icon;
               return (
-                <button key={idx} className="flex items-center gap-2.5 p-3 bg-neutral-800/50 hover:bg-neutral-800 border border-neutral-800 rounded-md text-[12px] font-medium text-left transition-colors">
+                <button key={idx} onClick={() => navigate('submit')} className="flex items-center gap-2.5 p-3 bg-neutral-800/50 hover:bg-neutral-800 border border-neutral-800 rounded-md text-[12px] font-medium text-left transition-colors">
                   <Icon size={15} className="text-orange-400" />
                   {a.label}
                 </button>
