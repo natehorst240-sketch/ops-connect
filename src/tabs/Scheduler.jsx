@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Calendar as CalIcon, ChevronLeft, ChevronRight, AlertTriangle, X, ExternalLink, Plane, Clock } from 'lucide-react';
 import { useFleet } from '../contexts/FleetDataContext';
+import { useCurrentUser } from '../hooks/useCurrentUser';
 
 const EVENT_COLORS = {
   inspection: { fill: 'rgba(254, 217, 184, 0.85)', text: '#a3501f', label: 'Inspection' },
@@ -16,8 +17,16 @@ const DAYS = 21; // 3-week view
 
 export default function Scheduler() {
   const { aircraft, scheduleEvents, mxRequests, conflicts, loading } = useFleet();
+  const { persona } = useCurrentUser();
   const [showConflicts, setShowConflicts] = useState(false);
   const [selected, setSelected] = useState(null);
+
+  // Region filter: default to own region for AMT/RMM, ALL for leadership
+  const defaultRegion = (persona?.role === 'AMT' || persona?.role === 'RMM') && persona?.region && persona.region !== 'ALL'
+    ? persona.region : 'ALL';
+  const [regionFilter, setRegionFilter] = useState(defaultRegion);
+
+  const regions = useMemo(() => ['ALL', ...[...new Set(aircraft.map(a => a.region).filter(Boolean))].sort()], [aircraft]);
 
   // Default window: anchor on earliest event in the dataset, or today - 7
   const [start, setStart] = useState(() => {
@@ -76,22 +85,25 @@ export default function Scheduler() {
       .filter((e) => e.endAt >= start && e.start <= end);
   }, [scheduleEvents, mxRequests, start, end]);
 
-  // Group by aircraft (rows) — show ALL aircraft, even empty
+  // Group by aircraft (rows) — filter by region, show rows with events first
   const rows = useMemo(() => {
+    const src = regionFilter === 'ALL' ? aircraft : aircraft.filter(a => a.region === regionFilter);
     const byTail = new Map();
-    aircraft.forEach((a) => byTail.set(a.tail, { aircraft: a, events: [] }));
+    src.forEach((a) => byTail.set(a.tail, { aircraft: a, events: [] }));
     allEvents.forEach((e) => {
       if (!e.tail) return;
-      if (!byTail.has(e.tail)) byTail.set(e.tail, { aircraft: { tail: e.tail, type: '—', region: '—' }, events: [] });
+      if (!byTail.has(e.tail)) {
+        if (regionFilter !== 'ALL') return; // skip events for filtered-out aircraft
+        byTail.set(e.tail, { aircraft: { tail: e.tail, type: '—', region: '—' }, events: [] });
+      }
       byTail.get(e.tail).events.push(e);
     });
-    // Sort: rows with events first, then alphabetical by tail
     return Array.from(byTail.values()).sort((a, b) => {
       if (a.events.length && !b.events.length) return -1;
       if (!a.events.length && b.events.length) return 1;
       return (a.aircraft.tail ?? '').localeCompare(b.aircraft.tail ?? '');
     });
-  }, [aircraft, allEvents]);
+  }, [aircraft, allEvents, regionFilter]);
 
   const dayWidth = 70;
   const rowHeight = 40;
@@ -135,7 +147,19 @@ export default function Scheduler() {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 flex-wrap">
+            {/* Region chips */}
+            {regions.slice(0, 8).map(r => (
+              <button key={r} onClick={() => setRegionFilter(r)}
+                className={`px-2.5 py-1 rounded-md text-xs border transition-colors ${
+                  regionFilter === r
+                    ? 'bg-orange-500/15 border-orange-500/40 text-orange-300'
+                    : 'bg-neutral-900 border-neutral-800 text-neutral-500 hover:text-neutral-200 hover:border-neutral-700'
+                }`}>
+                {r === 'ALL' ? 'All' : r}
+              </button>
+            ))}
+            <div className="w-px h-5 bg-neutral-800 mx-1" />
             <button onClick={() => navigate(-DAYS)} className="p-1.5 rounded-md bg-neutral-900 border border-neutral-800 hover:border-neutral-700" title="Previous">
               <ChevronLeft size={14} />
             </button>

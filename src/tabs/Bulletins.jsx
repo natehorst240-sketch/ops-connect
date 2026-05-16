@@ -39,6 +39,14 @@ export default function Bulletins() {
   const [bulletins, setBulletins] = useState(SEED_BULLETINS);
   const [showForm, setShowForm] = useState(false);
   const [draft, setDraft] = useState({ level: 'INFO', title: '', body: '' });
+  const [showAll, setShowAll] = useState(!persona || ['DIRECTOR', 'QA'].includes(persona.role));
+
+  // Filter bulletins to those relevant to the current persona's role
+  const visible = showAll ? bulletins : bulletins.filter(b => {
+    if (b.audience === 'ALL') return true;
+    if (!persona) return true;
+    return b.audience.split(',').some(a => a.trim() === persona.role || a.trim() === persona.roleTitle);
+  });
 
   function post(e) {
     e.preventDefault();
@@ -60,20 +68,37 @@ export default function Bulletins() {
 
   return (
     <div className="p-8 max-w-3xl mx-auto text-neutral-100">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
         <div className="flex items-center gap-3">
           <Megaphone size={22} className="text-orange-400" />
           <h1 className="text-2xl font-semibold">Bulletins</h1>
         </div>
-        {canPost && !showForm && (
-          <button
-            onClick={() => setShowForm(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-400 text-black font-semibold rounded-lg transition-colors text-sm"
-          >
-            <Plus size={14} />
-            New Bulletin
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {/* Role filter toggle */}
+          <div className="flex rounded-lg border border-neutral-800 overflow-hidden text-xs">
+            <button
+              onClick={() => setShowAll(false)}
+              className={`px-3 py-1.5 transition-colors ${!showAll ? 'bg-orange-500/15 text-orange-300' : 'bg-neutral-900 text-neutral-500 hover:text-neutral-200'}`}
+            >
+              For me
+            </button>
+            <button
+              onClick={() => setShowAll(true)}
+              className={`px-3 py-1.5 border-l border-neutral-800 transition-colors ${showAll ? 'bg-orange-500/15 text-orange-300' : 'bg-neutral-900 text-neutral-500 hover:text-neutral-200'}`}
+            >
+              All ({bulletins.length})
+            </button>
+          </div>
+          {canPost && !showForm && (
+            <button
+              onClick={() => setShowForm(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-400 text-black font-semibold rounded-lg transition-colors text-sm"
+            >
+              <Plus size={14} />
+              New Bulletin
+            </button>
+          )}
+        </div>
       </div>
 
       {showForm && (
@@ -125,7 +150,10 @@ export default function Bulletins() {
       )}
 
       <div className="space-y-3">
-        {bulletins.map((b) => <Card key={b.id} bulletin={b} />)}
+        {visible.length === 0 && (
+          <div className="p-10 text-center text-neutral-600 text-sm">No bulletins for your role</div>
+        )}
+        {visible.map((b) => <Card key={b.id} bulletin={b} />)}
       </div>
     </div>
   );
