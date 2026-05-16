@@ -26,14 +26,14 @@ export default function DirectorHome({ persona }) {
         {...getCalendarConfigForPersona(persona)}
       />
 
-      <div className="grid grid-cols-4 gap-3 mb-5">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
         <Metric label="Fleet In Service" value={inService} sub={`of ${AIRCRAFT.length}`} accent="#22c55e" />
         <Metric label="AOG" value={aog} accent="#ef4444" pulse={aog > 0} />
         <Metric label="Scheduled MX" value={maint} accent="#eab308" />
         <Metric label="Pending Escalations" value={escalations.length} accent="#ff6b1a" />
       </div>
 
-      <div className="grid grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card title="Fleet Status — All Regions" action={<span className="mono text-[11px]">{AIRCRAFT.length} aircraft</span>}>
           <div className="space-y-1.5 max-h-96 overflow-y-auto scrollbar pr-1">
             {AIRCRAFT.slice(0, 18).map(a => (

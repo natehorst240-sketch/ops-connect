@@ -8,7 +8,7 @@ export function PageHeader({ persona, subtitle }) {
     <div className="mb-6">
       <div className="mono text-[11px] text-neutral-500 uppercase tracking-widest mb-1">{persona.roleTitle}</div>
       <div className="flex items-baseline gap-3 flex-wrap">
-        <h1 className="text-[28px] font-semibold tracking-tight m-0">Good afternoon, {persona.name.split(' ')[0]}</h1>
+        <h1 className="text-[22px] sm:text-[28px] font-semibold tracking-tight m-0">Good afternoon, {persona.name.split(' ')[0]}</h1>
         <div className="mono text-[12px] text-neutral-500">{today}</div>
       </div>
       {subtitle && <div className="text-[14px] text-neutral-400 mt-2">{subtitle}</div>}
@@ -67,7 +67,7 @@ export function BulletinBanner() {
       </div>
       <div className="flex-1 min-w-0">
         <div className="text-[13px] font-medium">{b.title}</div>
-        <div className="text-[12px] text-neutral-400 mt-0.5">{b.message}</div>
+        <div className="hidden sm:block text-[12px] text-neutral-400 mt-0.5">{b.message}</div>
       </div>
       <div className="mono text-[11px] text-neutral-500 shrink-0">{i + 1} / {BULLETINS.length}</div>
       <div className="flex gap-1 shrink-0">

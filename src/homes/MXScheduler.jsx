@@ -32,7 +32,7 @@ export default function MXSchedulerHome({ persona }) {
         {...getCalendarConfigForPersona(persona)}
       />
 
-      <div className="grid grid-cols-4 gap-3 mb-5">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
         <Metric label="Scheduled This Week" value="14" sub="events" accent="#3b82f6" />
         <Metric label="Pending Approval" value={mxRequests.length} accent="#ff6b1a" />
         <Metric label="Conflicts Detected" value="0" accent="#22c55e" />
@@ -70,7 +70,7 @@ export default function MXSchedulerHome({ persona }) {
         </Card>
       </div>
 
-      <div className="grid grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card title="Approval Queue — MX + PR" accent="#ff6b1a">
           <div className="space-y-0">
             {mxRequests.map((r, idx) => (

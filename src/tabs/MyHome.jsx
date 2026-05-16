@@ -7,6 +7,8 @@ import { useCurrentUser } from '../hooks/useCurrentUser';
 import { useFleet } from '../contexts/FleetDataContext';
 import { useNavigation } from '../contexts/NavigationContext';
 import { useViewAs } from '../contexts/ViewAsContext';
+import { useDemoMode } from '../contexts/DemoModeContext';
+import { PERSONAS } from '../data';
 import DirectorHome from '../homes/Director';
 import RMMHome from '../homes/RMM';
 import AMTHome from '../homes/AMT';
@@ -26,8 +28,9 @@ const HOMES = {
 };
 
 export default function MyHome() {
-  const { account, persona, matched, viewingAs, loading } = useCurrentUser();
+  const { account, persona, matched, viewingAs, loading, demo } = useCurrentUser();
   const { personnel, mxRequests, aircraft } = useFleet();
+  const { demoMode } = useDemoMode();
   const navigate = useNavigation();
   const { viewAsId, setViewAsId } = useViewAs();
 
@@ -43,7 +46,7 @@ export default function MyHome() {
   if (loading) {
     return <div className="p-8 text-neutral-400 text-sm">Resolving your profile…</div>;
   }
-  if (!account) {
+  if (!account && !demoMode) {
     return <div className="p-8 text-neutral-400 text-sm">Not signed in.</div>;
   }
 
@@ -62,7 +65,7 @@ export default function MyHome() {
 
   return (
     <div className="grid-bg min-h-full">
-      <div className="px-7 pt-6 max-w-[1400px] mx-auto">
+      <div className="px-4 sm:px-7 pt-4 sm:pt-6 max-w-[1400px] mx-auto">
         <div className="flex items-center justify-between p-4 mb-3 rounded-lg bg-gradient-to-r from-orange-500/10 to-neutral-900 border border-orange-500/20 gap-4 flex-wrap">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-full bg-orange-500 flex items-center justify-center text-black font-semibold shrink-0">
@@ -120,7 +123,7 @@ export default function MyHome() {
         </div>
       </div>
 
-      <div className="fade-slide px-7 pb-7 max-w-[1400px] mx-auto" key={persona.id}>
+      <div className="fade-slide px-4 sm:px-7 pb-7 max-w-[1400px] mx-auto" key={persona.id}>
         <Home persona={persona} />
       </div>
     </div>
@@ -128,7 +131,14 @@ export default function MyHome() {
 }
 
 function ViewAsPicker({ personnel, viewAsId, onPick, viewingAs }) {
+  const { demoMode } = useDemoMode();
+
+  // In demo mode (no live Dataverse), show the static PERSONAS list so
+  // reviewers can walk through every role without a Microsoft account.
   const grouped = useMemo(() => {
+    if (demoMode || personnel.length === 0) {
+      return [['— Demo Roles —', PERSONAS]];
+    }
     const byRegion = new Map();
     [...personnel]
       .sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''))
@@ -138,7 +148,7 @@ function ViewAsPicker({ personnel, viewAsId, onPick, viewingAs }) {
         byRegion.get(r).push(p);
       });
     return [...byRegion.entries()].sort(([a], [b]) => a.localeCompare(b));
-  }, [personnel]);
+  }, [personnel, demoMode]);
 
   return (
     <label className="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-neutral-900 border border-neutral-700 text-xs cursor-pointer hover:border-neutral-600">
@@ -149,12 +159,12 @@ function ViewAsPicker({ personnel, viewAsId, onPick, viewingAs }) {
         onChange={(e) => onPick(e.target.value || null)}
         className="bg-transparent text-neutral-200 text-xs outline-none cursor-pointer pr-1 max-w-[200px]"
       >
-        <option value="">— Me —</option>
+        <option value="">{demoMode ? '— Director (default) —' : '— Me —'}</option>
         {grouped.map(([region, list]) => (
-          <optgroup key={region} label={`${region} (${list.length})`}>
+          <optgroup key={region} label={demoMode ? region : `${region} (${list.length})`}>
             {list.map(p => (
               <option key={p.id} value={p.id}>
-                {p.name} · {p.role || '—'}
+                {p.name} · {p.roleTitle ?? p.role ?? '—'}
               </option>
             ))}
           </optgroup>

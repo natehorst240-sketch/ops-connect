@@ -33,14 +33,14 @@ export default function QAHome({ persona }) {
         {...getCalendarConfigForPersona(persona)}
       />
 
-      <div className="grid grid-cols-4 gap-3 mb-5">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
         <Metric label="Fleet Health" value={`${Math.round((inService / AIRCRAFT.length) * 100)}%`} sub={`${inService}/${AIRCRAFT.length}`} accent="#22c55e" />
         <Metric label="AOG" value={aog} accent="#ef4444" pulse={aog > 0} />
         <Metric label="Pending Review" value={PENDING_REQUESTS.length} accent="#ff6b1a" />
         <Metric label="Compliance Score" value="98.2%" sub="past 30d" accent="#3b82f6" />
       </div>
 
-      <div className="grid grid-cols-2 gap-5 mb-5">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
         <Card title="All-Region Approval Queue" accent="#ff6b1a">
           <div className="space-y-0">
             {PENDING_REQUESTS.map((r, idx) => (
@@ -90,7 +90,7 @@ export default function QAHome({ persona }) {
 function RegionBreakdown({ aircraft: AIRCRAFT }) {
   const regions = [...new Set(AIRCRAFT.map(a => a.region))];
   return (
-    <div className="grid grid-cols-5 gap-2">
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
       {regions.map(r => {
         const list = AIRCRAFT.filter(a => a.region === r);
         const aog = list.filter(a => a.status === 'AOG').length;

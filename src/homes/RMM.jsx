@@ -25,13 +25,13 @@ export default function RMMHome({ persona }) {
         {...getCalendarConfigForPersona(persona)}
       />
 
-      <div className="grid grid-cols-3 gap-3 mb-5">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-5">
         <Metric label={`${persona.region} Aircraft`} value={regionAircraft.length} accent="#22c55e" />
         <Metric label="Pending My Approval" value={regionRequests.length} accent="#ff6b1a" />
         <Metric label="Techs On Shift" value={8} sub="of 12" accent="#3b82f6" />
       </div>
 
-      <div className="grid grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card title="Approval Queue" accent="#ff6b1a">
           <div className="space-y-0">
             {regionRequests.map((r, idx) => (
@@ -67,7 +67,7 @@ export default function RMMHome({ persona }) {
         </Card>
       </div>
 
-      <div className="mt-5 grid grid-cols-2 gap-5">
+      <div className="mt-5 grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card title="My Team — On Call Now" action="WY/MT Region">
           {['Nate Anderson · Greybull', 'Robert Guty · Greybull', 'Aaron Quitberg · Riverton'].map((name, idx) => (
             <div key={idx} className="flex items-center gap-3 py-2.5 border-b border-neutral-800 last:border-0">
