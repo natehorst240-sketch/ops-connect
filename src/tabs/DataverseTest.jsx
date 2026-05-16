@@ -4,11 +4,11 @@ import { CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 
 const TABLES = [
   { label: 'Region',                 endpoint: 'cr463_regionfields' },
-  { label: 'Base',                   endpoint: 'cr463_bases' },
+  { label: 'Base',                   endpoint: 'cr463_airportlocations' },
   { label: 'Aircraft Type',          endpoint: 'cr463_aircrafttypes' },
   { label: 'Aircraft',               endpoint: 'cr463_aircrafts' },
   { label: 'Personnel Maintenance',  endpoint: 'cr463_personnelmaintenances' },
-  { label: 'MX Request',             endpoint: 'cr463_mxrequests' },
+  { label: 'MX Request',             endpoint: 'cr463_maintenancerequests' },
   { label: 'Audit Log',              endpoint: 'cr463_auditlogs' },
   { label: 'Schedule Event',         endpoint: 'cr463_scheduleevents' },
   { label: 'Fleet Position',         endpoint: 'cr463_fleetpositions' },
