@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   Plane, Users, AlertTriangle, Calendar, Wrench, Radio, TrendingUp, Layers,
   Map as MapIcon, Grid3x3, Smartphone, GitBranch, MessageCircleQuestion, Activity,
-  Send, Inbox, Megaphone, Clock, BarChart3, Home,
+  Send, Inbox, Megaphone, Clock, BarChart3, Home as HomeIcon,
 } from 'lucide-react';
 import { useMsal, useIsAuthenticated } from '@azure/msal-react';
 import { dataverseScopes } from './auth/config.js';
@@ -36,7 +36,7 @@ import { FleetDataProvider } from './contexts/FleetDataContext';
 import { useCurrentUser } from './hooks/useCurrentUser';
 
 const TABS = [
-  { id: 'myhome',     label: 'My Home',         Icon: Home },
+  { id: 'myhome',     label: 'My Home',         Icon: HomeIcon },
   { id: 'submit',     label: 'Submit Request',  Icon: Send },
   { id: 'inbox',      label: 'Approval Inbox',  Icon: Inbox },
   { id: 'bulletins',  label: 'Bulletins',       Icon: Megaphone },
