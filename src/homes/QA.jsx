@@ -1,8 +1,9 @@
 import React from 'react';
-import { AIRCRAFT, PENDING_REQUESTS } from '../data';
+import { AIRCRAFT as STATIC_AIRCRAFT, PENDING_REQUESTS as STATIC_REQS } from '../data';
 import { PageHeader, Card, Metric, BulletinBanner } from '../ui';
 import WeekCalendar from '../shared/WeekCalendar';
 import { getEventsForPersona, getCalendarConfigForPersona } from '../shared/personaCalendarData';
+import { useFleet } from '../contexts/FleetDataContext';
 
 const AUDIT_EVENTS = [
   { when: '14:32', who: 'Tevita Silatolu', action: 'Approved MX Schedule', target: 'N39KM · 100-hr inspection' },
@@ -14,6 +15,9 @@ const AUDIT_EVENTS = [
 ];
 
 export default function QAHome({ persona }) {
+  const { aircraft: liveAircraft, mxRequests: liveReqs } = useFleet();
+  const AIRCRAFT = liveAircraft.length ? liveAircraft : STATIC_AIRCRAFT;
+  const PENDING_REQUESTS = liveReqs.length ? liveReqs : STATIC_REQS;
   const inService = AIRCRAFT.filter(a => a.status === 'IN_SERVICE').length;
   const aog = AIRCRAFT.filter(a => a.status === 'AOG').length;
 

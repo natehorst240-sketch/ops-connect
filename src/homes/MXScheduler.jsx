@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Filter, ArrowRight, Users, ChevronLeft, ChevronRight, Phone, CalendarDays } from 'lucide-react';
-import { AIRCRAFT, INSPECTIONS_DUE, PENDING_REQUESTS } from '../data';
+import { AIRCRAFT as STATIC_AIRCRAFT, INSPECTIONS_DUE, PENDING_REQUESTS as STATIC_REQS } from '../data';
+import { useFleet } from '../contexts/FleetDataContext';
 import { PageHeader, Card, Metric, StatusDot, BulletinBanner } from '../ui';
 import WeekCalendar from '../shared/WeekCalendar';
 import { getEventsForPersona, getCalendarConfigForPersona } from '../shared/personaCalendarData';
@@ -13,6 +14,9 @@ import {
 } from '../data/mxOncallSchedule';
 
 export default function MXSchedulerHome({ persona }) {
+  const { aircraft: liveAircraft, mxRequests: liveReqs } = useFleet();
+  const AIRCRAFT = liveAircraft.length ? liveAircraft : STATIC_AIRCRAFT;
+  const PENDING_REQUESTS = liveReqs.length ? liveReqs : STATIC_REQS;
   const [selectedRegion, setSelectedRegion] = useState('ALL');
   const mxRequests = PENDING_REQUESTS.filter(r => r.type === 'MX Schedule' || r.type === 'PR Movement');
 

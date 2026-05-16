@@ -1,11 +1,15 @@
 import React from 'react';
 import { Phone, MessageSquare, Bell, Shield, Users } from 'lucide-react';
-import { AIRCRAFT, PENDING_REQUESTS } from '../data';
+import { AIRCRAFT as STATIC_AIRCRAFT, PENDING_REQUESTS as STATIC_REQS } from '../data';
 import { PageHeader, Card, Metric, StatusDot, BulletinBanner } from '../ui';
 import WeekCalendar from '../shared/WeekCalendar';
 import { getEventsForPersona, getCalendarConfigForPersona } from '../shared/personaCalendarData';
+import { useFleet } from '../contexts/FleetDataContext';
 
 export default function RMMHome({ persona }) {
+  const { aircraft: liveAircraft, mxRequests: liveReqs } = useFleet();
+  const AIRCRAFT = liveAircraft.length ? liveAircraft : STATIC_AIRCRAFT;
+  const PENDING_REQUESTS = liveReqs.length ? liveReqs : STATIC_REQS;
   const regionAircraft = AIRCRAFT.filter(a => a.region === persona.region);
   const regionRequests = PENDING_REQUESTS.filter(r => r.region === persona.region);
 
