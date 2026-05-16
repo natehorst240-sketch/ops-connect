@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   Plane, Users, AlertTriangle, Calendar, Wrench, Radio, TrendingUp, Layers,
   Map as MapIcon, Grid3x3, Smartphone, GitBranch, MessageCircleQuestion, Activity,
-  Send, Inbox, Megaphone, Clock, BarChart3,
+  Send, Inbox, Megaphone, Clock, BarChart3, Home,
 } from 'lucide-react';
 import { useMsal, useIsAuthenticated } from '@azure/msal-react';
 import { dataverseScopes } from './auth/config.js';
@@ -31,10 +31,12 @@ import Bulletins from './tabs/Bulletins';
 import OncallSchedule from './tabs/OncallSchedule';
 import Scheduler from './tabs/Scheduler';
 import Dashboard from './tabs/Dashboard';
+import MyHome from './tabs/MyHome';
 import { FleetDataProvider } from './contexts/FleetDataContext';
 import { useCurrentUser } from './hooks/useCurrentUser';
 
 const TABS = [
+  { id: 'myhome',     label: 'My Home',         Icon: Home },
   { id: 'submit',     label: 'Submit Request',  Icon: Send },
   { id: 'inbox',      label: 'Approval Inbox',  Icon: Inbox },
   { id: 'bulletins',  label: 'Bulletins',       Icon: Megaphone },
@@ -59,7 +61,7 @@ const TABS = [
 export default function App() {
   const { instance } = useMsal();
   const isAuthenticated = useIsAuthenticated();
-  const [activeTab, setActiveTab] = useState('submit');
+  const [activeTab, setActiveTab] = useState('myhome');
   const [personaId, setPersonaId] = useState('director');
   const persona = PERSONAS.find(p => p.id === personaId);
 
@@ -91,6 +93,7 @@ export default function App() {
       <div className="h-[calc(100vh-48px)] flex flex-col rounded-xl border border-neutral-800 bg-neutral-950 shadow-2xl shadow-black/60 overflow-hidden">
         <AppTopNav activeTab={activeTab} setActiveTab={setActiveTab} persona={persona} />
         <div className={`flex-1 ${activeTab === 'map' || activeTab === 'm365' ? 'overflow-hidden' : 'overflow-auto scrollbar'}`}>
+          {activeTab === 'myhome' && <MyHome />}
           {activeTab === 'submit' && <SubmitRequest />}
           {activeTab === 'inbox' && <ApprovalInbox />}
           {activeTab === 'bulletins' && <Bulletins />}
@@ -122,6 +125,8 @@ export default function App() {
 // ============================================================================
 
 function AppTopNav({ activeTab, setActiveTab, persona }) {
+  const { persona: livePersona } = useCurrentUser();
+  const displayPersona = livePersona ?? persona;
   return (
     <div className="bg-neutral-900 border-b border-neutral-800 shrink-0">
       <div className="flex items-center px-5 gap-5">
@@ -155,13 +160,15 @@ function AppTopNav({ activeTab, setActiveTab, persona }) {
           })}
         </div>
 
-        <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-neutral-800 border border-neutral-700 shrink-0">
+        <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-neutral-800 border border-neutral-700 shrink-0" title="Signed in">
           <div className="w-6 h-6 rounded-full bg-orange-600 flex items-center justify-center text-[10px] font-semibold text-black">
-            {persona.initials}
+            {displayPersona.initials}
           </div>
           <div className="text-[11.5px]">
-            <div className="font-medium leading-tight">{persona.name}</div>
-            <div className="mono text-neutral-500 text-[9px] leading-tight">{persona.role}</div>
+            <div className="font-medium leading-tight">{displayPersona.name}</div>
+            <div className="mono text-neutral-500 text-[9px] leading-tight">
+              {displayPersona.role}{displayPersona.region && displayPersona.region !== 'ALL' ? ` · ${displayPersona.region}` : ''}
+            </div>
           </div>
         </div>
       </div>
