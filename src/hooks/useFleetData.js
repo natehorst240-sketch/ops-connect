@@ -58,18 +58,25 @@ function mapPersonnel(row) {
 
 function mapMxRequest(row) {
   return {
-    requestNumber: pick(row, 'cr463_requestnumber'),
-    title:         pick(row, 'cr463_maintenancerequesttitle', 'cr463_title'),
-    aircraftTail:  pick(row, 'cr463_aircrafttail'),
-    aircraftType:  pick(row, 'cr463_aircrafttype'),
-    requestType:   pick(row, 'cr463_requesttype'),
-    base:          pick(row, 'cr463_base'),
-    status:        pick(row, 'cr463_status'),
-    priority:      pick(row, 'cr463_priority'),
+    id:            row.cr463_maintenancerequestid,
+    requestNumber: pick(row, 'cr463_requestnumber', 'cr463_requesttitle'),
+    title:         pick(row, 'cr463_requesttitle', 'cr463_requestnumber'),
+    aircraftTail:  pick(row, 'cr463_aircrafttailnumber'),
+    aircraftType:  pick(row, 'cr463_aircraftmodel'),
+    type:          pick(row, 'cr463_typeofrequest'),     // for legacy r.type filters
+    requestType:   pick(row, 'cr463_typeofrequest'),
+    base:          pick(row, 'cr463_baselocation'),
+    status:        pick(row, 'cr463_requeststatus@OData.Community.Display.V1.FormattedValue'),
+    priority:      pick(row, 'cr463_prioritylevel@OData.Community.Display.V1.FormattedValue'),
     requestedBy:   pick(row, 'cr463_requestedby'),
-    reason:        pick(row, 'cr463_reason'),
-    windowStart:   pick(row, 'cr463_windowstart'),
-    windowEnd:     pick(row, 'cr463_windowend')
+    approver:      pick(row, 'cr463_approvername'),
+    reason:        pick(row, 'cr463_reasonforrequest'),
+    routing:       pick(row, 'cr463_routingcode'),
+    windowStart:   pick(row, 'cr463_windowstarttime'),
+    windowEnd:     pick(row, 'cr463_windowendtime'),
+    decidedAt:     pick(row, 'cr463_decisiontimestamp'),
+    decisionComment: pick(row, 'cr463_decisioncomments'),
+    auditCorrelation: pick(row, 'cr463_auditcorrelationid')
   };
 }
 
