@@ -22,8 +22,10 @@ import PhaseFlowTab from './tabs/PhaseFlow';
 import MapTab from './tabs/Map';
 import MobileTab from './tabs/Mobile';
 import M365Build from './m365/M365Build';
+import DataverseTest from './tabs/DataverseTest';
 
 const TABS = [
+  { id: 'dvtest', label: 'Dataverse Test', Icon: Radio },
   { id: 'm365', label: 'M365 Build', Icon: Grid3x3 },
   { id: 'phaseFlow', label: 'Phase Flow', Icon: GitBranch },
   { id: 'app', label: 'The App', Icon: Radio },
@@ -71,6 +73,7 @@ export default function App() {
       <div className="h-[calc(100vh-48px)] flex flex-col rounded-xl border border-neutral-800 bg-neutral-950 shadow-2xl shadow-black/60 overflow-hidden">
         <AppTopNav activeTab={activeTab} setActiveTab={setActiveTab} persona={persona} />
         <div className={`flex-1 ${activeTab === 'map' || activeTab === 'm365' ? 'overflow-hidden' : 'overflow-auto scrollbar'}`}>
+          {activeTab === 'dvtest' && <DataverseTest />}
           {activeTab === 'app' && <AppHome persona={persona} />}
           {activeTab === 'map' && <MapTab persona={persona} />}
           {activeTab === 'flowA' && <FlowTab flow={FLOWS.flowA} />}
