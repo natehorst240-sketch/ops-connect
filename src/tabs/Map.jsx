@@ -18,11 +18,34 @@ const INITIAL_VIEW = {
 };
 
 export default function MapTab({ persona }) {
-  const { aircraft: liveAircraft } = useFleet();
+  const { aircraft: liveAircraft, fleetPositions } = useFleet();
   const AIRCRAFT = liveAircraft.length ? liveAircraft : STATIC_AIRCRAFT;
   const [selectedBase, setSelectedBase] = useState(null);
   const [selectedAircraft, setSelectedAircraft] = useState(null);
   const [showLive, setShowLive] = useState(true);
+
+  // Merge live cr463_fleetposition data with static demo positions.
+  // Live positions (with lat/lon) take precedence; demo positions fill gaps.
+  const mergedFleet = useMemo(() => {
+    const livePositions = fleetPositions
+      .filter((p) => p.lat != null && p.lon != null && (p.inFlight || p.inFlightLabel === 'Yes'))
+      .map((p) => {
+        const acRecord = AIRCRAFT.find((a) => a.tail === p.tail);
+        return {
+          tail:     p.tail,
+          type:     acRecord?.type ?? '—',
+          coords:   [Number(p.lon), Number(p.lat)],
+          bearing:  Number(p.bearing ?? 0),
+          speed:    p.speed,
+          altitude: p.altitude,
+          lastSeen: p.lastSeen,
+          isLive:   true
+        };
+      });
+    const liveTails = new Set(livePositions.map((p) => p.tail));
+    const fallbackDemo = LIVE_FLEET.filter((a) => !liveTails.has(a.tail));
+    return [...livePositions, ...fallbackDemo];
+  }, [fleetPositions, AIRCRAFT]);
 
   // Filter bases by persona region (Director sees all, RMM sees their region, etc.)
   const visibleBases = useMemo(() => {
@@ -31,13 +54,14 @@ export default function MapTab({ persona }) {
   }, [persona]);
 
   const visibleAircraft = useMemo(() => {
-    if (!persona || persona.region === 'ALL') return LIVE_FLEET;
-    // Match by aircraft assignment to bases in this region
+    if (!persona || persona.region === 'ALL') return mergedFleet;
     const regionTails = new Set(
       BASES.filter(b => b.region.includes(persona.region)).flatMap(b => b.aircraft)
     );
-    return LIVE_FLEET.filter(a => regionTails.has(a.tail));
-  }, [persona]);
+    return mergedFleet.filter(a => regionTails.has(a.tail));
+  }, [persona, mergedFleet]);
+
+  const liveCount = mergedFleet.filter((a) => a.isLive).length;
 
   // Aggregate stats for the overlay
   const stats = useMemo(() => ({
@@ -121,7 +145,7 @@ export default function MapTab({ persona }) {
       </Map>
 
       {/* Top-left: persona context + stats */}
-      <FleetSummary persona={persona} stats={stats} showLive={showLive} setShowLive={setShowLive} />
+      <FleetSummary persona={persona} stats={stats} showLive={showLive} setShowLive={setShowLive} liveCount={liveCount} />
 
       {/* Bottom-left: legend */}
       <Legend />
@@ -305,13 +329,15 @@ function BasePopupContent({ base, onClose }) {
 // ============================================================================
 
 function AircraftPopupContent({ aircraft, onClose }) {
+  const isLive = aircraft.isLive;
+  const sourceLabel = isLive ? 'Live · Dataverse' : 'Demo';
   return (
     <div className="bg-neutral-900 border border-orange-500/40 rounded-lg shadow-2xl shadow-black/80 overflow-hidden w-[280px]">
       <div className="px-4 py-2.5 flex items-center justify-between bg-orange-500/10 border-b border-orange-500/30">
         <div className="flex items-center gap-2">
-          <Wifi size={11} className="text-orange-400" />
-          <span className="mono text-[10px] font-bold uppercase tracking-widest text-orange-400">
-            Live · SkyRouter
+          <Wifi size={11} className={isLive ? 'text-green-400' : 'text-orange-400'} />
+          <span className={`mono text-[10px] font-bold uppercase tracking-widest ${isLive ? 'text-green-400' : 'text-orange-400'}`}>
+            {sourceLabel}
           </span>
         </div>
         <button onClick={onClose} className="text-neutral-500 hover:text-neutral-200">
@@ -326,21 +352,45 @@ function AircraftPopupContent({ aircraft, onClose }) {
         </div>
 
         <div className="grid grid-cols-3 gap-2 mb-3">
-          <Stat label="Altitude" value={aircraft.altitude.toLocaleString()} unit="ft" />
-          <Stat label="Speed" value={aircraft.speed} unit="kt" />
-          <Stat label="Heading" value={`${aircraft.bearing}°`} />
+          <Stat label="Altitude" value={(aircraft.altitude ?? 0).toLocaleString()} unit="ft" />
+          <Stat label="Speed" value={aircraft.speed ?? 0} unit="kt" />
+          <Stat label="Heading" value={`${aircraft.bearing ?? 0}°`} />
         </div>
 
-        <div className="p-2 bg-neutral-950 border border-neutral-800 rounded mb-2">
-          <div className="mono text-[10px] text-neutral-500 uppercase tracking-widest mb-1">Mission</div>
-          <div className="text-[12px] text-neutral-200">{aircraft.mission}</div>
-          <div className="mono text-[10px] text-orange-400 mt-1">ETA {aircraft.eta}</div>
-        </div>
-
-        <div className="p-2 bg-neutral-950 border border-neutral-800 rounded">
-          <div className="mono text-[10px] text-neutral-500 uppercase tracking-widest mb-1">Crew</div>
-          <div className="text-[11px] text-neutral-300 leading-relaxed">{aircraft.crew}</div>
-        </div>
+        {isLive ? (
+          <>
+            <div className="p-2 bg-neutral-950 border border-neutral-800 rounded mb-2">
+              <div className="mono text-[10px] text-neutral-500 uppercase tracking-widest mb-1">Position</div>
+              <div className="mono text-[11px] text-neutral-200">
+                {aircraft.coords[1].toFixed(4)}, {aircraft.coords[0].toFixed(4)}
+              </div>
+            </div>
+            {aircraft.lastSeen && (
+              <div className="p-2 bg-neutral-950 border border-neutral-800 rounded">
+                <div className="mono text-[10px] text-neutral-500 uppercase tracking-widest mb-1">Last Polled</div>
+                <div className="text-[11px] text-neutral-300">
+                  {new Date(aircraft.lastSeen).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}
+                </div>
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            {aircraft.mission && (
+              <div className="p-2 bg-neutral-950 border border-neutral-800 rounded mb-2">
+                <div className="mono text-[10px] text-neutral-500 uppercase tracking-widest mb-1">Mission</div>
+                <div className="text-[12px] text-neutral-200">{aircraft.mission}</div>
+                {aircraft.eta && <div className="mono text-[10px] text-orange-400 mt-1">ETA {aircraft.eta}</div>}
+              </div>
+            )}
+            {aircraft.crew && (
+              <div className="p-2 bg-neutral-950 border border-neutral-800 rounded">
+                <div className="mono text-[10px] text-neutral-500 uppercase tracking-widest mb-1">Crew</div>
+                <div className="text-[11px] text-neutral-300 leading-relaxed">{aircraft.crew}</div>
+              </div>
+            )}
+          </>
+        )}
       </div>
     </div>
   );
@@ -362,7 +412,7 @@ function Stat({ label, value, unit }) {
 // FLEET SUMMARY OVERLAY (top-left)
 // ============================================================================
 
-function FleetSummary({ persona, stats, showLive, setShowLive }) {
+function FleetSummary({ persona, stats, showLive, setShowLive, liveCount }) {
   return (
     <div className="absolute top-4 left-4 bg-neutral-900/90 backdrop-blur border border-neutral-800 rounded-lg p-3 w-[280px] shadow-xl shadow-black/50">
       <div className="flex items-center justify-between mb-2">
@@ -378,6 +428,17 @@ function FleetSummary({ persona, stats, showLive, setShowLive }) {
           {showLive ? '● Live' : '○ Off'}
         </button>
       </div>
+
+      {liveCount > 0 && (
+        <div className="mb-3 px-2 py-1.5 rounded bg-green-900/20 border border-green-800/40">
+          <div className="flex items-center gap-1.5">
+            <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+            <span className="mono text-[10px] uppercase tracking-widest text-green-400">
+              {liveCount} live position{liveCount !== 1 && 's'} from Dataverse
+            </span>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-2 mb-3">
         <SummaryStat label="Bases" value={stats.total} />
