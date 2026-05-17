@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
 import {
-  Plane, Users, AlertTriangle, Calendar, Wrench, Radio, TrendingUp, Layers,
-  Map as MapIcon, Grid3x3, Smartphone, GitBranch, MessageCircleQuestion, Activity,
+  Plane, Map as MapIcon, Activity,
   Send, Inbox, Megaphone, Clock, BarChart3, Home as HomeIcon, FlaskConical,
-  MoreHorizontal, X,
+  MoreHorizontal, X, Calendar,
 } from 'lucide-react';
 import { useMsal, useIsAuthenticated } from '@azure/msal-react';
 import { dataverseScopes } from './auth/config.js';
-import { PERSONAS, FLOWS } from './data';
+import { PERSONAS } from './data';
 
 import DirectorHome from './homes/Director';
 import RMMHome from './homes/RMM';
@@ -17,14 +16,7 @@ import MXSchedulerHome from './homes/MXScheduler';
 import CrewSchedulerHome from './homes/CrewScheduler';
 import NurseHome from './homes/Nurse';
 
-import FlowTab from './tabs/Flow';
-import ArchitectureTab from './tabs/Architecture';
-import RoadmapTab from './tabs/Roadmap';
-import PhaseFlowTab from './tabs/PhaseFlow';
 import MapTab from './tabs/Map';
-import MobileTab from './tabs/Mobile';
-import M365Build from './m365/M365Build';
-import DataverseTest from './tabs/DataverseTest';
 import Phase2Status from './tabs/Phase2Status';
 import SubmitRequest from './tabs/SubmitRequest';
 import ApprovalInbox from './tabs/ApprovalInbox';
@@ -40,26 +32,15 @@ import { DemoModeProvider, useDemoMode } from './contexts/DemoModeContext';
 import { useCurrentUser } from './hooks/useCurrentUser';
 
 const TABS = [
-  { id: 'myhome',       label: 'My Home',                              Icon: HomeIcon },
-  { id: 'submit',       label: 'Submit Request',                       Icon: Send },
-  { id: 'inbox',        label: 'Approval Inbox',                       Icon: Inbox },
-  { id: 'bulletins',    label: 'Bulletins',                            Icon: Megaphone },
-  { id: 'oncall',       label: 'On-Call',                              Icon: Clock },
-  { id: 'scheduler',    label: 'Scheduler',                            Icon: Calendar },
-  { id: 'dashboard',    label: 'Exec Dashboard',                       Icon: BarChart3 },
-  { id: 'phase2',       label: 'Phase 2 Ops',                         Icon: Activity },
-  { id: 'dvtest',       label: 'Dataverse Test',                       Icon: Radio },
-  { id: 'm365',         label: 'M365 Build',                           Icon: Grid3x3 },
-  { id: 'phaseFlow',    label: 'Phase Flow',                           Icon: GitBranch },
-  { id: 'app',          label: 'The App',                              Icon: Radio },
-  { id: 'map',          label: 'Live Fleet',                           Icon: MapIcon },
-  { id: 'flowA',        label: 'Flow A · MX Request',                  Icon: Wrench },
-  { id: 'flowB',        label: 'Flow B · Open Shift',                  Icon: Users },
-  { id: 'flowC',        label: 'Flow C · Ask Leadership',              Icon: MessageCircleQuestion },
-  { id: 'flowD',        label: 'Flow D · Time Off',                    Icon: Calendar },
-  { id: 'architecture', label: 'Architecture',                         Icon: Layers },
-  { id: 'mobile',       label: 'Mobile · See How It Looks on a Phone', Icon: Smartphone },
-  { id: 'roadmap',      label: 'Roadmap',                              Icon: TrendingUp },
+  { id: 'myhome',    label: 'My Home',        Icon: HomeIcon },
+  { id: 'submit',    label: 'Submit Request', Icon: Send },
+  { id: 'inbox',     label: 'Approval Inbox', Icon: Inbox },
+  { id: 'bulletins', label: 'Bulletins',      Icon: Megaphone },
+  { id: 'oncall',    label: 'On-Call',        Icon: Clock },
+  { id: 'scheduler', label: 'Scheduler',      Icon: Calendar },
+  { id: 'dashboard', label: 'Exec Dashboard', Icon: BarChart3 },
+  { id: 'map',       label: 'Live Fleet',     Icon: MapIcon },
+  { id: 'phase2',    label: 'Phase 2 Ops',   Icon: Activity },
 ];
 
 // Root is outside MSAL-dependent hooks — DemoModeProvider lives here
@@ -77,8 +58,6 @@ function AppInner() {
   const isAuthenticated = useIsAuthenticated();
   const { demoMode, setDemoMode } = useDemoMode();
   const [activeTab, setActiveTab] = useState('myhome');
-  const [personaId, setPersonaId] = useState('director');
-  const persona = PERSONAS.find(p => p.id === personaId);
 
   if (!isAuthenticated && !demoMode) {
     return (
@@ -127,28 +106,17 @@ function AppInner() {
     <div className="min-h-screen bg-neutral-950 text-neutral-100 p-6">
       <div className="h-[calc(100vh-48px)] flex flex-col rounded-xl border border-neutral-800 bg-neutral-950 shadow-2xl shadow-black/60 overflow-hidden relative">
         {demoMode && <DemoBanner onSignIn={() => { setDemoMode(false); instance.loginRedirect({ scopes: dataverseScopes }); }} onExit={() => setDemoMode(false)} />}
-        <AppTopNav activeTab={activeTab} setActiveTab={setActiveTab} persona={persona} />
+        <AppTopNav activeTab={activeTab} setActiveTab={setActiveTab} />
         <div className={`flex-1 min-h-0 ${activeTab === 'map' || activeTab === 'm365' ? 'overflow-hidden' : 'overflow-auto scrollbar'}`}>
-          {activeTab === 'myhome' && <MyHome />}
-          {activeTab === 'submit' && <SubmitRequest />}
-          {activeTab === 'inbox' && <ApprovalInbox />}
+          {activeTab === 'myhome'    && <MyHome />}
+          {activeTab === 'submit'    && <SubmitRequest />}
+          {activeTab === 'inbox'     && <ApprovalInbox />}
           {activeTab === 'bulletins' && <Bulletins />}
-          {activeTab === 'oncall' && <OncallSchedule />}
+          {activeTab === 'oncall'    && <OncallSchedule />}
           {activeTab === 'scheduler' && <Scheduler />}
           {activeTab === 'dashboard' && <Dashboard />}
-          {activeTab === 'dvtest' && <DataverseTest />}
-          {activeTab === 'phase2' && <Phase2Status />}
-          {activeTab === 'app' && <AppHome persona={persona} />}
-          {activeTab === 'map' && <MapTab persona={persona} />}
-          {activeTab === 'flowA' && <FlowTab flow={FLOWS.flowA} />}
-          {activeTab === 'flowB' && <FlowTab flow={FLOWS.flowB} />}
-          {activeTab === 'flowC' && <FlowTab flow={FLOWS.flowC} />}
-          {activeTab === 'flowD' && <FlowTab flow={FLOWS.flowD} />}
-          {activeTab === 'architecture' && <ArchitectureTab />}
-          {activeTab === 'phaseFlow' && <PhaseFlowTab />}
-          {activeTab === 'm365' && <M365Build persona={persona} setPersonaId={setPersonaId} />}
-          {activeTab === 'mobile' && <MobileTab persona={persona} />}
-          {activeTab === 'roadmap' && <RoadmapTab />}
+          {activeTab === 'map'       && <MapTab persona={persona} />}
+          {activeTab === 'phase2'    && <Phase2Status />}
         </div>
         <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
       </div>
@@ -194,9 +162,8 @@ function DemoBanner({ onSignIn, onExit }) {
 // APP TOP NAV — INSIDE the app frame (this is part of the real product)
 // ============================================================================
 
-function AppTopNav({ activeTab, setActiveTab, persona }) {
-  const { persona: livePersona } = useCurrentUser();
-  const displayPersona = livePersona ?? persona;
+function AppTopNav({ activeTab, setActiveTab }) {
+  const { persona: displayPersona } = useCurrentUser();
   const { demoMode } = useDemoMode();
   return (
     <div className="bg-neutral-900 border-b border-neutral-800 shrink-0">
@@ -247,33 +214,6 @@ function AppTopNav({ activeTab, setActiveTab, persona }) {
       </div>
     </div>
   );
-}
-
-// ============================================================================
-// APP HOME — renders the role-specific home (legacy custom-build tab)
-// ============================================================================
-
-function AppHome({ persona }) {
-  return (
-    <div className="grid-bg min-h-full">
-      <div className="fade-slide p-7 max-w-[1400px] mx-auto" key={persona.id}>
-        <Home persona={persona} />
-      </div>
-    </div>
-  );
-}
-
-function Home({ persona }) {
-  switch (persona.role) {
-    case 'DIRECTOR':       return <DirectorHome persona={persona} />;
-    case 'RMM':            return <RMMHome persona={persona} />;
-    case 'AMT':            return <AMTHome persona={persona} />;
-    case 'QA':             return <QAHome persona={persona} />;
-    case 'MX_SCHEDULER':   return <MXSchedulerHome persona={persona} />;
-    case 'CREW_SCHEDULER': return <CrewSchedulerHome persona={persona} />;
-    case 'FLIGHT_NURSE':   return <NurseHome persona={persona} />;
-    default:               return null;
-  }
 }
 
 // ============================================================================

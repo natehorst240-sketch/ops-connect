@@ -1,6 +1,7 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { BarChart3, Plane, AlertTriangle, Activity, TrendingUp, Clock, CheckCircle2, XCircle } from 'lucide-react';
 import { useFleet } from '../contexts/FleetDataContext';
+import { useCurrentUser } from '../hooks/useCurrentUser';
 
 const STATUS_COLORS = {
   IN_SERVICE:  '#22c55e',
@@ -19,7 +20,20 @@ const REQ_STATUS_COLORS = {
 };
 
 export default function Dashboard() {
-  const { aircraft, mxRequests, conflicts, scheduleEvents, fleetPositions, loading } = useFleet();
+  const { aircraft: allAircraft, mxRequests: allRequests, conflicts, scheduleEvents, fleetPositions, loading } = useFleet();
+  const { persona } = useCurrentUser();
+
+  const defaultRegion = (persona?.role === 'RMM') && persona?.region && persona.region !== 'ALL'
+    ? persona.region : 'ALL';
+  const [regionFilter, setRegionFilter] = useState(defaultRegion);
+
+  const regions = useMemo(() => ['ALL', ...[...new Set(allAircraft.map(a => a.region).filter(Boolean))].sort()], [allAircraft]);
+
+  const aircraft  = regionFilter === 'ALL' ? allAircraft   : allAircraft.filter(a => a.region === regionFilter);
+  const mxRequests = regionFilter === 'ALL' ? allRequests  : allRequests.filter(r => {
+    const ac = allAircraft.find(a => a.tail === r.aircraftTail);
+    return ac?.region === regionFilter;
+  });
 
   const stats = useMemo(() => {
     const byStatus = aircraft.reduce((acc, a) => {
@@ -74,24 +88,33 @@ export default function Dashboard() {
   return (
     <div className="p-8 text-neutral-100 bg-neutral-950 min-h-full">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-start justify-between mb-4 flex-wrap gap-3">
         <div>
           <div className="flex items-center gap-3 mb-1">
             <BarChart3 size={22} className="text-orange-400" />
-            <h1 className="text-2xl font-semibold">IHC Fleet Operations · Executive Dashboard</h1>
+            <h1 className="text-xl sm:text-2xl font-semibold">Fleet Operations Dashboard</h1>
           </div>
-          <p className="text-sm text-neutral-400">
-            Phase 3 preview · Real Power BI report will use the same Dataverse model
+          <p className="text-xs text-neutral-500">
+            {new Date().toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}
+            {regionFilter !== 'ALL' && <span className="text-orange-400 ml-2">· {regionFilter} region</span>}
           </p>
         </div>
-        <div className="text-right">
-          <div className="text-xs text-neutral-500">Refreshed</div>
-          <div className="text-sm">{new Date().toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}</div>
+        <div className="flex flex-wrap gap-1.5">
+          {regions.slice(0, 10).map(r => (
+            <button key={r} onClick={() => setRegionFilter(r)}
+              className={`px-2.5 py-1 rounded-md text-xs border transition-colors ${
+                regionFilter === r
+                  ? 'bg-orange-500/15 border-orange-500/40 text-orange-300'
+                  : 'bg-neutral-900 border-neutral-800 text-neutral-500 hover:text-neutral-200 hover:border-neutral-700'
+              }`}>
+              {r === 'ALL' ? 'All regions' : r}
+            </button>
+          ))}
         </div>
       </div>
 
       {/* KPI strip */}
-      <div className="grid grid-cols-6 gap-3 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
         <Kpi
           icon={Plane}
           label="Fleet Availability"
