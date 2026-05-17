@@ -74,8 +74,11 @@ function mapRow(raw) {
     remainingDays: parseFloat(raw['Remaining Days']) || 0,
     maxRemainingDays: parseFloat(raw['Max Remaining Days']) || 0,
     remainingHours: parseFloat(raw['Remaining Hours']) || 0,
-    // Note: trailing space in the header is intentional per spec
     maxRemainingHours: parseFloat(raw['Max Remaining Hours ']) || 0,
+    intervalHours: parseFloat(raw['Interval Hours']) || 0,
+    intervalMonths: parseFloat(raw['Interval Months']) || 0,
+    trackedByEquipment: raw['Tracked By Equipment']?.trim() ?? '',
+    nextDueHours: parseFloat(raw['Next Due Hours']) || 0,
     nextDueStatus: raw['Next Due Status']?.trim() ?? '',
     airframeHours: parseFloat(raw['Airframe Hours']) || 0,
     complianceDate: raw['Compliance Date']?.trim() ?? '',
