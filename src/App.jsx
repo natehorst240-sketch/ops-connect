@@ -58,6 +58,7 @@ function AppInner() {
   const isAuthenticated = useIsAuthenticated();
   const { demoMode, setDemoMode } = useDemoMode();
   const [activeTab, setActiveTab] = useState('myhome');
+  const { persona } = useCurrentUser();
 
   if (!isAuthenticated && !demoMode) {
     return (
