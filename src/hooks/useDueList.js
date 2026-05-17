@@ -138,7 +138,7 @@ export function useDueList(url = DEFAULT_URL) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [url]);
 
   return { items, nextDueByAircraft, loading, error };
 }

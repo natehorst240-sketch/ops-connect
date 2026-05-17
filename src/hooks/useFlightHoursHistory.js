@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-const FLIGHT_HOURS_URL =
+const DEFAULT_HOURS_URL =
   'https://raw.githubusercontent.com/natehorst240-sketch/ihc-fleet-dashboard/main/data/flight_hours_history.json';
 
 /**
@@ -32,7 +32,7 @@ function weekStart(dateStr) {
   return d.toISOString().slice(0, 10);
 }
 
-export function useFlightHoursHistory() {
+export function useFlightHoursHistory(url = DEFAULT_HOURS_URL) {
   const [dailyData, setDailyData] = useState([]);
   const [weeklyData, setWeeklyData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -43,7 +43,7 @@ export function useFlightHoursHistory() {
     setLoading(true);
     setError(null);
 
-    fetch(FLIGHT_HOURS_URL)
+    fetch(url)
       .then(res => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();
@@ -148,7 +148,7 @@ export function useFlightHoursHistory() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [url]);
 
   return { dailyData, weeklyData, loading, error };
 }

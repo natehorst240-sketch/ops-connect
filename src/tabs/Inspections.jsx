@@ -430,22 +430,72 @@ function DueListTable({ items }) {
   );
 }
 
+// ─── Data source URLs ───────────────────────────────────────────────────────────
+
+const FLEET_URLS = {
+  '109SP': {
+    due:   'https://raw.githubusercontent.com/natehorst240-sketch/ihc-fleet-dashboard/main/data/Due-List_BIG_WEEKLY_aw109sp.csv',
+    hours: 'https://raw.githubusercontent.com/natehorst240-sketch/ihc-fleet-dashboard/main/data/flight_hours_history.json',
+  },
+  '407': {
+    due:   'https://raw.githubusercontent.com/natehorst240-sketch/407-Fleet-Tracker/main/data/407_Due-List_weekly.csv',
+    hours: 'https://raw.githubusercontent.com/natehorst240-sketch/407-Fleet-Tracker/main/data/flight_hours_history.json',
+  },
+};
+
 // ─── Main Inspections tab ───────────────────────────────────────────────────────
 
 export default function Inspections() {
-  const { items, nextDueByAircraft, loading: dueLoading, error: dueError } = useDueList();
-  const { dailyData, weeklyData, loading: hoursLoading, error: hoursError } = useFlightHoursHistory();
+  const [fleet, setFleet] = useState('All');
+
+  const { items: items109, nextDueByAircraft: next109, loading: due109Loading } = useDueList(FLEET_URLS['109SP'].due);
+  const { items: items407, nextDueByAircraft: next407, loading: due407Loading } = useDueList(FLEET_URLS['407'].due);
+  const { dailyData: daily109, weeklyData: weekly109, loading: hours109Loading } = useFlightHoursHistory(FLEET_URLS['109SP'].hours);
+  const { dailyData: daily407, weeklyData: weekly407, loading: hours407Loading } = useFlightHoursHistory(FLEET_URLS['407'].hours);
+
+  const dueLoading   = due109Loading || due407Loading;
+  const hoursLoading = hours109Loading || hours407Loading;
+
+  // Select or merge data based on fleet filter
+  let items, nextDueByAircraft, dailyData, weeklyData;
+  if (fleet === '109SP') {
+    items = items109; nextDueByAircraft = next109; dailyData = daily109; weeklyData = weekly109;
+  } else if (fleet === '407') {
+    items = items407; nextDueByAircraft = next407; dailyData = daily407; weeklyData = weekly407;
+  } else {
+    // Merge both fleets
+    items = [...items109, ...items407];
+    const byTail = {};
+    for (const item of items) {
+      const t = item.registrationNumber;
+      if (!t) continue;
+      if (!byTail[t] || item.remainingDays < byTail[t].remainingDays) byTail[t] = item;
+    }
+    nextDueByAircraft = Object.values(byTail).sort((a, b) => a.remainingDays - b.remainingDays);
+
+    // Merge daily by date
+    const dm = {};
+    [...daily109, ...daily407].forEach(d => {
+      if (!dm[d.date]) dm[d.date] = { date: d.date, total: 0, activeTails: 0 };
+      dm[d.date].total += d.total;
+      dm[d.date].activeTails += d.activeTails;
+    });
+    dailyData = Object.values(dm)
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .map(d => ({ ...d, avg: d.activeTails > 0 ? Math.round((d.total / d.activeTails) * 10) / 10 : 0 }));
+
+    // Merge weekly by weekStart
+    const wm = {};
+    [...weekly109, ...weekly407].forEach(w => {
+      if (!wm[w.weekStart]) wm[w.weekStart] = { weekStart: w.weekStart, total: 0, avg: 0 };
+      wm[w.weekStart].total = Math.round((wm[w.weekStart].total + w.total) * 10) / 10;
+      wm[w.weekStart].avg   = Math.round(((wm[w.weekStart].avg + w.avg) / 2) * 10) / 10;
+    });
+    weeklyData = Object.values(wm).sort((a, b) => a.weekStart.localeCompare(b.weekStart));
+  }
 
   if (dueLoading || hoursLoading) {
     return <div className="p-8 text-neutral-400 text-sm">Loading…</div>;
-  }
-
-  if (dueError || hoursError) {
-    return (
-      <div className="p-8 text-red-400 text-sm">
-        Error loading data: {dueError || hoursError}
-      </div>
-    );
   }
 
   // KPI calculations
@@ -461,12 +511,24 @@ export default function Inspections() {
         <div>
           <div className="flex items-center gap-3 mb-1">
             <Wrench size={22} className="text-orange-400" />
-            <h1 className="text-xl sm:text-2xl font-semibold">109SP Inspections</h1>
+            <h1 className="text-xl sm:text-2xl font-semibold">Inspections</h1>
           </div>
           <p className="text-xs text-neutral-500">
             {new Date().toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}
-            <span className="text-neutral-600 ml-2">· AW109SP Due List</span>
+            {fleet !== 'All' && <span className="text-orange-400 ml-2">· {fleet} fleet</span>}
           </p>
+        </div>
+        <div className="flex gap-1.5">
+          {['All', '109SP', '407'].map(f => (
+            <button key={f} onClick={() => setFleet(f)}
+              className={`px-3 py-1.5 rounded-md text-xs border transition-colors ${
+                fleet === f
+                  ? 'bg-orange-500/15 border-orange-500/40 text-orange-300'
+                  : 'bg-neutral-900 border-neutral-800 text-neutral-500 hover:text-neutral-200 hover:border-neutral-700'
+              }`}>
+              {f === 'All' ? 'All Fleets' : f}
+            </button>
+          ))}
         </div>
       </div>
 
