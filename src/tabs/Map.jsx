@@ -6,6 +6,7 @@ import { Plane, X, Wifi, AlertCircle } from 'lucide-react';
 import { BASES, LIVE_FLEET, STATUS_CONFIG, WEATHER_CONFIG } from '../data/bases';
 import { AIRCRAFT as STATIC_AIRCRAFT } from '../data';
 import { useFleet } from '../contexts/FleetDataContext';
+import { useCurrentUser } from '../hooks/useCurrentUser';
 
 // CARTO Positron — free light vector style, no API key required.
 // For production, swap to a self-hosted MapLibre style or Stadia Maps API.
@@ -17,7 +18,8 @@ const INITIAL_VIEW = {
   zoom: 5.4,
 };
 
-export default function MapTab({ persona }) {
+export default function MapTab() {
+  const { persona } = useCurrentUser();
   const { aircraft: liveAircraft, fleetPositions } = useFleet();
   const AIRCRAFT = liveAircraft.length ? liveAircraft : STATIC_AIRCRAFT;
   const [selectedBase, setSelectedBase] = useState(null);

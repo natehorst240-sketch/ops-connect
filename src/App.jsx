@@ -60,7 +60,6 @@ function AppInner() {
   const isAuthenticated = useIsAuthenticated();
   const { demoMode, setDemoMode } = useDemoMode();
   const [activeTab, setActiveTab] = useState('myhome');
-  const { persona } = useCurrentUser();
 
   if (!isAuthenticated && !demoMode) {
     return (
@@ -118,7 +117,7 @@ function AppInner() {
           {activeTab === 'oncall'    && <OncallSchedule />}
           {activeTab === 'scheduler' && <Scheduler />}
           {activeTab === 'dashboard' && <Dashboard />}
-          {activeTab === 'map'         && <MapTab persona={persona} />}
+          {activeTab === 'map'         && <MapTab />}
           {activeTab === 'inspections' && <Inspections />}
           {activeTab === 'phase2'      && <Phase2Status />}
         </div>
