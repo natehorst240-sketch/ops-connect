@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   Plane, Map as MapIcon, Activity,
   Send, Inbox, Megaphone, Clock, BarChart3, Home as HomeIcon, FlaskConical,
-  MoreHorizontal, X, Calendar,
+  MoreHorizontal, X, Calendar, Wrench,
 } from 'lucide-react';
 import { useMsal, useIsAuthenticated } from '@azure/msal-react';
 import { dataverseScopes } from './auth/config.js';
@@ -24,6 +24,7 @@ import Bulletins from './tabs/Bulletins';
 import OncallSchedule from './tabs/OncallSchedule';
 import Scheduler from './tabs/Scheduler';
 import Dashboard from './tabs/Dashboard';
+import Inspections from './tabs/Inspections';
 import MyHome from './tabs/MyHome';
 import { FleetDataProvider } from './contexts/FleetDataContext';
 import { NavigationProvider } from './contexts/NavigationContext';
@@ -39,8 +40,9 @@ const TABS = [
   { id: 'oncall',    label: 'On-Call',        Icon: Clock },
   { id: 'scheduler', label: 'Scheduler',      Icon: Calendar },
   { id: 'dashboard', label: 'Exec Dashboard', Icon: BarChart3 },
-  { id: 'map',       label: 'Live Fleet',     Icon: MapIcon },
-  { id: 'phase2',    label: 'Phase 2 Ops',   Icon: Activity },
+  { id: 'map',         label: 'Live Fleet',     Icon: MapIcon },
+  { id: 'inspections', label: 'Inspections',   Icon: Wrench },
+  { id: 'phase2',      label: 'Phase 2 Ops',   Icon: Activity },
 ];
 
 // Root is outside MSAL-dependent hooks — DemoModeProvider lives here
@@ -116,8 +118,9 @@ function AppInner() {
           {activeTab === 'oncall'    && <OncallSchedule />}
           {activeTab === 'scheduler' && <Scheduler />}
           {activeTab === 'dashboard' && <Dashboard />}
-          {activeTab === 'map'       && <MapTab persona={persona} />}
-          {activeTab === 'phase2'    && <Phase2Status />}
+          {activeTab === 'map'         && <MapTab persona={persona} />}
+          {activeTab === 'inspections' && <Inspections />}
+          {activeTab === 'phase2'      && <Phase2Status />}
         </div>
         <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
       </div>
