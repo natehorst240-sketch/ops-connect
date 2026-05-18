@@ -51,7 +51,7 @@ export default function RMMHome({ persona }) {
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-5">
         <Metric label={`${persona.region} Aircraft`} value={regionAircraft.length} accent="#22c55e" />
         <Metric label="Pending My Approval" value={regionRequests.length} accent="#ff6b1a" />
-        <Metric label="Techs On Shift" value={8} sub="of 12" accent="#3b82f6" />
+        <Metric label="MX Techs On Call" value={regionOnCall.length} sub="today" accent="#3b82f6" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
