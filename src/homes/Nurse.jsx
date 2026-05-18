@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { CheckCircle2, Timer, ArrowRight, Calendar, Zap, Shield, MessageSquare, Clock } from 'lucide-react';
 import { OPEN_SHIFTS, AIRCRAFT as STATIC_AIRCRAFT } from '../data';
+import { DEMO_TODAY_ISO } from '../data/mxOncallSchedule';
 import { useFleet } from '../contexts/FleetDataContext';
 import { PageHeader, Card, Metric, StatusDot, BulletinBanner } from '../ui';
 import WeekCalendar from '../shared/WeekCalendar';
@@ -13,13 +14,19 @@ const MY_SHIFTS = [
   { date: '2026-06-04', time: '09:00-09:00', base: 'Cedar City Hospital', role: 'FN - URBAN' },
 ];
 
+// daysLeft derived from expires against the demo anchor; in production this
+// computes against new Date() once the array comes from Dataverse.
+const MS_PER_DAY = 86400000;
+const DEMO_NOW = new Date(DEMO_TODAY_ISO + 'T12:00:00Z').getTime();
+const daysUntil = iso => Math.ceil((new Date(iso + 'T12:00:00Z').getTime() - DEMO_NOW) / MS_PER_DAY);
+
 const MY_CERTS = [
-  { name: 'CCRN',   status: 'valid',    expires: '2027-08-14', daysLeft: 453 },
-  { name: 'TNCC',   status: 'valid',    expires: '2026-11-03', daysLeft: 169 },
-  { name: 'PALS',   status: 'expiring', expires: '2026-06-12', daysLeft: 25  },
-  { name: 'STABLE', status: 'valid',    expires: '2027-02-28', daysLeft: 286 },
-  { name: 'ACLS',   status: 'valid',    expires: '2026-12-05', daysLeft: 201 },
-];
+  { name: 'CCRN',   status: 'valid',    expires: '2027-08-14' },
+  { name: 'TNCC',   status: 'valid',    expires: '2026-11-03' },
+  { name: 'PALS',   status: 'expiring', expires: '2026-06-12' },
+  { name: 'STABLE', status: 'valid',    expires: '2027-02-28' },
+  { name: 'ACLS',   status: 'valid',    expires: '2026-12-05' },
+].map(c => ({ ...c, daysLeft: daysUntil(c.expires) }));
 
 // "Cedar City Hospital" → "Cedar City", "IMED IH-14" → "IMED"
 function cityFromBase(base) {

@@ -98,19 +98,20 @@ export const BULLETINS = [
 ];
 
 // Demo fallback — production reads from Veryon via Dataverse (cr463_inspection_due entity)
+const inspection = (offset, tail, desc, level) => ({ tail, desc, due: dMDY(offset), days: offset, level });
 export const INSPECTIONS_DUE = [
-  { tail: 'N281HC', desc: 'Monthly oxygen bottle exchange',    due: dMDY(1),  days: 1,  level: 'red'   },
-  { tail: 'N291HC', desc: 'Tail rotor pitch change — grease', due: dMDY(3),  days: 3,  level: 'red'   },
-  { tail: 'N271HC', desc: '90-degree gearbox oil change',     due: dMDY(5),  days: 5,  level: 'amber' },
-  { tail: 'N531HC', desc: 'Port FX 30-day inspection',        due: dMDY(7),  days: 7,  level: 'amber' },
-  { tail: 'N581HC', desc: 'Landing gear inspection',          due: dMDY(8),  days: 8,  level: 'amber' },
-  { tail: 'N251HC', desc: 'Non-rotating scissors exam',       due: dMDY(10), days: 10, level: 'amber' },
-  { tail: 'N261HC', desc: 'Rotating scissors exam',           due: dMDY(11), days: 11, level: 'amber' },
-  { tail: 'N431HC', desc: 'Cockpit fire extinguisher monthly',due: dMDY(12), days: 12, level: 'amber' },
-  { tail: 'N481HC', desc: 'AAIP LifePort 12-month inspection',due: dMDY(14), days: 14, level: 'amber' },
-  { tail: 'N381HC', desc: 'Hydraulic fluid drain & replace',  due: dMDY(16), days: 16, level: 'amber' },
-  { tail: 'N781HC', desc: 'Airfoil de-icer application',      due: dMDY(21), days: 21, level: 'green' },
-  { tail: 'N251HC', desc: 'Power assurance check',            due: dMDY(30), days: 30, level: 'green' },
+  inspection(1,  'N281HC', 'Monthly oxygen bottle exchange',    'red'),
+  inspection(3,  'N291HC', 'Tail rotor pitch change — grease', 'red'),
+  inspection(5,  'N271HC', '90-degree gearbox oil change',     'amber'),
+  inspection(7,  'N531HC', 'Port FX 30-day inspection',        'amber'),
+  inspection(8,  'N581HC', 'Landing gear inspection',          'amber'),
+  inspection(10, 'N251HC', 'Non-rotating scissors exam',       'amber'),
+  inspection(11, 'N261HC', 'Rotating scissors exam',           'amber'),
+  inspection(12, 'N431HC', 'Cockpit fire extinguisher monthly','amber'),
+  inspection(14, 'N481HC', 'AAIP LifePort 12-month inspection','amber'),
+  inspection(16, 'N381HC', 'Hydraulic fluid drain & replace',  'amber'),
+  inspection(21, 'N781HC', 'Airfoil de-icer application',      'green'),
+  inspection(30, 'N251HC', 'Power assurance check',            'green'),
 ];
 
 export const PENDING_REQUESTS = [
