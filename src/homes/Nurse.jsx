@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { CheckCircle2, Timer, ArrowRight, Calendar, Zap, Shield, MessageSquare, Clock } from 'lucide-react';
-import { OPEN_SHIFTS } from '../data';
-import { PageHeader, Card, Metric, BulletinBanner } from '../ui';
+import { OPEN_SHIFTS, AIRCRAFT as STATIC_AIRCRAFT } from '../data';
+import { useFleet } from '../contexts/FleetDataContext';
+import { PageHeader, Card, Metric, StatusDot, BulletinBanner } from '../ui';
 import WeekCalendar from '../shared/WeekCalendar';
 import { getEventsForPersona, getCalendarConfigForPersona } from '../shared/personaCalendarData';
 import OncallWidget from '../shared/OncallWidget';
@@ -20,8 +21,25 @@ const MY_CERTS = [
   { name: 'ACLS', status: 'valid', expires: '2026-12-05', daysLeft: 225 },
 ];
 
+// "Cedar City Hospital" → "Cedar City", "IMED IH-14" → "IMED"
+function cityFromBase(base) {
+  return base.replace(/\s*(Hospital|Medical Center|Health|IH-\d+.*)/i, '').trim();
+}
+
 export default function NurseHome({ persona }) {
+  const { aircraft: live } = useFleet();
+  const AIRCRAFT = live.length ? live : STATIC_AIRCRAFT;
   const eligible = OPEN_SHIFTS.filter(s => s.specialty === 'flight_nurse');
+
+  // Aircraft serving this base: exact match first, then city-prefix match, then region
+  const baseAircraft = useMemo(() => {
+    const exact = AIRCRAFT.filter(a => a.base === persona.base);
+    if (exact.length) return exact;
+    const city = cityFromBase(persona.base).toLowerCase();
+    const partial = AIRCRAFT.filter(a => a.base.toLowerCase().startsWith(city));
+    if (partial.length) return partial;
+    return AIRCRAFT.filter(a => a.region === persona.region);
+  }, [AIRCRAFT, persona.base, persona.region]);
 
   return (
     <>
@@ -103,6 +121,34 @@ export default function NurseHome({ persona }) {
               </div>
             ))}
           </div>
+        </Card>
+      </div>
+
+      {/* Base aircraft fleet */}
+      <div className="mb-5">
+        <Card
+          title={`Fleet at a Glance — ${cityFromBase(persona.base)}`}
+          action={<span className="mono text-[11px] text-neutral-400">{baseAircraft.length} aircraft</span>}
+        >
+          {baseAircraft.length === 0 ? (
+            <p className="text-sm text-neutral-400 py-1">No aircraft data for this base.</p>
+          ) : (
+            <div className="space-y-1">
+              {baseAircraft.map(a => {
+                const statusLabel = a.status === 'IN_SERVICE' ? 'In Service' : a.status === 'AOG' ? 'AOG' : 'Scheduled MX';
+                const statusCls = a.status === 'IN_SERVICE' ? 'text-green-400' : a.status === 'AOG' ? 'text-red-400' : 'text-amber-400';
+                return (
+                  <div key={a.tail} className="flex items-center gap-3 py-2 px-2 rounded hover:bg-neutral-800/50">
+                    <StatusDot status={a.status} />
+                    <div className="mono text-[13px] font-semibold text-neutral-100">{a.tail}</div>
+                    <div className="text-[12px] text-neutral-400 flex-1">{a.type}</div>
+                    <div className="text-[11px] text-neutral-500 truncate max-w-[140px]">{a.base}</div>
+                    <div className={`mono text-[11px] font-medium shrink-0 ${statusCls}`}>{statusLabel}</div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </Card>
       </div>
 
