@@ -52,9 +52,9 @@ export const BASE_CAPABILITIES = {
   // ── Level 1 Trauma (full specialty pool) ─────────────────────────────────
   'IMED/Hangar':       { tier: 'Level 1 Trauma', specialties: L1 },
   'UV/ROOS':           { tier: 'Level 1 Trauma', specialties: L1 },
-  'MKY/LGU':           { tier: 'Level 1 Trauma', specialties: L1 },
 
   // ── Standard Rotary Wing ──────────────────────────────────────────────────
+  'MKY/LGU':           { tier: 'Standard RW', specialties: RW },
   'SGU/CDC':           { tier: 'Standard RW', specialties: RW },
   'Greybulll':         { tier: 'Standard RW', specialties: RW },
   'Lander':            { tier: 'Standard RW', specialties: RW },

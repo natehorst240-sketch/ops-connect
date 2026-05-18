@@ -104,7 +104,7 @@ for (const [base, crew] of Object.entries(BASE_CREWS)) {
 
     crew.clinical.forEach((name, i) => entries.push({
       id: `clin-${seq++}`,
-      source: 'Protean',
+      source: 'Protean Hub',
       personnelType: 'Clinical',
       roleType: i === 0 ? 'Flight RN' : 'Paramedic',
       ownerName: name,
@@ -138,7 +138,7 @@ for (const [base, crew] of Object.entries(BASE_CREWS)) {
 for (const date of WEEK_DATES) {
   OCC_STAFF.forEach((name, i) => entries.push({
     id: `occ-${seq++}`,
-    source: 'Protean',
+    source: 'Protean Hub',
     personnelType: 'OCC',
     roleType: i < 2 ? 'Day OCC' : 'Night OCC',
     ownerName: name,
@@ -151,7 +151,7 @@ for (const date of WEEK_DATES) {
 
   DISPATCH_STAFF.forEach((name, i) => entries.push({
     id: `dsp-${seq++}`,
-    source: 'Protean',
+    source: 'Protean Hub',
     personnelType: 'Dispatch',
     roleType: i < 2 ? 'Day Dispatch' : 'Night Dispatch',
     ownerName: name,
@@ -181,18 +181,13 @@ const LEVEL1_SPECIALISTS = [
   { base: 'UV/ROOS', region: '109 UT', roleType: 'Pediatric RN',           ownerName: 'Pediatric RN 2',          days: [0, 1, 3, 5]     },
   { base: 'UV/ROOS', region: '109 UT', roleType: 'HROB RN',                ownerName: 'HROB RN 2',               days: [0, 1, 2, 4]     },
 
-  // MKY/LGU — McKay-Dee / Logan
-  { base: 'MKY/LGU', region: '109 UT', roleType: 'Respiratory Therapist', ownerName: 'Respiratory Therapist 3', days: [0, 1, 2, 5]     },
-  { base: 'MKY/LGU', region: '109 UT', roleType: 'NICU RN',               ownerName: 'NICU RN 3',               days: [0, 3, 4, 5]     },
-  { base: 'MKY/LGU', region: '109 UT', roleType: 'Pediatric RN',           ownerName: 'Pediatric RN 3',          days: [1, 2, 3, 4]     },
-  { base: 'MKY/LGU', region: '109 UT', roleType: 'HROB RN',                ownerName: 'HROB RN 3',               days: [0, 2, 4, 5]     },
 ];
 
 for (const spec of LEVEL1_SPECIALISTS) {
   for (const dayIdx of spec.days) {
     entries.push({
       id: `l1-${seq++}`,
-      source: 'Protean',
+      source: 'Protean Hub',
       personnelType: 'Clinical',
       roleType: spec.roleType,
       ownerName: spec.ownerName,

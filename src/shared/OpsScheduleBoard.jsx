@@ -13,9 +13,9 @@ import { BASE_META, REGIONS, DEMO_TODAY_ISO, addDays } from '../data/mxOncallSch
 const PT = {
   'MX On-Call':  { label: 'MX On-Call',  icon: Wrench,    source: 'CompleteFlight', chipCls: 'bg-orange-500/20 text-orange-200 border-orange-500/30', dotColor: '#f97316' },
   'Pilot':       { label: 'Pilot',       icon: Plane,     source: 'CompleteFlight', chipCls: 'bg-blue-500/20 text-blue-200 border-blue-500/30',   dotColor: '#3b82f6' },
-  'Clinical':    { label: 'Clinical',    icon: Heart,     source: 'Protean',        chipCls: 'bg-green-500/20 text-green-200 border-green-500/30',  dotColor: '#22c55e' },
-  'OCC':         { label: 'OCC',         icon: Radio,     source: 'Protean',        chipCls: 'bg-purple-500/20 text-purple-200 border-purple-500/30', dotColor: '#a855f7' },
-  'Dispatch':    { label: 'Dispatch',    icon: PhoneCall, source: 'Protean',        chipCls: 'bg-cyan-500/20 text-cyan-200 border-cyan-500/30',   dotColor: '#06b6d4' },
+  'Clinical':    { label: 'Clinical',    icon: Heart,     source: 'Protean Hub',    chipCls: 'bg-green-500/20 text-green-200 border-green-500/30',  dotColor: '#22c55e' },
+  'OCC':         { label: 'OCC',         icon: Radio,     source: 'Protean Hub',    chipCls: 'bg-purple-500/20 text-purple-200 border-purple-500/30', dotColor: '#a855f7' },
+  'Dispatch':    { label: 'Dispatch',    icon: PhoneCall, source: 'Protean Hub',    chipCls: 'bg-cyan-500/20 text-cyan-200 border-cyan-500/30',   dotColor: '#06b6d4' },
   'FOC On-Call': { label: 'FOC On-Call', icon: Briefcase, source: 'Manual',         chipCls: 'bg-amber-500/20 text-amber-200 border-amber-500/30',  dotColor: '#f59e0b' },
 };
 
@@ -24,7 +24,7 @@ const ALL_TYPES = Object.keys(PT);
 // Source badge style
 const SRC_STYLE = {
   'CompleteFlight': 'bg-blue-500/15 text-blue-300 border-blue-500/25',
-  'Protean':        'bg-green-500/15 text-green-300 border-green-500/25',
+  'Protean Hub':    'bg-green-500/15 text-green-300 border-green-500/25',
   'Manual':         'bg-neutral-700 text-neutral-300 border-neutral-600',
 };
 
