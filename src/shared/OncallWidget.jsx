@@ -10,13 +10,40 @@ import {
 } from '../data/mxOncallSchedule';
 
 // ── colours by slot index ─────────────────────────────────────────────────────
-// Stronger text (200 instead of 300) so it reads clearly on the tinted bg.
+// Solid fills with black text for maximum legibility on dark surrounding bg.
 const SLOT_COLORS = [
-  'bg-blue-500/25 text-white border-blue-500/40',
-  'bg-orange-500/25 text-white border-orange-500/40',
-  'bg-purple-500/25 text-white border-purple-500/40',
-  'bg-green-500/25 text-white border-green-500/40',
+  'bg-blue-400 text-black border-blue-500',
+  'bg-orange-400 text-black border-orange-500',
+  'bg-purple-400 text-black border-purple-500',
+  'bg-green-400 text-black border-green-500',
 ];
+
+// CF schedule pairs two sites under one combined base name (one AMT covers
+// both). On the home screen we want each site shown as its own card so the
+// on-call mechanic appears at both bases. Production Dataverse may normalise
+// this differently — this map only affects display.
+const COMBINED_BASE_LABELS = {
+  'SGU/CDC':     ['St. George IH-09',           'Cedar City IH-10'],
+  'MKY/LGU':     ['McKay-Dee IH-13',            'Logan IH-15'],
+  'UV/ROOS':     ['Utah Valley (UVRMC IH-16)',  'Roosevelt (UBMC IH-19)'],
+  'IMED/Hangar': ['IMED IH-14',                 '109 UT Hangar'],
+};
+
+function expandBase(base) {
+  const parts = COMBINED_BASE_LABELS[base];
+  if (parts) {
+    return parts.map((label, idx) => ({
+      key: `${base}-${idx}`,
+      label,
+      sourceBase: base,
+    }));
+  }
+  return [{
+    key: base,
+    label: BASE_META[base]?.label ?? base,
+    sourceBase: base,
+  }];
+}
 
 function slotColor(idx) {
   return SLOT_COLORS[idx % SLOT_COLORS.length];
@@ -171,6 +198,8 @@ export default function OncallWidget({ persona }) {
 // ── Region group ──────────────────────────────────────────────────────────────
 
 function RegionGroup({ region, bases, todayByBase, highlightBase, showRegionLabel }) {
+  // Expand combined CF bases (e.g. "IMED/Hangar") into individual cards.
+  const cards = bases.flatMap(expandBase);
   return (
     <div>
       {showRegionLabel && (
@@ -179,12 +208,12 @@ function RegionGroup({ region, bases, todayByBase, highlightBase, showRegionLabe
         </div>
       )}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-1.5">
-        {bases.map(base => (
+        {cards.map(c => (
           <BaseCard
-            key={base}
-            base={base}
-            entries={todayByBase[base] ?? []}
-            highlight={base === highlightBase}
+            key={c.key}
+            displayLabel={c.label}
+            entries={todayByBase[c.sourceBase] ?? []}
+            highlight={c.sourceBase === highlightBase}
           />
         ))}
       </div>
@@ -194,8 +223,7 @@ function RegionGroup({ region, bases, todayByBase, highlightBase, showRegionLabe
 
 // ── Base card ─────────────────────────────────────────────────────────────────
 
-function BaseCard({ base, entries, highlight }) {
-  const meta = BASE_META[base] ?? { label: base };
+function BaseCard({ displayLabel, entries, highlight }) {
   const phoneFor = usePhoneFor();
 
   return (
@@ -205,7 +233,7 @@ function BaseCard({ base, entries, highlight }) {
         : 'border-neutral-700 bg-neutral-800/50'
     }`}>
       <div className="mono text-[10px] font-medium uppercase tracking-wider text-neutral-300 mb-1.5 leading-tight">
-        {meta.label}
+        {displayLabel}
         {highlight && <span className="ml-1.5 text-orange-400">★</span>}
       </div>
       <div className="space-y-1">

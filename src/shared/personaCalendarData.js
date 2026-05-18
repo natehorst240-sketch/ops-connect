@@ -152,24 +152,28 @@ export function getEventsForPersona(persona) {
     case 'DIRECTOR':         return scopeDirector(persona);
     case 'RMM':              return scopeRMM(persona);
     case 'AMT':              return scopeAMT(persona);
+    case 'ADOM':             // Assistant Director of MX Ops → same scope as QA
     case 'QA':               return scopeQA(persona);
     case 'MX_SCHEDULER':     return scopeMXScheduler(persona);
     case 'CREW_SCHEDULER':   return scopeCrewScheduler(persona);
     case 'FLIGHT_NURSE':     return scopeNurse(persona);
+    case 'BOM':              return scopeAMT(persona); // base-level view
     default: return [];
   }
 }
 
 export function getCalendarConfigForPersona(persona) {
   switch (persona.role) {
-    case 'DIRECTOR':       return { title: 'Fleet at a Glance · This Week',     subtitle: 'Condensed view across all regions and aircraft',  scopeLabel: 'ALL REGIONS',         density: 'condensed' };
-    case 'RMM':            return { title: `${persona.region} · This Week`,     subtitle: 'Aircraft, crew, and approvals in your region',     scopeLabel: persona.region,        density: 'normal' };
-    case 'AMT':            return { title: `My Week · ${persona.base}`,         subtitle: 'My shifts and aircraft at my base',                scopeLabel: persona.base,          density: 'normal' };
-    case 'QA':             return { title: 'Compliance · This Week',            subtitle: 'All-region oversight with audit overlay',          scopeLabel: 'ALL REGIONS · QA',    density: 'condensed' };
-    case 'MX_SCHEDULER':   return { title: 'Maintenance Schedule · This Week',  subtitle: 'All aircraft events · drag to reschedule',         scopeLabel: 'FLEET-WIDE',          density: 'normal' };
-    case 'CREW_SCHEDULER': return { title: 'Crew Schedule · This Week',         subtitle: 'Shifts, open shifts, and cert expirations',        scopeLabel: 'ALL CREW',            density: 'normal' };
-    case 'FLIGHT_NURSE':   return { title: 'My Schedule',                       subtitle: 'My shifts and shifts I can claim',                 scopeLabel: persona.base,          density: 'normal' };
-    default:               return { title: 'My Week',                           subtitle: '',                                                 scopeLabel: '',                    density: 'normal' };
+    case 'DIRECTOR':       return { title: 'Fleet at a Glance · This Week',    subtitle: 'Condensed view across all regions and aircraft', scopeLabel: 'ALL REGIONS',          density: 'condensed' };
+    case 'RMM':            return { title: `${persona.region} · This Week`,    subtitle: 'Aircraft, crew, and approvals in your region',   scopeLabel: persona.region,         density: 'normal' };
+    case 'AMT':            return { title: `My Week · ${persona.base}`,        subtitle: 'My shifts and aircraft at my base',              scopeLabel: persona.base,           density: 'normal' };
+    case 'ADOM':           // falls through to QA
+    case 'QA':             return { title: 'Compliance · This Week',           subtitle: 'All-region oversight with audit overlay',        scopeLabel: 'ALL REGIONS · QA',     density: 'condensed' };
+    case 'MX_SCHEDULER':   return { title: 'Maintenance Schedule · This Week', subtitle: 'All aircraft events · drag to reschedule',       scopeLabel: 'FLEET-WIDE',           density: 'normal' };
+    case 'CREW_SCHEDULER': return { title: 'Crew Schedule · This Week',        subtitle: 'Shifts, open shifts, and cert expirations',      scopeLabel: 'ALL CREW',             density: 'normal' };
+    case 'FLIGHT_NURSE':   return { title: 'My Schedule',                      subtitle: 'My shifts and shifts I can claim',               scopeLabel: persona.base,           density: 'normal' };
+    case 'BOM':            return { title: `My Week · ${persona.base}`,        subtitle: 'Base operations view',                           scopeLabel: persona.base,           density: 'normal' };
+    default:               return { title: 'My Week',                          subtitle: '',                                               scopeLabel: '',                     density: 'normal' };
   }
 }
 
