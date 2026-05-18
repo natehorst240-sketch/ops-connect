@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { Plane, UserCircle, Wrench, MessageSquare, Shield, Calendar } from 'lucide-react';
 import { AIRCRAFT as STATIC_AIRCRAFT, INSPECTIONS_DUE } from '../data';
+import { DEMO_SUBMISSIONS } from '../data/demoPersonnelData';
 import { useFleet } from '../contexts/FleetDataContext';
 import { useNavigation } from '../contexts/NavigationContext';
 import { PageHeader, Card, Metric, StatusDot, BulletinBanner } from '../ui';
@@ -11,10 +12,11 @@ import OpsScheduleBoard from '../shared/OpsScheduleBoard';
 import { basesMatch } from '../shared/baseMatch';
 
 export default function AMTHome({ persona }) {
-  const { aircraft: live } = useFleet();
+  const { aircraft: live, mxRequests: liveReqs } = useFleet();
   const navigate = useNavigation();
   const AIRCRAFT = live.length ? live : STATIC_AIRCRAFT;
 
+  // All bases this person covers (supports multi-base on-call personnel)
   const personaBases = useMemo(
     () => (persona.bases?.length ? persona.bases : [persona.base]).filter(Boolean),
     [persona.bases, persona.base]
@@ -27,7 +29,14 @@ export default function AMTHome({ persona }) {
 
   const baseLabel = personaBases.join(' · ') || persona.base;
 
-  const myAircraft = baseAircraft[0] ?? null;
+  // assignedTail gives the specific aircraft for this person's metric card;
+  // baseAircraft[0] is the fallback for live Dataverse users without the field yet.
+  const myAircraft = useMemo(
+    () => (persona.assignedTail
+      ? (AIRCRAFT.find(a => a.tail === persona.assignedTail) ?? baseAircraft[0])
+      : baseAircraft[0]) ?? null,
+    [AIRCRAFT, persona.assignedTail, baseAircraft]
+  );
 
   // Next inspection due for any aircraft at this base
   const baseTails = useMemo(() => new Set(baseAircraft.map(a => a.tail)), [baseAircraft]);
@@ -36,11 +45,19 @@ export default function AMTHome({ persona }) {
     [baseTails]
   );
 
-  const submissions = useMemo(() => [
-    { type: 'MX Schedule', detail: `${myAircraft?.tail ?? 'Aircraft'} 100-hr inspection window`, status: 'Pending', color: 'amber' },
-    { type: 'Time Off', detail: '2 days · 06/15–06/16', status: 'Approved', color: 'green' },
-    { type: 'Ask Leadership', detail: 'Tooling budget question', status: 'In progress', color: 'blue' },
-  ], [myAircraft]);
+  // Submissions: live Dataverse filtered by submitter name, fallback to demo data
+  const submissions = useMemo(() => {
+    const live = liveReqs.filter(r => r.requestedBy === persona.name);
+    if (live.length) {
+      return live.slice(0, 3).map(r => ({
+        type:   r.requestType ?? r.type ?? 'Request',
+        detail: r.title ?? r.detail ?? r.requestNumber,
+        status: r.status ?? 'Pending',
+        color:  r.status === 'Approved' ? 'green' : r.status === 'Denied' ? 'red' : 'amber',
+      }));
+    }
+    return DEMO_SUBMISSIONS[persona.id] ?? DEMO_SUBMISSIONS._default;
+  }, [liveReqs, persona.name, persona.id]);
 
   return (
     <>
@@ -139,6 +156,7 @@ export default function AMTHome({ persona }) {
                 <div className={`mono text-[10px] uppercase tracking-wider px-2 py-0.5 rounded ${
                   s.color === 'green' ? 'bg-green-500/10 text-green-400' :
                   s.color === 'amber' ? 'bg-amber-500/10 text-amber-400' :
+                  s.color === 'red'   ? 'bg-red-500/10 text-red-400' :
                   'bg-blue-500/10 text-blue-400'
                 }`}>{s.status}</div>
               </div>

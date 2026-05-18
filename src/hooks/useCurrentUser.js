@@ -76,17 +76,18 @@ export function useCurrentUser() {
 function personaFrom(p) {
   const bases = personnelBases(p);
   return {
-    id:        p.id,
-    name:      p.name,
-    initials:  initials(p.name),
-    role:      mapRole(p.role),
-    roleTitle: p.roleTitle ?? p.role,
-    base:      p.primaryBase ?? p.base,
+    id:           p.id,
+    name:         p.name,
+    initials:     initials(p.name),
+    role:         mapRole(p.role),
+    roleTitle:    p.roleTitle ?? p.role,
+    base:         p.primaryBase ?? p.base,
     bases,
-    region:    p.region,
-    email:     p.email,
-    phone:     p.phone,
-    onShift:   p.isActive ?? p.onShift ?? true
+    region:       p.region,
+    email:        p.email,
+    phone:        p.phone,
+    onShift:      p.isActive ?? p.onShift ?? true,
+    assignedTail: p.assignedTail ?? null,
   };
 }
 
