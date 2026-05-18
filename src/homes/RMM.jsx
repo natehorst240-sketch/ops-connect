@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Phone, MessageSquare, Bell, Shield, Users } from 'lucide-react';
 import { AIRCRAFT as STATIC_AIRCRAFT, PENDING_REQUESTS as STATIC_REQS } from '../data';
 import { PageHeader, Card, Metric, StatusDot, BulletinBanner } from '../ui';
@@ -7,6 +7,9 @@ import { getEventsForPersona, getCalendarConfigForPersona } from '../shared/pers
 import { useFleet } from '../contexts/FleetDataContext';
 import { useNavigation } from '../contexts/NavigationContext';
 import OncallWidget from '../shared/OncallWidget';
+import OpsScheduleBoard from '../shared/OpsScheduleBoard';
+import { usePhoneFor } from '../hooks/usePhoneFor';
+import { getOncallForDate, BASE_META, DEMO_TODAY_ISO } from '../data/mxOncallSchedule';
 
 export default function RMMHome({ persona }) {
   const navigate = useNavigation();
@@ -15,6 +18,25 @@ export default function RMMHome({ persona }) {
   const PENDING_REQUESTS = liveReqs.length ? liveReqs : STATIC_REQS;
   const regionAircraft = AIRCRAFT.filter(a => a.region === persona.region);
   const regionRequests = PENDING_REQUESTS.filter(r => r.region === persona.region);
+
+  const phoneFor = usePhoneFor();
+
+  // Today's on-call mechanics for this RMM's region
+  const regionOnCall = useMemo(() => {
+    const byBase = getOncallForDate(DEMO_TODAY_ISO);
+    const results = [];
+    for (const [base, entries] of Object.entries(byBase)) {
+      if (BASE_META[base]?.region === persona.region) {
+        entries.forEach(e => results.push({
+          name: e.owner,
+          base: BASE_META[base]?.label ?? base,
+          phone: phoneFor(e.owner),
+          hours: e.hours,
+        }));
+      }
+    }
+    return results;
+  }, [persona.region, phoneFor]);
 
   return (
     <>
@@ -69,17 +91,37 @@ export default function RMMHome({ persona }) {
       </div>
 
       <div className="mt-5 grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card title="My Team — On Call Now" action="WY/MT Region">
-          {['Nate Anderson · Greybull', 'Robert Guty · Greybull', 'Aaron Quitberg · Riverton'].map((name, idx) => (
-            <div key={idx} className="flex items-center gap-3 py-2.5 border-b border-neutral-800 last:border-0">
-              <div className="w-7 h-7 rounded-full bg-neutral-800 border border-neutral-700 flex items-center justify-center text-[10px] font-semibold">
-                {name.split('·')[0].trim().split(' ').map(n => n[0]).join('')}
+        <Card title="My Team — On Call Now" action={<span className="mono text-[11px] text-neutral-300">{persona.region} Region</span>}>
+          {regionOnCall.length === 0 ? (
+            <p className="text-sm text-neutral-400 py-2">No on-call data for today.</p>
+          ) : (
+            regionOnCall.map((m, idx) => (
+              <div key={idx} className="flex items-center gap-3 py-2.5 border-b border-neutral-800 last:border-0">
+                <div className="w-7 h-7 rounded-full bg-neutral-800 border border-neutral-700 flex items-center justify-center text-[10px] font-semibold text-neutral-200">
+                  {m.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[13px] font-medium truncate">{m.name}</div>
+                  <div className="text-[10px] text-neutral-400 truncate">{m.base} · {m.hours}</div>
+                </div>
+                {m.phone ? (
+                  <a href={`tel:${m.phone}`}
+                    onClick={e => e.preventDefault()}
+                    className="w-7 h-7 rounded bg-neutral-800 border border-neutral-700 flex items-center justify-center text-neutral-400 hover:text-orange-400"
+                    title={m.phone}>
+                    <Phone size={12} />
+                  </a>
+                ) : (
+                  <div className="w-7 h-7 rounded bg-neutral-800/50 border border-neutral-800 flex items-center justify-center text-neutral-700">
+                    <Phone size={12} />
+                  </div>
+                )}
+                <button className="w-7 h-7 rounded bg-neutral-800 border border-neutral-700 flex items-center justify-center text-neutral-400 hover:text-orange-400">
+                  <MessageSquare size={12} />
+                </button>
               </div>
-              <div className="flex-1 text-[13px]">{name}</div>
-              <button className="w-7 h-7 rounded bg-neutral-800 border border-neutral-700 flex items-center justify-center text-neutral-400 hover:text-orange-400"><Phone size={12} /></button>
-              <button className="w-7 h-7 rounded bg-neutral-800 border border-neutral-700 flex items-center justify-center text-neutral-400 hover:text-orange-400"><MessageSquare size={12} /></button>
-            </div>
-          ))}
+            ))
+          )}
         </Card>
         <Card title="Quick Actions">
           <div className="grid grid-cols-2 gap-2">
@@ -102,6 +144,7 @@ export default function RMMHome({ persona }) {
       </div>
 
       <OncallWidget persona={persona} />
+      <OpsScheduleBoard persona={persona} compact />
     </>
   );
 }

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  Plane, Map as MapIcon, Activity,
+  Plane, Map as MapIcon, Activity, Globe,
   Send, Inbox, Megaphone, Clock, BarChart3, Home as HomeIcon, FlaskConical,
   MoreHorizontal, X, Calendar, Wrench,
 } from 'lucide-react';
@@ -26,6 +26,8 @@ import Scheduler from './tabs/Scheduler';
 import Dashboard from './tabs/Dashboard';
 import Inspections from './tabs/Inspections';
 import MyHome from './tabs/MyHome';
+import OpsSchedule from './tabs/OpsSchedule';
+import AMCPlanner  from './tabs/AMCPlanner';
 import { FleetDataProvider } from './contexts/FleetDataContext';
 import { NavigationProvider } from './contexts/NavigationContext';
 import { ViewAsProvider } from './contexts/ViewAsContext';
@@ -37,12 +39,14 @@ const TABS = [
   { id: 'submit',    label: 'Submit Request', Icon: Send },
   { id: 'inbox',     label: 'Approval Inbox', Icon: Inbox },
   { id: 'bulletins', label: 'Bulletins',      Icon: Megaphone },
-  { id: 'oncall',    label: 'On-Call',        Icon: Clock },
-  { id: 'scheduler', label: 'Scheduler',      Icon: Calendar },
+  { id: 'oncall',       label: 'MX On-Call',     Icon: Clock },
+  { id: 'ops-schedule', label: 'Ops Schedule',  Icon: Calendar },
+  { id: 'scheduler',    label: 'Scheduler',     Icon: Calendar },
   { id: 'dashboard', label: 'Exec Dashboard', Icon: BarChart3 },
   { id: 'map',         label: 'Live Fleet',     Icon: MapIcon },
   { id: 'inspections', label: 'Inspections',   Icon: Wrench },
   { id: 'phase2',      label: 'Phase 2 Ops',   Icon: Activity },
+  { id: 'amc-planner', label: 'AMC Planner',  Icon: Globe },
 ];
 
 // Root is outside MSAL-dependent hooks — DemoModeProvider lives here
@@ -114,12 +118,14 @@ function AppInner() {
           {activeTab === 'submit'    && <SubmitRequest />}
           {activeTab === 'inbox'     && <ApprovalInbox />}
           {activeTab === 'bulletins' && <Bulletins />}
-          {activeTab === 'oncall'    && <OncallSchedule />}
-          {activeTab === 'scheduler' && <Scheduler />}
+          {activeTab === 'oncall'        && <OncallSchedule />}
+          {activeTab === 'ops-schedule'  && <OpsSchedule />}
+          {activeTab === 'scheduler'     && <Scheduler />}
           {activeTab === 'dashboard' && <Dashboard />}
           {activeTab === 'map'         && <MapTab />}
           {activeTab === 'inspections' && <Inspections />}
           {activeTab === 'phase2'      && <Phase2Status />}
+          {activeTab === 'amc-planner' && <AMCPlanner />}
         </div>
         <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
       </div>
@@ -224,11 +230,11 @@ function AppTopNav({ activeTab, setActiveTab }) {
 // ============================================================================
 
 const BOTTOM_TABS = [
-  { id: 'myhome',    label: 'Home',    Icon: HomeIcon },
-  { id: 'submit',    label: 'Submit',  Icon: Send },
-  { id: 'inbox',     label: 'Inbox',   Icon: Inbox },
-  { id: 'scheduler', label: 'Schedule',Icon: Calendar },
-  { id: 'bulletins', label: 'Bulletins',Icon: Megaphone },
+  { id: 'myhome',       label: 'Home',     Icon: HomeIcon },
+  { id: 'submit',       label: 'Submit',   Icon: Send },
+  { id: 'inbox',        label: 'Inbox',    Icon: Inbox },
+  { id: 'ops-schedule', label: 'Schedule', Icon: Calendar },
+  { id: 'bulletins',    label: 'Bulletins',Icon: Megaphone },
 ];
 
 // All other tabs shown in the "More" drawer

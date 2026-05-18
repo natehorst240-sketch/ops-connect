@@ -16,9 +16,16 @@ export const BASE_META = {
   'MT Control':       { region: 'SLC FW',  label: 'Maintenance Control' },
   'SGU/CDC':          { region: '109 UT',  label: 'St. George / Cedar City' },
   'MKY/LGU':          { region: '109 UT',  label: 'McKay-Dee / Logan' },
+  // MX On-Call combined names (one AMT covers both bases in the pair)
   'UV/ROOS':          { region: '109 UT',  label: 'Utah Valley / Roosevelt' },
-  'IMED/Hangar':      { region: '109 UT',  label: 'IMED IH-14' },
-  'Greybulll':        { region: 'WY/MT',   label: 'Greybull IH-23' },
+  'IMED/Hangar':      { region: '109 UT',  label: 'IMED / Hangar' },
+  // Clinical base names (one crew on-site per base, 12-hour shifts)
+  'IMED':             { region: '109 UT',  label: 'IMED IH-14' },
+  'Hangar':           { region: '109 UT',  label: '109 UT Hangar' },
+  'Utah Valley':      { region: '109 UT',  label: 'UVRMC IH-16' },
+  'Roosevelt':        { region: '109 UT',  label: 'Roosevelt (UBMC IH-19)' },
+  'PCH':              { region: '109 UT',  label: 'Primary Children\'s Hospital' },
+  'Greybull':         { region: 'WY/MT',   label: 'Greybull IH-23' },
   'FW Riverton':      { region: 'WY/MT',   label: 'Riverton IH-80 (FW)' },
   'Vernal':           { region: 'WY/MT',   label: 'Vernal IH-78' },
   'Lander':           { region: 'WY/MT',   label: 'Lander IH-21' },
@@ -43,8 +50,11 @@ export const BASE_META = {
 // Region display order
 export const REGIONS = ['SLC RW', 'SLC FW', '109 UT', 'WY/MT', 'ID/NV', 'CO/NM', 'UT/AZ', 'PAGE'];
 
-// Known phone numbers keyed by owner name (partial match — lowercase)
-const PHONE_BOOK = {
+// Known phone numbers keyed by owner name (exact lowercase match)
+// Kept as a standalone export so non-React code can reference it.
+// React components should use usePhoneFor() from hooks/usePhoneFor.js
+// which resolves against live Dataverse personnel first.
+export const PHONE_FALLBACK = {
   'alec overton':       '801-660-7640',
   'mac paye':           '916-871-6135',
   'jean-paul guidry':   '801-738-4919',
@@ -62,8 +72,9 @@ const PHONE_BOOK = {
   'denton siebrecht':   '928-640-1840',
 };
 
+/** @deprecated — use usePhoneFor() hook in React components instead */
 export function phoneFor(name) {
-  return PHONE_BOOK[name?.toLowerCase()] ?? null;
+  return PHONE_FALLBACK[name?.toLowerCase()] ?? null;
 }
 
 // ── Date helpers ─────────────────────────────────────────────────────────────

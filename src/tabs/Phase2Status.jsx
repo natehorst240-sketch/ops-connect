@@ -1,6 +1,7 @@
 import React from 'react';
 import { Calendar, MapPin, AlertTriangle, Plane, Activity, Clock } from 'lucide-react';
 import { useFleet } from '../contexts/FleetDataContext';
+import { PREFIX } from '../auth/schema';
 
 export default function Phase2Status() {
   const { scheduleEvents, fleetPositions, conflicts, loading } = useFleet();
@@ -20,9 +21,9 @@ export default function Phase2Status() {
       <div>
         <h1 className="text-2xl font-semibold mb-1">Phase 2 — Operations Layer</h1>
         <p className="text-sm text-neutral-400">
-          Live data from <code className="font-mono text-xs">cr463_scheduleevents</code>,{' '}
-          <code className="font-mono text-xs">cr463_fleetpositions</code>,{' '}
-          <code className="font-mono text-xs">cr463_conflicts</code>
+          Live data from <code className="font-mono text-xs">{PREFIX}scheduleevents</code>,{' '}
+          <code className="font-mono text-xs">{PREFIX}fleetpositions</code>,{' '}
+          <code className="font-mono text-xs">{PREFIX}conflicts</code>
         </p>
       </div>
 

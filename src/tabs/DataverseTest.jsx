@@ -1,19 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { useDataverse } from '../hooks/useDataverse';
 import { CheckCircle2, XCircle, Loader2 } from 'lucide-react';
+import { TABLES as TABLE_NAMES } from '../auth/tables';
 
 const TABLES = [
-  { label: 'Region',                 endpoint: 'cr463_regionfields' },
-  { label: 'Base',                   endpoint: 'cr463_airportlocations' },
-  { label: 'Aircraft Type',          endpoint: 'cr463_aircrafttypes' },
-  { label: 'Aircraft',               endpoint: 'cr463_aircrafts' },
-  { label: 'Personnel Maintenance',  endpoint: 'cr463_personnelmaintenances' },
-  { label: 'MX Request',             endpoint: 'cr463_maintenancerequests' },
-  { label: 'Audit Log',              endpoint: 'cr463_auditlogs' },
-  { label: 'Schedule Event',         endpoint: 'cr463_scheduleevents' },
-  { label: 'Fleet Position',         endpoint: 'cr463_fleetpositions' },
-  { label: 'Conflict',               endpoint: 'cr463_conflicts' },
-  { label: 'Personnel Crew',         endpoint: 'cr463_personnelcrews' }
+  { label: 'Region',                endpoint: TABLE_NAMES.region },
+  { label: 'Base',                  endpoint: TABLE_NAMES.base },
+  { label: 'Aircraft Type',         endpoint: TABLE_NAMES.aircraftType },
+  { label: 'Aircraft',              endpoint: TABLE_NAMES.aircraft },
+  { label: 'Personnel Maintenance', endpoint: TABLE_NAMES.personnel },
+  { label: 'MX Request',            endpoint: TABLE_NAMES.mxRequest },
+  { label: 'Audit Log',             endpoint: TABLE_NAMES.audit },
+  { label: 'Schedule Event',        endpoint: TABLE_NAMES.scheduleEvent },
+  { label: 'Fleet Position',        endpoint: TABLE_NAMES.fleetPosition },
+  { label: 'Conflict',              endpoint: TABLE_NAMES.conflict },
+  { label: 'Personnel Crew',        endpoint: TABLE_NAMES.personnelCrew },
 ];
 
 export default function DataverseTest() {

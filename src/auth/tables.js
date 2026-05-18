@@ -1,23 +1,27 @@
-// Dataverse entity set names (OData endpoint plurals)
+// Dataverse entity set names (OData endpoint plurals).
 //
-// These are the table names in Nathan's personal dev tenant where the
-// reference build lives. Some don't match the canonical IHC schema
-// because the Power Apps AI auto-named them during CSV import.
-//
-// When rebuilding in IHC's tenant the dev team should swap these for
-// the canonical names (likely cr_region, cr_base, cr_mx_request, etc.)
-// per m365-solution/Phase1/tables/README.md.
+// IMPORTANT — prefix assumption:
+//   Every name here is PREFIX + <suffix>, where PREFIX comes from schema.js.
+//   This works only if the production tables were created with the same suffix
+//   as the dev tables (just a different publisher prefix).
+//   Verify each suffix against the actual Dataverse schema before switching
+//   PREFIX to 'cr_'. The five tables marked FETCHED must be correct; the rest
+//   are unused placeholders reserved for future features.
+
+import { PREFIX as P } from './schema';
 
 export const TABLES = {
-  region:       'cr463_regionfields',       // canonical: cr_region
-  base:         'cr463_airportlocations',   // canonical: cr_base
-  aircraftType: 'cr463_aircrafttypes',      // canonical: cr_aircraft_type
-  aircraft:     'cr463_aircrafts',          // canonical: cr_aircraft
-  personnel:    'cr463_personnelmaintenances', // canonical: cr_personnel_maintenance
-  mxRequest:    'cr463_maintenancerequests',// canonical: cr_mx_request
-  audit:        'cr463_auditlogs',          // canonical: cr_audit
-  scheduleEvent:'cr463_scheduleevents',     // canonical: cr_schedule_event
-  fleetPosition:'cr463_fleetpositions',     // canonical: cr_fleet_position
-  conflict:     'cr463_conflicts',          // canonical: cr_conflict
-  personnelCrew:'cr463_personnelcrews'      // canonical: cr_personnel_crew
+  // ── Actively fetched by useFleetData ─────────────────────────────────────
+  aircraft:      `${P}aircrafts`,           // FETCHED — verify suffix in schema
+  personnel:     `${P}personnelmaintenances`, // FETCHED
+  mxRequest:     `${P}maintenancerequests`,   // FETCHED
+  scheduleEvent: `${P}scheduleevents`,        // FETCHED (falls back to [] on 404)
+  fleetPosition: `${P}fleetpositions`,        // FETCHED (falls back to [] on 404)
+  conflict:      `${P}conflicts`,             // FETCHED (falls back to [] on 404)
+  scheduleEntry: `${P}scheduleentries`,       // FETCHED — unified schedule table
+
+  // ── Reserved / not yet implemented ───────────────────────────────────────
+  // Confirm actual table names in Dataverse before using these.
+  audit:         `${P}auditlogs`,
+  personnelCrew: `${P}personnelcrews`,
 };

@@ -4,6 +4,9 @@ import { useDataverse } from '../hooks/useDataverse';
 import { useFleet } from '../contexts/FleetDataContext';
 import { useCurrentUser } from '../hooks/useCurrentUser';
 import { TABLES } from '../auth/tables';
+import { PREFIX } from '../auth/schema';
+
+const f = n => `${PREFIX}${n}`;
 
 // Status code mapping (from Dataverse choice column)
 const STATUS_CODE = {
@@ -87,28 +90,28 @@ export default function ApprovalInbox() {
     try {
       // 1. Patch the MX Request row
       const patchBody = {
-        cr463_requeststatus: newStatusCode,
-        cr463_decisioncomments: commentText,
-        cr463_approvername: persona?.name ?? 'Unknown',
-        cr463_decisiontimestamp: new Date().toISOString()
+        [f('requeststatus')]:      newStatusCode,
+        [f('decisioncomments')]:   commentText,
+        [f('approvername')]:       persona?.name ?? 'Unknown',
+        [f('decisiontimestamp')]:  new Date().toISOString()
       };
       // Escalate doesn't decide — keeps status Escalated and reroutes to Director
       if (decision === 'Escalated') {
-        patchBody.cr463_routingcode = 'Director';
+        patchBody[f('routingcode')] = 'Director';
       }
       await patch(TABLES.mxRequest, req.id, patchBody);
 
       // 2. Write audit log
       try {
         await create(TABLES.audit, {
-          cr463_audittitle: `${req.requestNumber} ${decision.toLowerCase()}`,
-          cr463_action:     `mx_request.${decision.toLowerCase()}`,
-          cr463_actor:      persona?.name ?? 'Unknown',
-          cr463_actorrole:  persona?.role ?? '',
-          cr463_subjecttable: 'MX Requests',
-          cr463_subjectid:    req.requestNumber,
-          cr463_eventat:    new Date().toISOString(),
-          cr463_notes:      commentText
+          [f('audittitle')]:   `${req.requestNumber} ${decision.toLowerCase()}`,
+          [f('action')]:       `mx_request.${decision.toLowerCase()}`,
+          [f('actor')]:        persona?.name ?? 'Unknown',
+          [f('actorrole')]:    persona?.role ?? '',
+          [f('subjecttable')]: 'MX Requests',
+          [f('subjectid')]:    req.requestNumber,
+          [f('eventat')]:      new Date().toISOString(),
+          [f('notes')]:        commentText
         });
       } catch (auditErr) {
         console.warn('Audit write failed:', auditErr);

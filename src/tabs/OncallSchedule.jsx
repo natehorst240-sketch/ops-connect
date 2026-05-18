@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Phone, ChevronLeft, ChevronRight, Calendar as CalIcon, X, Clock, Users } from 'lucide-react';
+import { usePhoneFor } from '../hooks/usePhoneFor';
 import {
   BASE_META,
   REGIONS,
@@ -8,17 +9,16 @@ import {
   getOncallForDate,
   getScheduleRange,
   addDays,
-  phoneFor,
 } from '../data/mxOncallSchedule';
 
 // ── Colour palette by person slot (0-based index within the day's base list) ─
 const SLOT_COLORS = [
-  'bg-blue-500/15 text-blue-300 border-blue-500/25',
-  'bg-orange-500/15 text-orange-300 border-orange-500/25',
-  'bg-purple-500/15 text-purple-300 border-purple-500/25',
-  'bg-green-500/15 text-green-300 border-green-500/25',
-  'bg-pink-500/15 text-pink-300 border-pink-500/25',
-  'bg-cyan-500/15 text-cyan-300 border-cyan-500/25',
+  'bg-blue-500/20 text-blue-200 border-blue-500/30',
+  'bg-orange-500/20 text-orange-200 border-orange-500/30',
+  'bg-purple-500/20 text-purple-200 border-purple-500/30',
+  'bg-green-500/20 text-green-200 border-green-500/30',
+  'bg-pink-500/20 text-pink-200 border-pink-500/30',
+  'bg-cyan-500/20 text-cyan-200 border-cyan-500/30',
 ];
 
 function slotColor(idx) {
@@ -122,7 +122,7 @@ export default function OncallSchedule() {
 
           {Object.entries(todayByRegion).map(([region, bases]) => (
             <div key={region} className="mb-5">
-              <div className="text-[10px] font-semibold uppercase tracking-widest text-neutral-600 mb-2">
+              <div className="text-[10px] font-semibold uppercase tracking-widest text-neutral-400 mb-2">
                 {region}
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
@@ -197,7 +197,7 @@ export default function OncallSchedule() {
                     <React.Fragment key={region}>
                       <tr className="border-t-2 border-neutral-700">
                         <td colSpan={8}
-                          className="px-2 py-1 bg-neutral-900/50 text-[10px] font-bold uppercase tracking-widest text-neutral-500 sticky left-0">
+                          className="px-2 py-1 bg-neutral-900/50 text-[10px] font-bold uppercase tracking-widest text-neutral-400 sticky left-0">
                           {region}
                         </td>
                       </tr>
@@ -264,10 +264,11 @@ export default function OncallSchedule() {
 
 function TodayCard({ base, entries, onSelect }) {
   const meta = BASE_META[base] ?? { label: base, region: '' };
+  const phoneFor = usePhoneFor();
 
   return (
-    <div className="bg-neutral-900/60 rounded-lg border border-neutral-800 p-3">
-      <div className="text-[10px] uppercase tracking-widest text-neutral-500 mb-1.5 leading-tight">
+    <div className="bg-neutral-800/60 rounded-lg border border-neutral-700 p-3">
+      <div className="text-[10px] font-medium uppercase tracking-wider text-neutral-300 mb-1.5 leading-tight">
         {meta.label}
       </div>
       <div className="flex flex-col gap-1.5">
@@ -277,21 +278,21 @@ function TodayCard({ base, entries, onSelect }) {
             <button
               key={idx}
               onClick={() => onSelect(entry)}
-              className={`flex items-center gap-2 w-full rounded px-2 py-1.5 text-left border transition-colors hover:opacity-80 ${slotColor(idx)}`}>
-              <div className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold bg-black/20 shrink-0">
+              className={`flex items-center gap-2 w-full rounded px-2 py-1.5 text-left border transition-colors hover:brightness-110 ${slotColor(idx)}`}>
+              <div className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold bg-black/25 shrink-0">
                 {initials(entry.owner)}
               </div>
               <div className="min-w-0">
                 <div className="text-xs font-semibold leading-tight truncate">{entry.owner}</div>
-                <div className="text-[10px] opacity-70 flex items-center gap-1">
+                <div className="text-[10px] opacity-80 flex items-center gap-1">
                   <Clock size={9} />
                   {entry.hours}
                   {entry.type !== 'Maintenance On Call' && (
-                    <span className="ml-1 opacity-60">· {typeLabel(entry.type)}</span>
+                    <span className="ml-1">· {typeLabel(entry.type)}</span>
                   )}
                 </div>
               </div>
-              {phone && <Phone size={11} className="ml-auto shrink-0 opacity-60" />}
+              {phone && <Phone size={11} className="ml-auto shrink-0 opacity-80" />}
             </button>
           );
         })}
@@ -305,6 +306,7 @@ function TodayCard({ base, entries, onSelect }) {
 function DetailPanel({ selected, onClose }) {
   const { base, entry, date } = selected;
   const meta  = BASE_META[base] ?? { label: base, region: '' };
+  const phoneFor = usePhoneFor();
   const phone = phoneFor(entry.owner);
   const isToday = date === DEMO_TODAY_ISO;
 
@@ -341,7 +343,7 @@ function DetailPanel({ selected, onClose }) {
             {phone}
           </a>
         ) : (
-          <div className="mb-4 text-xs text-neutral-600 flex items-center gap-1.5">
+          <div className="mb-4 text-xs text-neutral-400 flex items-center gap-1.5">
             <Phone size={11} />
             Phone not on file
           </div>

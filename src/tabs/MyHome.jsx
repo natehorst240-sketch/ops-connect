@@ -16,6 +16,7 @@ import QAHome from '../homes/QA';
 import MXSchedulerHome from '../homes/MXScheduler';
 import CrewSchedulerHome from '../homes/CrewScheduler';
 import NurseHome from '../homes/Nurse';
+import ClinicalOpsHome from '../homes/ClinicalOps';
 
 const HOMES = {
   DIRECTOR:       DirectorHome,
@@ -25,6 +26,7 @@ const HOMES = {
   MX_SCHEDULER:   MXSchedulerHome,
   CREW_SCHEDULER: CrewSchedulerHome,
   FLIGHT_NURSE:   NurseHome,
+  BOM:            ClinicalOpsHome,
 };
 
 export default function MyHome() {
