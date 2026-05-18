@@ -13,14 +13,14 @@ import { useAMCTrips } from '../contexts/AMCTripContext';
 // ── Personnel type config ─────────────────────────────────────────────────────
 
 const PT = {
-  'MX On-Call':  { label: 'MX On-Call',  icon: Wrench,    source: 'CompleteFlight', chipCls: 'bg-orange-500/25 text-white border-orange-500/40', dotColor: '#f97316' },
-  'Pilot':       { label: 'Pilot',       icon: Plane,     source: 'CompleteFlight', chipCls: 'bg-blue-500/25 text-white border-blue-500/40',     dotColor: '#3b82f6' },
-  'Clinical':    { label: 'Clinical',    icon: Heart,     source: 'Protean Hub',    chipCls: 'bg-green-500/25 text-white border-green-500/40',    dotColor: '#22c55e' },
-  'OCS':             { label: 'OCS',             icon: Radio,     source: 'Protean Hub', chipCls: 'bg-purple-500/25 text-white border-purple-500/40', dotColor: '#a855f7' },
-  'CS':              { label: 'CS',              icon: PhoneCall, source: 'Protean Hub', chipCls: 'bg-cyan-500/25 text-white border-cyan-500/40',     dotColor: '#06b6d4' },
-  'FOC On-Call':     { label: 'FOC On-Call',     icon: Briefcase, source: 'Manual',      chipCls: 'bg-amber-500/25 text-white border-amber-500/40',   dotColor: '#f59e0b' },
-  'AMC Coordinator': { label: 'AMC Coordinator', icon: Globe,     source: 'Manual',      chipCls: 'bg-sky-500/25 text-white border-sky-500/40',         dotColor: '#0ea5e9' },
-  'AMC Mission':     { label: 'AMC Mission',     icon: Plane,     source: 'AMC Planner', chipCls: 'bg-sky-600/30 text-white border-sky-400/50',           dotColor: '#38bdf8' },
+  'MX On-Call':      { label: 'MX On-Call',      icon: Wrench,    source: 'CompleteFlight', chipCls: 'bg-orange-400 text-black border-orange-500',  dotColor: '#f97316' },
+  'Pilot':           { label: 'Pilot',           icon: Plane,     source: 'CompleteFlight', chipCls: 'bg-blue-400 text-black border-blue-500',      dotColor: '#3b82f6' },
+  'Clinical':        { label: 'Clinical',        icon: Heart,     source: 'Protean Hub',    chipCls: 'bg-green-400 text-black border-green-500',    dotColor: '#22c55e' },
+  'OCS':             { label: 'OCS',             icon: Radio,     source: 'Protean Hub',    chipCls: 'bg-purple-400 text-black border-purple-500',  dotColor: '#a855f7' },
+  'CS':              { label: 'CS',              icon: PhoneCall, source: 'Protean Hub',    chipCls: 'bg-cyan-400 text-black border-cyan-500',      dotColor: '#06b6d4' },
+  'FOC On-Call':     { label: 'FOC On-Call',     icon: Briefcase, source: 'Manual',         chipCls: 'bg-amber-400 text-black border-amber-500',    dotColor: '#f59e0b' },
+  'AMC Coordinator': { label: 'AMC Coordinator', icon: Globe,     source: 'Manual',         chipCls: 'bg-sky-400 text-black border-sky-500',        dotColor: '#0ea5e9' },
+  'AMC Mission':     { label: 'AMC Mission',     icon: Plane,     source: 'AMC Planner',    chipCls: 'bg-sky-300 text-black border-sky-400',        dotColor: '#38bdf8' },
 };
 
 const ALL_TYPES = Object.keys(PT);
@@ -34,17 +34,24 @@ const SRC_STYLE = {
 };
 
 // ── View inference ────────────────────────────────────────────────────────────
+// AMT/BOM normally see 'base' view, but if their persona.base doesn't resolve
+// to a CF base name (common for live Dataverse users whose base is unmapped)
+// we fall back to 'region' so the board has something to render.
 
-function inferView(role) {
+function inferView(persona) {
+  const role = persona?.role;
   if (role === 'DIRECTOR' || role === 'ADOM' || role === 'MX_SCHEDULER') return 'master';
   if (role === 'RMM') return 'region';
-  return 'base';
+  if (persona?.base && resolveBase(persona.base)) return 'base';
+  return 'region';
 }
 
-function maxView(role) {
+function maxView(persona) {
+  const role = persona?.role;
   if (role === 'DIRECTOR' || role === 'ADOM' || role === 'MX_SCHEDULER') return 'master';
   if (role === 'RMM') return 'region';
-  return 'base';
+  if (persona?.base && resolveBase(persona.base)) return 'base';
+  return 'region';
 }
 
 // ── Persona base → CF base name ───────────────────────────────────────────────
@@ -144,7 +151,7 @@ export default function OpsScheduleBoard({ persona, compact = false }) {
   const navigate = useNavigation();
   const { anchorDate: weekStart, setAnchorDate: setWeekStart } = useCalendarDate();
   const { trips: amcTrips } = useAMCTrips();
-  const defaultView = inferView(persona?.role);
+  const defaultView = inferView(persona);
   const [view, setView] = useState(defaultView);
   const [activeTypes, setActiveTypes] = useState(new Set(ALL_TYPES));
   const [selected, setSelected] = useState(null);
@@ -226,10 +233,10 @@ export default function OpsScheduleBoard({ persona, compact = false }) {
                 { id: 'base', label: 'Base' },
                 { id: 'region', label: 'Region' },
                 { id: 'master', label: 'All' },
-              ].filter(v => ['base','region','master'].indexOf(v.id) <= ['base','region','master'].indexOf(maxView(persona?.role))).map(v => (
+              ].filter(v => ['base','region','master'].indexOf(v.id) <= ['base','region','master'].indexOf(maxView(persona))).map(v => (
                 <button
                   key={v.id}
-                  onClick={() => { if (['base','region','master'].indexOf(v.id) <= ['base','region','master'].indexOf(maxView(persona?.role))) setView(v.id); }}
+                  onClick={() => { if (['base','region','master'].indexOf(v.id) <= ['base','region','master'].indexOf(maxView(persona))) setView(v.id); }}
                   className={`mono text-[10px] uppercase tracking-widest font-semibold px-2.5 h-7 transition-colors ${
                     view === v.id ? 'bg-orange-500 text-black' : 'text-neutral-400 hover:text-neutral-200'
                   }`}
