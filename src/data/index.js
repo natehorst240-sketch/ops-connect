@@ -70,7 +70,7 @@ export const PERSONAS = [
   { id: 'qa',       name: 'Ryan Taul',      initials: 'RT', role: 'ADOM',           roleTitle: 'Assistant Director of Maintenance Operations', base: 'SLC',         region: 'ALL',    onShift: true },
   { id: 'mx_sched', name: 'Carla Weir',     initials: 'CW', role: 'MX_SCHEDULER',   roleTitle: 'Maintenance Scheduler',                 base: 'SLC',                region: 'ALL',    onShift: true },
   { id: 'nurse',    name: 'M. Bryce',       initials: 'MB', role: 'FLIGHT_NURSE',   roleTitle: 'Flight Nurse — Urban',                  base: 'Cedar City Hospital', region: '109 UT', onShift: false },
-  { id: 'bom',      name: 'Sandra Park',    initials: 'SP', role: 'BOM',            roleTitle: 'Base Operations Manager',               base: 'IMED IH-14',         region: '109 UT', onShift: true },
+  { id: 'bom',      name: 'BOM — 109 UT',   initials: 'BOM', role: 'BOM',           roleTitle: 'Base Operations Manager',               base: 'IMED IH-14',         region: '109 UT', onShift: true },
 ];
 
 export const BULLETINS = [

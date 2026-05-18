@@ -1,10 +1,11 @@
 // Demo schedule entries covering the 7-day window around DEMO_TODAY_ISO.
 // Covers all six personnel types across all regions.
 //
-// MX On-Call entries come from the real CompleteFlight export (cfSchedule.js).
-// Pilot entries are CompleteFlight format (same API, different type).
-// Clinical, OCC, Dispatch entries are Protean format.
-// FOC On-Call entries are manually maintained.
+// MX On-Call entries come from the real CompleteFlight export (cfSchedule.js) —
+// those names are real and must not be altered.
+//
+// All other names are role-title placeholders so ghost employees cannot
+// accidentally appear when real Dataverse data connects.
 //
 // When Dataverse is live, useFleetData fetches cr_scheduleentries and this
 // file becomes unused — OpsScheduleBoard falls through to live data first.
@@ -19,55 +20,55 @@ const WEEK_DATES = Array.from({ length: 7 }, (_, i) => addDays(DEMO_TODAY_ISO, i
 // In production these rows come from CompleteFlight (pilots) and Protean (clinical).
 
 const BASE_CREWS = {
-  'Greybulll':         { pilots: ['Jake Morrison',    'Sarah Chen'],        clinical: ['Emily Torres',    'Kevin Sato']      },
-  'Lander':            { pilots: ['Tyler Burke',       'Dana Rivers'],       clinical: ['Chris Hall',      'Maria Vega']      },
-  'Rawlins':           { pilots: ['Brian Foster',      'Megan Tran'],        clinical: ['Taylor Moore',    'Sam Evans']       },
-  'Vernal':            { pilots: ['Scott Larson',      'Amy Nguyen'],        clinical: ['Jordan Pierce',   'Riley Chen']      },
-  'FW Riverton':       { pilots: ['Cole Hudson',       'Rachel Park'],       clinical: ['Alex Castro',     'Morgan Webb']     },
-  'Woodscross':        { pilots: ['Tom Bradley',       'Maria Santos'],      clinical: ['Jordan Lee',      'Casey Kim']       },
-  'FW Hangar':         { pilots: ['Chris Williams',    'Ashley Park'],       clinical: ['Melissa Grant',   'Alex Rivera']     },
-  'SGU/CDC':           { pilots: ['Nathan Brooks',     'Lisa Torres'],       clinical: ['Chris Yamoto',    'Dana Pierce']     },
-  'MKY/LGU':           { pilots: ['David Nguyen',      'Rachel Kim'],        clinical: ['Sam Patel',       'Jenna Walsh']     },
-  'UV/ROOS':           { pilots: ['Andrew Mills',      'Jen Carson'],        clinical: ['Monica Lee',      'Derek Chang']     },
-  'IMED/Hangar':       { pilots: ['Travis Bell',       'Nicole Ramos'],      clinical: ['Brianna Moss',    'Eric Tanaka']     },
-  'Rexburg':           { pilots: ['Michael Torres',    'Jen Walsh'],         clinical: ['Ryan Okafor',     'Kelly Chen']      },
-  'Burley':            { pilots: ['Blake Porter',      'Amy Davis'],         clinical: ['Taylor Ellis',    'Sam Nguyen']      },
-  'RW Elko':           { pilots: ['Jordan Hughes',     'Megan Price'],       clinical: ['Alex Kim',        'Dana Torres']     },
-  'Ely':               { pilots: ['Nathan Webb',       'Cassie Moore'],      clinical: ['Morgan Hill',     'Tyler Evans']     },
-  'Winnemucca':        { pilots: ['Kyle Ross',         'Amber Chen'],        clinical: ['Jamie Patel',     'Riley Webb']      },
-  'Glenwood Springs':  { pilots: ["Patrick O'Brien",   'Amanda Chu'],        clinical: ['Morgan Hill',     'Tyler Moss']      },
-  'Steamboat Springs': { pilots: ['Drew Sullivan',     'Kate Marsh'],        clinical: ['Jamie Rivera',    'Alex Webb']       },
-  'Los Alamos':        { pilots: ['Carlos Rivera',     'Heather Park'],      clinical: ['Sam Torres',      'Dana Ellis']      },
-  'Cortez':            { pilots: ['Travis Knox',       'Brianna Scott'],     clinical: ['Jordan Pham',     'Casey Torres']    },
-  'Pagosa Springs':    { pilots: ['Dylan Reyes',       'Sarah Knight'],      clinical: ['Monica Webb',     'Derek Ellis']     },
-  'Fort Mohave':       { pilots: ['Ryan Cooper',       'Kaitlyn Murphy'],    clinical: ['Jamie Torres',    'Alex Webb']       },
-  'Richfield':         { pilots: ['Jordan Hughes',     'Megan Tran'],        clinical: ['Casey Pham',      'Riley Evans']     },
-  'Moab':              { pilots: ['Marcus Bell',       'Victoria Chen'],     clinical: ['Steph Liu',       'James Thompson']  },
-  'Page':              { pilots: ['Brandon Lee',       'Tiffany Ross'],      clinical: ['Marcus Thompson', 'Steph Liu']       },
+  'Greybulll':         { pilots: ['Pilot 1 (PIC)',  'Pilot 2 (SIC)'],  clinical: ['Flight Nurse 1',  'Paramedic 1'] },
+  'Lander':            { pilots: ['Pilot 1 (PIC)',  'Pilot 2 (SIC)'],  clinical: ['Flight Nurse 1',  'Paramedic 1'] },
+  'Rawlins':           { pilots: ['Pilot 1 (PIC)',  'Pilot 2 (SIC)'],  clinical: ['Flight Nurse 1',  'Paramedic 1'] },
+  'Vernal':            { pilots: ['Pilot 1 (PIC)',  'Pilot 2 (SIC)'],  clinical: ['Flight Nurse 1',  'Paramedic 1'] },
+  'FW Riverton':       { pilots: ['Pilot 1 (PIC)',  'Pilot 2 (SIC)'],  clinical: ['Flight Nurse 1',  'Paramedic 1'] },
+  'Woodscross':        { pilots: ['Pilot 1 (PIC)',  'Pilot 2 (SIC)'],  clinical: ['Flight Nurse 1',  'Paramedic 1'] },
+  'FW Hangar':         { pilots: ['Pilot 1 (PIC)',  'Pilot 2 (SIC)'],  clinical: ['Flight Nurse 1',  'Paramedic 1'] },
+  'SGU/CDC':           { pilots: ['Pilot 1 (PIC)',  'Pilot 2 (SIC)'],  clinical: ['Flight Nurse 1',  'Paramedic 1'] },
+  'MKY/LGU':           { pilots: ['Pilot 1 (PIC)',  'Pilot 2 (SIC)'],  clinical: ['Flight Nurse 1',  'Paramedic 1'] },
+  'UV/ROOS':           { pilots: ['Pilot 1 (PIC)',  'Pilot 2 (SIC)'],  clinical: ['Flight Nurse 1',  'Paramedic 1'] },
+  'IMED/Hangar':       { pilots: ['Pilot 1 (PIC)',  'Pilot 2 (SIC)'],  clinical: ['Flight Nurse 1',  'Paramedic 1'] },
+  'Rexburg':           { pilots: ['Pilot 1 (PIC)',  'Pilot 2 (SIC)'],  clinical: ['Flight Nurse 1',  'Paramedic 1'] },
+  'Burley':            { pilots: ['Pilot 1 (PIC)',  'Pilot 2 (SIC)'],  clinical: ['Flight Nurse 1',  'Paramedic 1'] },
+  'RW Elko':           { pilots: ['Pilot 1 (PIC)',  'Pilot 2 (SIC)'],  clinical: ['Flight Nurse 1',  'Paramedic 1'] },
+  'Ely':               { pilots: ['Pilot 1 (PIC)',  'Pilot 2 (SIC)'],  clinical: ['Flight Nurse 1',  'Paramedic 1'] },
+  'Winnemucca':        { pilots: ['Pilot 1 (PIC)',  'Pilot 2 (SIC)'],  clinical: ['Flight Nurse 1',  'Paramedic 1'] },
+  'Glenwood Springs':  { pilots: ['Pilot 1 (PIC)',  'Pilot 2 (SIC)'],  clinical: ['Flight Nurse 1',  'Paramedic 1'] },
+  'Steamboat Springs': { pilots: ['Pilot 1 (PIC)',  'Pilot 2 (SIC)'],  clinical: ['Flight Nurse 1',  'Paramedic 1'] },
+  'Los Alamos':        { pilots: ['Pilot 1 (PIC)',  'Pilot 2 (SIC)'],  clinical: ['Flight Nurse 1',  'Paramedic 1'] },
+  'Cortez':            { pilots: ['Pilot 1 (PIC)',  'Pilot 2 (SIC)'],  clinical: ['Flight Nurse 1',  'Paramedic 1'] },
+  'Pagosa Springs':    { pilots: ['Pilot 1 (PIC)',  'Pilot 2 (SIC)'],  clinical: ['Flight Nurse 1',  'Paramedic 1'] },
+  'Fort Mohave':       { pilots: ['Pilot 1 (PIC)',  'Pilot 2 (SIC)'],  clinical: ['Flight Nurse 1',  'Paramedic 1'] },
+  'Richfield':         { pilots: ['Pilot 1 (PIC)',  'Pilot 2 (SIC)'],  clinical: ['Flight Nurse 1',  'Paramedic 1'] },
+  'Moab':              { pilots: ['Pilot 1 (PIC)',  'Pilot 2 (SIC)'],  clinical: ['Flight Nurse 1',  'Paramedic 1'] },
+  'Page':              { pilots: ['Pilot 1 (PIC)',  'Pilot 2 (SIC)'],  clinical: ['Flight Nurse 1',  'Paramedic 1'] },
 };
 
 // Field ops manager on-call — one per region, manual entry
 const FOC_BY_REGION = {
-  'SLC RW':  'Derek Jorgensen',
-  'SLC FW':  'Brian Hyland',
-  '109 UT':  'Fred Bistline',
-  'WY/MT':   'Robert Guty',
-  'ID/NV':   'Rex Schwarz',
-  'CO/NM':   'Bryce Low',
-  'UT/AZ':   'Denton Siebrecht',
-  'PAGE':    'Jon Hankins',
+  'SLC RW':  'Field Ops Mgr — SLC RW',
+  'SLC FW':  'Field Ops Mgr — SLC FW',
+  '109 UT':  'Field Ops Mgr — 109 UT',
+  'WY/MT':   'Field Ops Mgr — WY/MT',
+  'ID/NV':   'Field Ops Mgr — ID/NV',
+  'CO/NM':   'Field Ops Mgr — CO/NM',
+  'UT/AZ':   'Field Ops Mgr — UT/AZ',
+  'PAGE':    'Field Ops Mgr — Page',
 };
 
 // OCC + Dispatch are centralized at Maintenance Control (SLC FW)
-const OCC_STAFF    = ['Victoria Harmon', 'Marcus Webb',      'Stephanie Liu',  'James Okafor'];
-const DISPATCH_STAFF = ['Casey Thompson', 'Jordan Ellis',    'Morgan Pierce',  'Taylor Nguyen'];
+const OCC_STAFF      = ['OCC Specialist 1', 'OCC Specialist 2', 'OCC Specialist 3', 'OCC Specialist 4'];
+const DISPATCH_STAFF = ['Dispatcher 1',     'Dispatcher 2',     'Dispatcher 3',     'Dispatcher 4'];
 
 // ── Build entries ─────────────────────────────────────────────────────────────
 
 const entries = [];
 let seq = 1;
 
-// 1. MX On-Call — real CF export data
+// 1. MX On-Call — real CF export data (names kept as-is)
 for (const e of CF_SCHEDULE) {
   if (!WEEK_DATES.includes(e.date)) continue;
   entries.push({
@@ -169,22 +170,22 @@ for (const date of WEEK_DATES) {
 
 const LEVEL1_SPECIALISTS = [
   // IMED/Hangar — Intermountain Medical Center
-  { base: 'IMED/Hangar', region: '109 UT', roleType: 'Respiratory Therapist', ownerName: 'Laura Quinn',     days: [0, 1, 2, 4, 5] },
-  { base: 'IMED/Hangar', region: '109 UT', roleType: 'NICU RN',               ownerName: 'Michelle Park',   days: [0, 1, 3, 4, 5] },
-  { base: 'IMED/Hangar', region: '109 UT', roleType: 'Pediatric RN',           ownerName: 'Jason Wong',      days: [0, 2, 3, 5]     },
-  { base: 'IMED/Hangar', region: '109 UT', roleType: 'HROB RN',                ownerName: 'Amy Chen',        days: [1, 2, 4, 5]     },
+  { base: 'IMED/Hangar', region: '109 UT', roleType: 'Respiratory Therapist', ownerName: 'Respiratory Therapist 1', days: [0, 1, 2, 4, 5] },
+  { base: 'IMED/Hangar', region: '109 UT', roleType: 'NICU RN',               ownerName: 'NICU RN 1',               days: [0, 1, 3, 4, 5] },
+  { base: 'IMED/Hangar', region: '109 UT', roleType: 'Pediatric RN',           ownerName: 'Pediatric RN 1',          days: [0, 2, 3, 5]     },
+  { base: 'IMED/Hangar', region: '109 UT', roleType: 'HROB RN',                ownerName: 'HROB RN 1',               days: [1, 2, 4, 5]     },
 
   // UV/ROOS — Utah Valley / Roosevelt
-  { base: 'UV/ROOS', region: '109 UT', roleType: 'Respiratory Therapist', ownerName: 'Brandon Ellis',    days: [0, 1, 3, 4]     },
-  { base: 'UV/ROOS', region: '109 UT', roleType: 'NICU RN',               ownerName: 'Tanya Ross',       days: [0, 2, 3, 4]     },
-  { base: 'UV/ROOS', region: '109 UT', roleType: 'Pediatric RN',           ownerName: 'Carlos Martinez',  days: [0, 1, 3, 5]     },
-  { base: 'UV/ROOS', region: '109 UT', roleType: 'HROB RN',                ownerName: 'Sarah Kim',        days: [0, 1, 2, 4]     },
+  { base: 'UV/ROOS', region: '109 UT', roleType: 'Respiratory Therapist', ownerName: 'Respiratory Therapist 2', days: [0, 1, 3, 4]     },
+  { base: 'UV/ROOS', region: '109 UT', roleType: 'NICU RN',               ownerName: 'NICU RN 2',               days: [0, 2, 3, 4]     },
+  { base: 'UV/ROOS', region: '109 UT', roleType: 'Pediatric RN',           ownerName: 'Pediatric RN 2',          days: [0, 1, 3, 5]     },
+  { base: 'UV/ROOS', region: '109 UT', roleType: 'HROB RN',                ownerName: 'HROB RN 2',               days: [0, 1, 2, 4]     },
 
   // MKY/LGU — McKay-Dee / Logan
-  { base: 'MKY/LGU', region: '109 UT', roleType: 'Respiratory Therapist', ownerName: 'Patricia Nguyen',  days: [0, 1, 2, 5]     },
-  { base: 'MKY/LGU', region: '109 UT', roleType: 'NICU RN',               ownerName: 'Derek Johnson',    days: [0, 3, 4, 5]     },
-  { base: 'MKY/LGU', region: '109 UT', roleType: 'Pediatric RN',           ownerName: 'Lisa Chang',       days: [1, 2, 3, 4]     },
-  { base: 'MKY/LGU', region: '109 UT', roleType: 'HROB RN',                ownerName: 'Michael Torres',   days: [0, 2, 4, 5]     },
+  { base: 'MKY/LGU', region: '109 UT', roleType: 'Respiratory Therapist', ownerName: 'Respiratory Therapist 3', days: [0, 1, 2, 5]     },
+  { base: 'MKY/LGU', region: '109 UT', roleType: 'NICU RN',               ownerName: 'NICU RN 3',               days: [0, 3, 4, 5]     },
+  { base: 'MKY/LGU', region: '109 UT', roleType: 'Pediatric RN',           ownerName: 'Pediatric RN 3',          days: [1, 2, 3, 4]     },
+  { base: 'MKY/LGU', region: '109 UT', roleType: 'HROB RN',                ownerName: 'HROB RN 3',               days: [0, 2, 4, 5]     },
 ];
 
 for (const spec of LEVEL1_SPECIALISTS) {
