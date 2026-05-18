@@ -8,9 +8,9 @@ import { getEventsForPersona, getCalendarConfigForPersona } from '../shared/pers
 import OncallWidget from '../shared/OncallWidget';
 
 const MY_SHIFTS = [
-  { date: '2026-04-25', time: '09:00-09:00', base: 'Cedar City Hospital', role: 'FN - URBAN' },
-  { date: '2026-04-28', time: '09:00-09:00', base: 'Cedar City Hospital', role: 'FN - URBAN' },
-  { date: '2026-05-05', time: '09:00-09:00', base: 'Cedar City Hospital', role: 'FN - URBAN' },
+  { date: '2026-05-21', time: '09:00-09:00', base: 'Cedar City Hospital', role: 'FN - URBAN' },
+  { date: '2026-05-25', time: '09:00-09:00', base: 'Cedar City Hospital', role: 'FN - URBAN' },
+  { date: '2026-06-04', time: '09:00-09:00', base: 'Cedar City Hospital', role: 'FN - URBAN' },
 ];
 
 const MY_CERTS = [

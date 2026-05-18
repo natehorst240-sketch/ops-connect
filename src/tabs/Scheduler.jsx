@@ -2,6 +2,8 @@ import React, { useState, useMemo } from 'react';
 import { Calendar as CalIcon, ChevronLeft, ChevronRight, AlertTriangle, X, ExternalLink, Plane, Clock } from 'lucide-react';
 import { useFleet } from '../contexts/FleetDataContext';
 import { useCurrentUser } from '../hooks/useCurrentUser';
+import { useCalendarDate } from '../contexts/CalendarDateContext';
+import { DEMO_TODAY_ISO } from '../data/mxOncallSchedule';
 
 const EVENT_COLORS = {
   inspection: { fill: 'rgba(254, 217, 184, 0.85)', text: '#a3501f', label: 'Inspection' },
@@ -28,13 +30,14 @@ export default function Scheduler() {
 
   const regions = useMemo(() => ['ALL', ...[...new Set(aircraft.map(a => a.region).filter(Boolean))].sort()], [aircraft]);
 
-  // Default window: anchor on earliest event in the dataset, or today - 7
-  const [start, setStart] = useState(() => {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    d.setDate(d.getDate() - 7);
+  const { anchorDate, setAnchorDate } = useCalendarDate();
+
+  // Scheduler window: 7 days before the shared anchor to DAYS days after
+  const start = useMemo(() => {
+    const d = new Date(anchorDate + 'T12:00:00Z');
+    d.setUTCDate(d.getUTCDate() - 7);
     return d;
-  });
+  }, [anchorDate]);
 
   const end = useMemo(() => {
     const d = new Date(start);
@@ -109,11 +112,9 @@ export default function Scheduler() {
   const rowHeight = 40;
 
   function navigate(deltaDays) {
-    setStart((s) => {
-      const d = new Date(s);
-      d.setDate(d.getDate() + deltaDays);
-      return d;
-    });
+    const d = new Date(anchorDate + 'T12:00:00Z');
+    d.setUTCDate(d.getUTCDate() + deltaDays);
+    setAnchorDate(d.toISOString().slice(0, 10));
     setSelected(null);
   }
 
@@ -124,9 +125,8 @@ export default function Scheduler() {
       .map((e) => new Date(e.windowStart));
     if (all.length === 0) return;
     const earliest = new Date(Math.min(...all.map((d) => d.getTime())));
-    earliest.setDate(earliest.getDate() - 2);
-    earliest.setHours(0, 0, 0, 0);
-    setStart(earliest);
+    earliest.setDate(earliest.getDate() + 2);
+    setAnchorDate(earliest.toISOString().slice(0, 10));
     setSelected(null);
   }
 
@@ -163,9 +163,8 @@ export default function Scheduler() {
             <button onClick={() => navigate(-DAYS)} className="p-1.5 rounded-md bg-neutral-900 border border-neutral-800 hover:border-neutral-700" title="Previous">
               <ChevronLeft size={14} />
             </button>
-            <button onClick={() => {
-              const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - 7); setStart(d); setSelected(null);
-            }} className="px-3 py-1.5 rounded-md bg-neutral-900 border border-neutral-800 hover:border-neutral-700 text-xs">
+            <button onClick={() => { setAnchorDate(DEMO_TODAY_ISO); setSelected(null); }}
+              className="px-3 py-1.5 rounded-md bg-neutral-900 border border-neutral-800 hover:border-neutral-700 text-xs">
               Today
             </button>
             <button onClick={jumpToEarliest} className="px-3 py-1.5 rounded-md bg-neutral-900 border border-neutral-800 hover:border-neutral-700 text-xs">

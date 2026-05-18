@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { useCalendarDate } from '../contexts/CalendarDateContext';
+import { DEMO_TODAY_ISO } from '../data/mxOncallSchedule';
 import {
   ChevronLeft, ChevronRight, Calendar as CalIcon,
   AlertTriangle, Wrench, Plane, GraduationCap, Users, Clock,
@@ -94,9 +96,18 @@ export default function WeekCalendar({
   density = 'normal',     // 'normal' | 'condensed'
   showLegend = true,
   onEventClick,
-  initialDate = '2026-04-25',  // Saturday Apr 25 — today in demo
 }) {
-  const [anchorDate, setAnchorDate] = useState(new Date(initialDate));
+  const calCtx = useCalendarDate();
+  const [localAnchor, setLocalAnchor] = useState(
+    () => new Date((calCtx?.anchorDate ?? DEMO_TODAY_ISO) + 'T12:00:00Z')
+  );
+
+  const anchorDate = calCtx ? new Date(calCtx.anchorDate + 'T12:00:00Z') : localAnchor;
+  function setAnchorDate(d) {
+    if (calCtx) calCtx.setAnchorDate(fmtISO(d));
+    else setLocalAnchor(d);
+  }
+
   const [view, setView] = useState('week'); // 'week' | 'month'
   const [detailEvent, setDetailEvent] = useState(null);
 
@@ -107,7 +118,7 @@ export default function WeekCalendar({
 
   const weekStart = startOfWeek(anchorDate);
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
-  const today = new Date('2026-04-25');
+  const today = new Date(DEMO_TODAY_ISO + 'T12:00:00Z');
 
   // Group events by day
   const eventsByDay = days.map(d => ({

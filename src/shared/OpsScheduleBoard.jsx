@@ -7,6 +7,7 @@ import { useFleet } from '../contexts/FleetDataContext';
 import { useNavigation } from '../contexts/NavigationContext';
 import { DEMO_SCHEDULE_ENTRIES } from '../data/demoScheduleEntries';
 import { BASE_META, REGIONS, DEMO_TODAY_ISO, addDays } from '../data/mxOncallSchedule';
+import { useCalendarDate } from '../contexts/CalendarDateContext';
 
 // ── Personnel type config ─────────────────────────────────────────────────────
 
@@ -87,9 +88,9 @@ function isToday(iso) { return iso === REAL_TODAY; }
 
 export default function OpsScheduleBoard({ persona, compact = false }) {
   const navigate = useNavigation();
+  const { anchorDate: weekStart, setAnchorDate: setWeekStart } = useCalendarDate();
   const defaultView = inferView(persona?.role);
   const [view, setView] = useState(defaultView);
-  const [weekStart, setWeekStart] = useState(REAL_TODAY);
   const [activeTypes, setActiveTypes] = useState(new Set(ALL_TYPES));
   const [selected, setSelected] = useState(null);
 
@@ -190,7 +191,7 @@ export default function OpsScheduleBoard({ persona, compact = false }) {
                 <ChevronLeft size={14} />
               </button>
               <button
-                onClick={() => setWeekStart(REAL_TODAY)}
+                onClick={() => setWeekStart(DEMO_TODAY_ISO)}
                 className="mono text-[10px] uppercase tracking-widest font-semibold px-2.5 h-7 bg-neutral-800 border border-neutral-700 rounded text-neutral-300 hover:bg-neutral-700"
               >
                 Today
