@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  Plane, Map as MapIcon, Activity,
+  Plane, Map as MapIcon, Activity, Globe,
   Send, Inbox, Megaphone, Clock, BarChart3, Home as HomeIcon, FlaskConical,
   MoreHorizontal, X, Calendar, Wrench,
 } from 'lucide-react';
@@ -27,6 +27,7 @@ import Dashboard from './tabs/Dashboard';
 import Inspections from './tabs/Inspections';
 import MyHome from './tabs/MyHome';
 import OpsSchedule from './tabs/OpsSchedule';
+import AMCPlanner  from './tabs/AMCPlanner';
 import { FleetDataProvider } from './contexts/FleetDataContext';
 import { NavigationProvider } from './contexts/NavigationContext';
 import { ViewAsProvider } from './contexts/ViewAsContext';
@@ -45,6 +46,7 @@ const TABS = [
   { id: 'map',         label: 'Live Fleet',     Icon: MapIcon },
   { id: 'inspections', label: 'Inspections',   Icon: Wrench },
   { id: 'phase2',      label: 'Phase 2 Ops',   Icon: Activity },
+  { id: 'amc-planner', label: 'AMC Planner',  Icon: Globe },
 ];
 
 // Root is outside MSAL-dependent hooks — DemoModeProvider lives here
@@ -123,6 +125,7 @@ function AppInner() {
           {activeTab === 'map'         && <MapTab />}
           {activeTab === 'inspections' && <Inspections />}
           {activeTab === 'phase2'      && <Phase2Status />}
+          {activeTab === 'amc-planner' && <AMCPlanner />}
         </div>
         <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
       </div>
