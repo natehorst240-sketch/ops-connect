@@ -26,9 +26,14 @@ via CompleteFlight + ProteanHub APIs. ADS-B self-hosted option available (see
 
 ## Repository layout
 
+This repo holds **two parallel implementation tracks** that share a Dataverse
+backend. See `docs/architecture-tracks.md` for the rules that keep them
+separated.
+
 ```
 ops-connect/
-├─ m365-solution/          Power Platform artifacts (start here)
+├─ docs/                   Cross-track docs (architecture, governance, plans)
+├─ m365-solution/          Track A — Native Power Platform (canonical)
 │  ├─ README.md            Kit overview + conventions
 │  ├─ Phase1/              Active build — canonical request/approval flow
 │  │  ├─ runbook.md        Week-by-week deployment guide — READ FIRST
@@ -43,8 +48,15 @@ ops-connect/
 │  ├─ Phase3/              Power BI (future)
 │  ├─ NoOutsideHelp/       Self-hosted ADS-B variant for Phase 2
 │  └─ sharepoint-lists/    Canonical seed CSVs (IHC real data)
-└─ src/                    React demo app (stakeholder presentation only)
+└─ src/                    Track B — React + Entra → Dataverse SPA
+   ├─ auth/                Entra app reg config + Dataverse table clients
+   ├─ m365/                M365-shell screens calling Dataverse Web API
+   └─ ...                  App logic, view models, UI
 ```
+
+Both tracks write to the same Dataverse tables. Schema is owned by Track A's
+`m365-solution/Phase1/tables/`; Track B mirrors it in `src/auth/schema.js`.
+Do not cross-import between tracks.
 
 ---
 
@@ -93,5 +105,7 @@ diagnosis and Phase 2 resolution path.
 3. Read `m365-solution/Phase1/powerfx/canvas-app.md` — screen-by-screen canvas app build
 4. Use `m365-solution/Phase1/powerfx/FIELD-MAP.md` when a formula error needs tracing
 
-The `src/` React app is a **demo/presentation tool only** — it is not deployed
-to production and is not part of the Power Platform build.
+For Track B (React + Entra), see `src/auth/config.js` for the Entra app
+registration wiring and `src/auth/tables.js` for Dataverse Web API table
+clients. Both tracks target the same Dataverse environment — see
+`docs/architecture-tracks.md` for the separation rules.
