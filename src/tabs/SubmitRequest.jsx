@@ -5,6 +5,9 @@ import { useFleet } from '../contexts/FleetDataContext';
 import { useCurrentUser } from '../hooks/useCurrentUser';
 import { useDemoMode } from '../contexts/DemoModeContext';
 import { TABLES } from '../auth/tables';
+import { PREFIX } from '../auth/schema';
+
+const f = n => `${PREFIX}${n}`;
 import { AIRCRAFT as STATIC_AIRCRAFT } from '../data';
 
 // Which fields each type needs
@@ -82,20 +85,20 @@ export default function SubmitRequest() {
     const routing = getRouting();
 
     const body = {
-      cr463_requestnumber:     reqNum,
-      cr463_requesttitle:      reqNum,
-      cr463_aircrafttailnumber: form.aircraftTail,
-      cr463_aircraftmodel:     selectedAc?.type ?? '',
-      cr463_typeofrequest:     form.requestType,
-      cr463_baselocation:      form.base || selectedAc?.base || '',
-      cr463_prioritylevel:     cfg.autoAOG ? PRIORITY_CODES['AOG'] : (PRIORITY_CODES[form.priority] ?? 0),
-      cr463_requeststatus:     1,
-      cr463_requestedby:       persona?.name ?? 'Unknown',
-      cr463_reasonforrequest:  form.reason,
-      cr463_routingcode:       routing,
-      cr463_windowstarttime:   form.windowStart ? new Date(form.windowStart).toISOString() : null,
-      cr463_windowendtime:     form.windowEnd ? new Date(form.windowEnd).toISOString() : null,
-      cr463_auditcorrelationid: crypto.randomUUID()
+      [f('requestnumber')]:      reqNum,
+      [f('requesttitle')]:       reqNum,
+      [f('aircrafttailnumber')]: form.aircraftTail,
+      [f('aircraftmodel')]:      selectedAc?.type ?? '',
+      [f('typeofrequest')]:      form.requestType,
+      [f('baselocation')]:       form.base || selectedAc?.base || '',
+      [f('prioritylevel')]:      cfg.autoAOG ? PRIORITY_CODES['AOG'] : (PRIORITY_CODES[form.priority] ?? 0),
+      [f('requeststatus')]:      1,
+      [f('requestedby')]:        persona?.name ?? 'Unknown',
+      [f('reasonforrequest')]:   form.reason,
+      [f('routingcode')]:        routing,
+      [f('windowstarttime')]:    form.windowStart ? new Date(form.windowStart).toISOString() : null,
+      [f('windowendtime')]:      form.windowEnd ? new Date(form.windowEnd).toISOString() : null,
+      [f('auditcorrelationid')]: crypto.randomUUID()
     };
 
     try {
@@ -104,13 +107,13 @@ export default function SubmitRequest() {
       setStatus('success');
       try {
         await create(TABLES.audit, {
-          cr463_audittitle:   `${reqNum} submitted`,
-          cr463_action:       'mx_request.submitted',
-          cr463_actor:        persona?.name ?? 'Unknown',
-          cr463_actorrole:    persona?.role ?? 'AMT',
-          cr463_subjecttable: 'MX Requests',
-          cr463_subjectid:    reqNum,
-          cr463_eventat:      new Date().toISOString()
+          [f('audittitle')]:   `${reqNum} submitted`,
+          [f('action')]:       'mx_request.submitted',
+          [f('actor')]:        persona?.name ?? 'Unknown',
+          [f('actorrole')]:    persona?.role ?? 'AMT',
+          [f('subjecttable')]: 'MX Requests',
+          [f('subjectid')]:    reqNum,
+          [f('eventat')]:      new Date().toISOString()
         });
       } catch (auditErr) {
         console.warn('Audit write failed:', auditErr);

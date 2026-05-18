@@ -1,6 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useDataverse } from './useDataverse';
 import { TABLES } from '../auth/tables';
+import { PREFIX } from '../auth/schema';
+
+// Field-name helper — PREFIX is the only thing that changes between tenants.
+const f = n => `${PREFIX}${n}`;
+const fv = n => `${f(n)}@OData.Community.Display.V1.FormattedValue`;
 
 function pick(row, ...candidates) {
   for (const c of candidates) {
@@ -19,112 +24,110 @@ const STATUS_MAP = {
 };
 
 function mapAircraft(row) {
-  // Prefer the formatted (display-name) value, fall back to numeric mapping
-  const formattedStatus = row['cr463_operationalstatus@OData.Community.Display.V1.FormattedValue'];
-  const rawStatus = row.cr463_operationalstatus;
+  const formattedStatus = row[fv('operationalstatus')];
+  const rawStatus = row[f('operationalstatus')];
   const status =
     (formattedStatus && formattedStatus.toUpperCase().replace(/\s+/g, '_')) ??
     STATUS_MAP[rawStatus] ??
     'IN_SERVICE';
 
   return {
-    tail:   pick(row, 'cr463_tailnumber', 'cr463_title'),
-    type:   pick(row, 'cr463_helicoptertype'),
-    base:   pick(row, 'cr463_baselocation'),
-    region: pick(row, 'cr463_operatingregion'),
+    tail:   pick(row, f('tailnumber'), f('title')),
+    type:   pick(row, f('helicoptertype')),
+    base:   pick(row, f('baselocation')),
+    region: pick(row, f('operatingregion')),
     status,
-    make:   pick(row, 'cr463_manufacturer'),
-    model:  pick(row, 'cr463_modelnumber'),
-    serial: pick(row, 'cr463_serialnumber'),
-    rmm:    pick(row, 'cr463_responsiblemaintenancemanager')
+    make:   pick(row, f('manufacturer')),
+    model:  pick(row, f('modelnumber')),
+    serial: pick(row, f('serialnumber')),
+    rmm:    pick(row, f('responsiblemaintenancemanager'))
   };
 }
 
 function mapPersonnel(row) {
   return {
-    id:          row.cr463_personnelmaintenanceid,
-    name:        pick(row, 'cr463_employeetitle'),
-    firstName:   pick(row, 'cr463_firstname'),
-    lastName:    pick(row, 'cr463_lastname'),
-    email:       pick(row, 'cr463_emailaddress'),
-    phone:       pick(row, 'cr463_phonenumber'),
-    role:        pick(row, 'cr463_role'),
-    primaryBase: pick(row, 'cr463_primarybaselocation'),
-    region:      pick(row, 'cr463_regioncode'),
-    leader:      pick(row, 'cr463_leadername'),
-    coverageBases: pick(row, 'cr463_coveragebases'),
-    isActive:    row.cr463_isactive
+    id:            row[f('personnelmaintenanceid')],
+    name:          pick(row, f('employeetitle')),
+    firstName:     pick(row, f('firstname')),
+    lastName:      pick(row, f('lastname')),
+    email:         pick(row, f('emailaddress')),
+    phone:         pick(row, f('phonenumber')),
+    role:          pick(row, f('role')),
+    primaryBase:   pick(row, f('primarybaselocation')),
+    region:        pick(row, f('regioncode')),
+    leader:        pick(row, f('leadername')),
+    coverageBases: pick(row, f('coveragebases')),
+    isActive:      row[f('isactive')]
   };
 }
 
 function mapMxRequest(row) {
   return {
-    id:            row.cr463_maintenancerequestid,
-    requestNumber: pick(row, 'cr463_requestnumber', 'cr463_requesttitle'),
-    title:         pick(row, 'cr463_requesttitle', 'cr463_requestnumber'),
-    aircraftTail:  pick(row, 'cr463_aircrafttailnumber'),
-    aircraftType:  pick(row, 'cr463_aircraftmodel'),
-    type:          pick(row, 'cr463_typeofrequest'),     // for legacy r.type filters
-    requestType:   pick(row, 'cr463_typeofrequest'),
-    base:          pick(row, 'cr463_baselocation'),
-    status:        pick(row, 'cr463_requeststatus@OData.Community.Display.V1.FormattedValue'),
-    priority:      pick(row, 'cr463_prioritylevel@OData.Community.Display.V1.FormattedValue'),
-    requestedBy:   pick(row, 'cr463_requestedby'),
-    approver:      pick(row, 'cr463_approvername'),
-    reason:        pick(row, 'cr463_reasonforrequest'),
-    routing:       pick(row, 'cr463_routingcode'),
-    windowStart:   pick(row, 'cr463_windowstarttime'),
-    windowEnd:     pick(row, 'cr463_windowendtime'),
-    decidedAt:     pick(row, 'cr463_decisiontimestamp'),
-    decisionComment: pick(row, 'cr463_decisioncomments'),
-    auditCorrelation: pick(row, 'cr463_auditcorrelationid')
+    id:               row[f('maintenancerequestid')],
+    requestNumber:    pick(row, f('requestnumber'), f('requesttitle')),
+    title:            pick(row, f('requesttitle'), f('requestnumber')),
+    aircraftTail:     pick(row, f('aircrafttailnumber')),
+    aircraftType:     pick(row, f('aircraftmodel')),
+    type:             pick(row, f('typeofrequest')),
+    requestType:      pick(row, f('typeofrequest')),
+    base:             pick(row, f('baselocation')),
+    status:           pick(row, fv('requeststatus')),
+    priority:         pick(row, fv('prioritylevel')),
+    requestedBy:      pick(row, f('requestedby')),
+    approver:         pick(row, f('approvername')),
+    reason:           pick(row, f('reasonforrequest')),
+    routing:          pick(row, f('routingcode')),
+    windowStart:      pick(row, f('windowstarttime')),
+    windowEnd:        pick(row, f('windowendtime')),
+    decidedAt:        pick(row, f('decisiontimestamp')),
+    decisionComment:  pick(row, f('decisioncomments')),
+    auditCorrelation: pick(row, f('auditcorrelationid'))
   };
 }
 
 function mapScheduleEvent(row) {
-  // Prefer formatted value if eventType is a choice column (returns number)
-  const eventTypeFormatted = row['cr463_eventtype@OData.Community.Display.V1.FormattedValue'];
+  const eventTypeFormatted = row[fv('eventtype')];
   return {
-    id:           row[Object.keys(row).find(k => k.endsWith('eventid'))],
-    title:        pick(row, 'cr463_scheduleeventtitle', 'cr463_title'),
-    eventId:      pick(row, 'cr463_eventid'),
-    sourceSystem: pick(row, 'cr463_sourcesystem'),
-    sourceEventId:pick(row, 'cr463_sourceeventid'),
-    aircraftTail: pick(row, 'cr463_aircrafttail'),
-    eventType:    eventTypeFormatted ?? String(pick(row, 'cr463_eventtype') ?? 'default'),
-    windowStart:  pick(row, 'cr463_windowstart', 'cr463_windowstarttime'),
-    windowEnd:    pick(row, 'cr463_windowend', 'cr463_windowendtime')
+    id:            row[Object.keys(row).find(k => k.endsWith('eventid'))],
+    title:         pick(row, f('scheduleeventtitle'), f('title')),
+    eventId:       pick(row, f('eventid')),
+    sourceSystem:  pick(row, f('sourcesystem')),
+    sourceEventId: pick(row, f('sourceeventid')),
+    aircraftTail:  pick(row, f('aircrafttail')),
+    eventType:     eventTypeFormatted ?? String(pick(row, f('eventtype')) ?? 'default'),
+    windowStart:   pick(row, f('windowstart'), f('windowstarttime')),
+    windowEnd:     pick(row, f('windowend'), f('windowendtime'))
   };
 }
 
 function mapFleetPosition(row) {
   return {
-    id:       row[Object.keys(row).find(k => k.endsWith('positionid'))],
-    tail:     pick(row, 'cr463_tail', 'cr463_title'),
-    lat:      pick(row, 'cr463_latitude', 'cr463_lat'),
-    lon:      pick(row, 'cr463_longitude', 'cr463_lon'),
-    altitude: pick(row, 'cr463_altitude'),
-    bearing:  pick(row, 'cr463_bearing'),
-    speed:    pick(row, 'cr463_speed'),
-    inFlight: row.cr463_inflight,
-    lastSeen: pick(row, 'cr463_lastpolledat', 'cr463_lastseen'),
-    inFlightLabel: pick(row, 'cr463_inflight@OData.Community.Display.V1.FormattedValue')
+    id:            row[Object.keys(row).find(k => k.endsWith('positionid'))],
+    tail:          pick(row, f('tail'), f('title')),
+    lat:           pick(row, f('latitude'), f('lat')),
+    lon:           pick(row, f('longitude'), f('lon')),
+    altitude:      pick(row, f('altitude')),
+    bearing:       pick(row, f('bearing')),
+    speed:         pick(row, f('speed')),
+    inFlight:      row[f('inflight')],
+    lastSeen:      pick(row, f('lastpolledat'), f('lastseen')),
+    inFlightLabel: pick(row, fv('inflight'))
   };
 }
 
 function mapConflict(row) {
   return {
-    id:          row[Object.keys(row).find(k => k.endsWith('conflictid'))],
-    title:       pick(row, 'cr463_conflicttitle', 'cr463_title'),
-    conflictId:  pick(row, 'cr463_conflictid'),
-    type:        pick(row, 'cr463_type'),
-    severity:    pick(row, 'cr463_severity'),
-    detail:      pick(row, 'cr463_detail'),
-    suggestion:  pick(row, 'cr463_suggestion'),
-    sourceEventId:    pick(row, 'cr463_sourceeventid'),
-    actionableSource: pick(row, 'cr463_actionablesource'),
-    actionableEventId: pick(row, 'cr463_actionableeventid'),
-    acknowledgedAt: pick(row, 'cr463_acknowledgedat')
+    id:                row[Object.keys(row).find(k => k.endsWith('conflictid'))],
+    title:             pick(row, f('conflicttitle'), f('title')),
+    conflictId:        pick(row, f('conflictid')),
+    type:              pick(row, f('type')),
+    severity:          pick(row, f('severity')),
+    detail:            pick(row, f('detail')),
+    suggestion:        pick(row, f('suggestion')),
+    sourceEventId:     pick(row, f('sourceeventid')),
+    actionableSource:  pick(row, f('actionablesource')),
+    actionableEventId: pick(row, f('actionableeventid')),
+    acknowledgedAt:    pick(row, f('acknowledgedat'))
   };
 }
 
