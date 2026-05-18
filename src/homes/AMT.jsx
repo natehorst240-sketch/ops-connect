@@ -6,6 +6,7 @@ import { useNavigation } from '../contexts/NavigationContext';
 import { PageHeader, Card, Metric, BulletinBanner } from '../ui';
 import WeekCalendar from '../shared/WeekCalendar';
 import { getEventsForPersona, getCalendarConfigForPersona } from '../shared/personaCalendarData';
+import OncallWidget from '../shared/OncallWidget';
 
 export default function AMTHome({ persona }) {
   const { aircraft: live } = useFleet();
@@ -102,6 +103,8 @@ export default function AMTHome({ persona }) {
           </div>
         </Card>
       </div>
+
+      <OncallWidget persona={persona} />
     </>
   );
 }

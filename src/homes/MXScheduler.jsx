@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Filter, ArrowRight, Users, ChevronLeft, ChevronRight, Phone, CalendarDays } from 'lucide-react';
+import { Filter, ArrowRight, Users, ChevronLeft, ChevronRight, Phone } from 'lucide-react';
+import OncallWidget from '../shared/OncallWidget';
 import { AIRCRAFT as STATIC_AIRCRAFT, INSPECTIONS_DUE, PENDING_REQUESTS as STATIC_REQS } from '../data';
 import { useFleet } from '../contexts/FleetDataContext';
 import { useNavigation } from '../contexts/NavigationContext';
@@ -8,10 +9,13 @@ import WeekCalendar from '../shared/WeekCalendar';
 import { getEventsForPersona, getCalendarConfigForPersona } from '../shared/personaCalendarData';
 import CrewSchedulerHome from './CrewScheduler';
 import {
-  ONCALL_ROSTER,
-  getWeeklySchedule,
-  getCurrentOncall,
+  BASE_META,
+  REGIONS,
+  DEMO_TODAY_ISO,
+  getOncallForDate,
+  getScheduleRange,
   addDays,
+  phoneFor,
 } from '../data/mxOncallSchedule';
 
 export default function MXSchedulerHome({ persona }) {
@@ -115,13 +119,7 @@ export default function MXSchedulerHome({ persona }) {
       </div>
 
       {/* === MX On-Call Schedule === */}
-      <div className="mt-10 mb-4 pb-2 border-b border-neutral-800 flex items-center gap-2">
-        <CalendarDays size={16} className="text-orange-400" />
-        <h2 className="text-[18px] font-semibold tracking-tight">MX On-Call Schedule</h2>
-        <span className="mono text-[10px] uppercase tracking-widest text-neutral-500 ml-2">8 on · 6 off · Wed–Wed · 1 year pre-built</span>
-        <span className="mono text-[9px] uppercase tracking-widest text-neutral-600 ml-auto px-1.5 py-0.5 border border-neutral-800 rounded">Phase 1 of 2 · CompleteFlight API in Phase 2</span>
-      </div>
-      <OncallScheduleBoard />
+      <OncallScheduleBoard persona={persona} />
 
       {/* === Crew Scheduling section — Carla owns this too === */}
       <div className="mt-10 mb-4 pb-2 border-b border-neutral-800 flex items-center gap-2">
@@ -140,13 +138,14 @@ export default function MXSchedulerHome({ persona }) {
 }
 
 // ============================================================================
-// ON-CALL SCHEDULE BOARD
+// ON-CALL SCHEDULE BOARD (embedded in MX Scheduler home)
 // ============================================================================
 
-// Color palette — person index 0 = blue, 1 = orange
-const PERSON_COLORS = [
-  { bg: 'rgba(59,130,246,0.15)', border: '#3b82f6', text: '#93c5fd', badge: '#1d4ed8' },
-  { bg: 'rgba(249,115,22,0.15)', border: '#f97316', text: '#fdba74', badge: '#c2410c' },
+const SLOT_COLORS_BOARD = [
+  { bg: 'rgba(59,130,246,0.15)', border: '#3b82f6', text: '#93c5fd' },
+  { bg: 'rgba(249,115,22,0.15)', border: '#f97316', text: '#fdba74' },
+  { bg: 'rgba(168,85,247,0.15)', border: '#a855f7', text: '#d8b4fe' },
+  { bg: 'rgba(34,197,94,0.15)',  border: '#22c55e', text: '#86efac' },
 ];
 
 function fmtShort(iso) {
@@ -155,150 +154,92 @@ function fmtShort(iso) {
   return `${months[parseInt(m, 10) - 1]} ${parseInt(d, 10)}`;
 }
 
-function OncallScheduleBoard() {
-  // Nearest Wednesday at or before demo today
+function initBoard(name) {
+  return name.split(/\s+/).map(w => w[0]).join('').toUpperCase().slice(0, 2);
+}
+
+function OncallScheduleBoard({ persona }) {
   const [weekOffset, setWeekOffset] = useState(0);
-  // Start display from the Wednesday of the current demo slot
-  const currentSlotWed = '2026-04-22';
-  const viewStart = addDays(currentSlotWed, weekOffset * 7);
-  const weeks = getWeeklySchedule(viewStart, 8);
-  const currentOncall = getCurrentOncall();
+  const viewStart = addDays(DEMO_TODAY_ISO, weekOffset * 7);
+  const days = getScheduleRange(viewStart, 7);
+
+  // Collect all bases that appear in the displayed week
+  const activeBases = new Set();
+  days.forEach(d => Object.keys(d.byBase).forEach(b => activeBases.add(b)));
+  const sortedBases = [...activeBases].sort((a, b) => {
+    const ri = REGIONS.indexOf(BASE_META[a]?.region ?? '');
+    const rj = REGIONS.indexOf(BASE_META[b]?.region ?? '');
+    return ri !== rj ? ri - rj : (BASE_META[a]?.label ?? a).localeCompare(BASE_META[b]?.label ?? b);
+  });
 
   return (
-    <div className="space-y-4">
-      {/* Current on-call strip */}
-      <div className="bg-neutral-900 border border-neutral-800 rounded-lg overflow-hidden">
-        <div className="px-4 py-2.5 border-b border-neutral-800 flex items-center justify-between bg-neutral-950/50">
-          <div>
-            <span className="mono text-[10px] uppercase tracking-widest text-orange-400 font-semibold">Currently On-Call</span>
-            <span className="mono text-[10px] text-neutral-500 ml-3">Wed Apr 22 – Wed Apr 29, 2026 · Day 4 of 8</span>
-          </div>
-          <span className="mono text-[9px] text-neutral-600 uppercase tracking-wider">Handoff in 4 days</span>
-        </div>
-        <div className="flex flex-wrap gap-2 p-3">
-          {currentOncall.map(c => {
-            const col = PERSON_COLORS[c.personIndex];
-            return (
-              <div
-                key={c.region}
-                className="flex items-center gap-2 px-3 py-2 rounded-md text-[11px]"
-                style={{ background: col.bg, border: `1px solid ${col.border}33` }}
-              >
-                <div
-                  className="w-6 h-6 rounded-full flex items-center justify-center mono text-[10px] font-bold shrink-0"
-                  style={{ background: col.badge, color: '#fff' }}
-                >
-                  {c.person.initials}
-                </div>
-                <div>
-                  <div className="font-medium leading-tight" style={{ color: col.text }}>{c.person.name}</div>
-                  <div className="mono text-[9px] text-neutral-500">{c.region}</div>
-                </div>
-                <a
-                  href={`tel:${c.person.phone}`}
-                  className="ml-1 text-neutral-600 hover:text-neutral-400"
-                  title={c.person.phone}
-                  onClick={e => e.preventDefault()}
-                >
-                  <Phone size={10} />
-                </a>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+    <div className="space-y-0 mt-5">
+      {/* Today — grouped by region/base via shared widget */}
+      <OncallWidget persona={persona} />
 
-      {/* 8-week timeline */}
-      <div className="bg-neutral-900 border border-neutral-800 rounded-lg overflow-hidden">
-        {/* Header row */}
-        <div className="flex border-b border-neutral-800 bg-neutral-950/50">
-          <div className="w-[160px] shrink-0 px-3 py-2 border-r border-neutral-800 flex items-center justify-between">
-            <span className="mono text-[10px] text-neutral-500 uppercase tracking-wider">Region</span>
-          </div>
-          {weeks.map((w, i) => (
-            <div
-              key={i}
-              className={`flex-1 px-1 py-2 text-center border-l border-neutral-800 ${w.isCurrent ? 'bg-orange-500/[0.06]' : ''}`}
-            >
-              <div className={`mono text-[10px] font-semibold ${w.isCurrent ? 'text-orange-400' : 'text-neutral-400'}`}>
-                {fmtShort(w.slotStart)}
-              </div>
-              {w.isCurrent && (
-                <div className="mono text-[8px] text-orange-500 uppercase tracking-wider mt-0.5">Now</div>
-              )}
-            </div>
-          ))}
-        </div>
-
-        {/* Region rows */}
-        {ONCALL_ROSTER.map(row => (
-          <div key={row.region} className="flex border-b border-neutral-800/60 hover:bg-neutral-800/10">
-            <div className="w-[160px] shrink-0 px-3 py-2.5 border-r border-neutral-800">
-              <div className="mono text-[11px] font-medium text-neutral-200">{row.region}</div>
-              <div className="mono text-[9px] text-neutral-600 truncate">{row.persons[0].name} / {row.persons[1].name}</div>
-            </div>
-            {weeks.map((w, i) => {
-              const slot = w.regions.find(r => r.region === row.region);
-              const col = PERSON_COLORS[slot.personIndex];
-              return (
-                <div
-                  key={i}
-                  className={`flex-1 px-1 py-1.5 border-l border-neutral-800/60 flex items-center justify-center ${w.isCurrent ? 'bg-orange-500/[0.03]' : ''}`}
-                >
-                  <div
-                    className="w-full rounded px-1.5 py-1 text-center cursor-default"
-                    style={{ background: col.bg, borderLeft: `2px solid ${col.border}` }}
-                    title={`${slot.person.name} · ${slot.person.base} · ${slot.person.phone}`}
-                  >
-                    <div className="mono text-[9px] font-bold leading-tight" style={{ color: col.text }}>
-                      {slot.person.initials}
-                    </div>
-                    <div className="mono text-[8px] leading-tight text-neutral-500 truncate">
-                      {slot.person.name.split(' ')[0]}
-                    </div>
+      {/* 7-day grid */}
+      <div className="bg-neutral-900 border border-neutral-800 rounded-lg overflow-x-auto">
+        <table className="w-full text-[11px]">
+          <thead>
+            <tr className="bg-neutral-950/50 border-b border-neutral-800">
+              <th className="text-left px-3 py-2 text-neutral-500 mono font-semibold w-[160px]">Base</th>
+              {days.map(({ date }) => (
+                <th key={date} className={`px-1 py-2 text-center mono font-semibold whitespace-nowrap ${
+                  date === DEMO_TODAY_ISO ? 'text-orange-400' : 'text-neutral-500'
+                }`}>
+                  {fmtShort(date)}
+                  {date === DEMO_TODAY_ISO && <div className="text-[8px] text-orange-500">Today</div>}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {sortedBases.map(base => (
+              <tr key={base} className="border-b border-neutral-800/60 hover:bg-neutral-800/10">
+                <td className="px-3 py-2 border-r border-neutral-800">
+                  <div className="mono text-[11px] font-medium text-neutral-200 leading-tight">
+                    {BASE_META[base]?.label ?? base}
                   </div>
-                </div>
-              );
-            })}
-          </div>
-        ))}
-
-        {/* Footer: navigation + legend */}
-        <div className="px-3 py-2 border-t border-neutral-800 flex items-center gap-3 bg-neutral-950/30 flex-wrap">
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => setWeekOffset(o => o - 8)}
-              className="w-6 h-6 bg-neutral-800 border border-neutral-700 rounded flex items-center justify-center text-neutral-400 hover:text-orange-400"
-            >
-              <ChevronLeft size={12} />
-            </button>
-            <button
-              onClick={() => setWeekOffset(0)}
-              className="mono text-[9px] uppercase tracking-widest font-semibold px-2 h-6 bg-neutral-800 border border-neutral-700 rounded text-neutral-400 hover:text-orange-400"
-            >
-              Today
-            </button>
-            <button
-              onClick={() => setWeekOffset(o => o + 8)}
-              className="w-6 h-6 bg-neutral-800 border border-neutral-700 rounded flex items-center justify-center text-neutral-400 hover:text-orange-400"
-            >
-              <ChevronRight size={12} />
-            </button>
-          </div>
-          <div className="flex items-center gap-3 ml-2">
-            {[0, 1].map(idx => {
-              const col = PERSON_COLORS[idx];
-              return (
-                <div key={idx} className="flex items-center gap-1.5">
-                  <div className="w-3 h-3 rounded-sm" style={{ background: col.border }} />
-                  <span className="mono text-[9px] text-neutral-500">Person {idx + 1} on-call</span>
-                </div>
-              );
-            })}
-          </div>
-          <div className="ml-auto mono text-[9px] text-neutral-600">
-            Showing 8 weeks · hover cell for contact · click name to call
-          </div>
+                  <div className="mono text-[9px] text-neutral-600">{BASE_META[base]?.region}</div>
+                </td>
+                {days.map(({ date, byBase }) => {
+                  const entries = byBase[base] ?? [];
+                  const isToday = date === DEMO_TODAY_ISO;
+                  return (
+                    <td key={date} className={`px-1 py-1 border-l border-neutral-800/40 align-top ${isToday ? 'bg-orange-500/5' : ''}`}>
+                      {entries.map((e, idx) => {
+                        const col = SLOT_COLORS_BOARD[idx % SLOT_COLORS_BOARD.length];
+                        return (
+                          <div key={idx} className="rounded px-1 py-0.5 mb-0.5 text-center"
+                            style={{ background: col.bg, borderLeft: `2px solid ${col.border}` }}
+                            title={`${e.owner} · ${e.hours}`}>
+                            <div className="mono font-bold leading-tight" style={{ color: col.text }}>
+                              {initBoard(e.owner)}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <div className="px-3 py-2 border-t border-neutral-800 flex items-center gap-1 bg-neutral-950/30">
+          <button onClick={() => setWeekOffset(o => o - 1)}
+            className="w-6 h-6 bg-neutral-800 border border-neutral-700 rounded flex items-center justify-center text-neutral-400 hover:text-orange-400">
+            <ChevronLeft size={12} />
+          </button>
+          <button onClick={() => setWeekOffset(0)}
+            className="mono text-[9px] uppercase tracking-widest px-2 h-6 bg-neutral-800 border border-neutral-700 rounded text-neutral-400 hover:text-orange-400">
+            Today
+          </button>
+          <button onClick={() => setWeekOffset(o => o + 1)}
+            className="w-6 h-6 bg-neutral-800 border border-neutral-700 rounded flex items-center justify-center text-neutral-400 hover:text-orange-400">
+            <ChevronRight size={12} />
+          </button>
+          <span className="ml-auto mono text-[9px] text-neutral-600">CompleteFlight data · May 2026</span>
         </div>
       </div>
     </div>

@@ -5,6 +5,7 @@ import WeekCalendar from '../shared/WeekCalendar';
 import { getEventsForPersona, getCalendarConfigForPersona } from '../shared/personaCalendarData';
 import { useFleet } from '../contexts/FleetDataContext';
 import { useNavigation } from '../contexts/NavigationContext';
+import OncallWidget from '../shared/OncallWidget';
 
 const AUDIT_EVENTS = [
   { when: '14:32', who: 'Tevita Silatolu', action: 'Approved MX Schedule', target: 'N39KM · 100-hr inspection' },
@@ -83,6 +84,8 @@ export default function QAHome({ persona }) {
       <Card title="Cross-Region Fleet Overview" action={<span className="mono text-[11px]">{AIRCRAFT.length} aircraft · 10 regions</span>}>
         <RegionBreakdown aircraft={AIRCRAFT} />
       </Card>
+
+      <OncallWidget persona={persona} />
     </>
   );
 }

@@ -1,63 +1,103 @@
 import React, { useState, useMemo } from 'react';
-import { Phone, ChevronLeft, ChevronRight, Calendar as CalIcon, X, MapPin, Users, ArrowRight } from 'lucide-react';
+import { Phone, ChevronLeft, ChevronRight, Calendar as CalIcon, X, Clock, Users } from 'lucide-react';
 import {
-  ONCALL_ROSTER,
+  BASE_META,
+  REGIONS,
+  ALL_BASES,
   DEMO_TODAY_ISO,
-  getCurrentOncall,
-  getWeeklySchedule,
-  addDays
+  getOncallForDate,
+  getScheduleRange,
+  addDays,
+  phoneFor,
 } from '../data/mxOncallSchedule';
 
-const REGIONS = [...new Set(ONCALL_ROSTER.map(b => b.region))];
+// ── Colour palette by person slot (0-based index within the day's base list) ─
+const SLOT_COLORS = [
+  'bg-blue-500/15 text-blue-300 border-blue-500/25',
+  'bg-orange-500/15 text-orange-300 border-orange-500/25',
+  'bg-purple-500/15 text-purple-300 border-purple-500/25',
+  'bg-green-500/15 text-green-300 border-green-500/25',
+  'bg-pink-500/15 text-pink-300 border-pink-500/25',
+  'bg-cyan-500/15 text-cyan-300 border-cyan-500/25',
+];
+
+function slotColor(idx) {
+  return SLOT_COLORS[idx % SLOT_COLORS.length];
+}
+
+function initials(name) {
+  return name
+    .split(/\s+/)
+    .map(w => w[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 3);
+}
+
+function typeLabel(type) {
+  if (type === 'Maintenance On Call') return 'On Call';
+  if (type === '1st Out MX On Call') return '1st Out';
+  if (type === '2nd Out MX On Call') return '2nd Out';
+  if (type === 'Maintenance Control') return 'MX Ctrl';
+  return type;
+}
+
+function formatDate(iso) {
+  return new Date(iso + 'T12:00:00Z').toLocaleDateString('en-US', {
+    weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC',
+  });
+}
+
+function shortDate(iso) {
+  return new Date(iso + 'T12:00:00Z').toLocaleDateString('en-US', {
+    month: 'short', day: 'numeric', timeZone: 'UTC',
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 export default function OncallSchedule() {
-  const [weekOffset, setWeekOffset] = useState(0);
-  const [selected,   setSelected]   = useState(null);
+  const [weekStart, setWeekStart]     = useState(DEMO_TODAY_ISO);
   const [regionFilter, setRegionFilter] = useState('ALL');
+  const [selected, setSelected]       = useState(null); // { base, entry, date }
 
-  const currentOncall = useMemo(() => getCurrentOncall(), []);
-  const schedule = useMemo(() => {
-    const start = addDays(DEMO_TODAY_ISO, weekOffset * 7);
-    return getWeeklySchedule(start, 8);
-  }, [weekOffset]);
+  const todayByBase = useMemo(() => getOncallForDate(DEMO_TODAY_ISO), []);
+  const weekDays    = useMemo(() => getScheduleRange(weekStart, 7), [weekStart]);
 
-  const visibleRoster = useMemo(() =>
+  const visibleBases = useMemo(() =>
     regionFilter === 'ALL'
-      ? ONCALL_ROSTER
-      : ONCALL_ROSTER.filter(b => b.region === regionFilter),
+      ? ALL_BASES
+      : ALL_BASES.filter(b => BASE_META[b]?.region === regionFilter),
   [regionFilter]);
 
-  function selectSlot(baseId, slotIndex, slotStart, slotEnd, person, personIndex) {
-    const base = ONCALL_ROSTER.find(b => b.baseId === baseId);
-    const nextIdx = (personIndex + 1) % base.persons.length;
-    const relief  = base.persons.length > 1 ? base.persons[nextIdx] : null;
-    setSelected({ baseId, baseLabel: base.baseLabel, region: base.region, slotIndex, slotStart, slotEnd, person, personIndex, relief });
-  }
-
-  // Group current on-call by region for the header cards
-  const byRegion = useMemo(() => {
+  // Group today's cards by region
+  const todayByRegion = useMemo(() => {
     const map = {};
-    currentOncall
-      .filter(s => regionFilter === 'ALL' || s.region === regionFilter)
-      .forEach(s => {
-        if (!map[s.region]) map[s.region] = [];
-        map[s.region].push(s);
-      });
+    for (const base of visibleBases) {
+      const entries = todayByBase[base];
+      if (!entries?.length) continue;
+      const region = BASE_META[base]?.region ?? 'Other';
+      if (!map[region]) map[region] = [];
+      map[region].push({ base, entries });
+    }
     return map;
-  }, [currentOncall, regionFilter]);
+  }, [todayByBase, visibleBases]);
 
-  const todaySlot = schedule.find(w => w.isCurrent);
+  function prevWeek() { setWeekStart(d => addDays(d, -7)); }
+  function nextWeek() { setWeekStart(d => addDays(d, 7)); }
+  function goToday()  { setWeekStart(DEMO_TODAY_ISO); }
 
   return (
     <div className="p-6 max-w-full text-neutral-100 flex gap-6">
       <div className="flex-1 min-w-0">
+
         {/* Header */}
         <div className="flex items-center gap-3 mb-1">
           <CalIcon size={22} className="text-orange-400" />
           <h1 className="text-2xl font-semibold">MX On-Call Schedule</h1>
         </div>
         <p className="text-sm text-neutral-400 mb-4">
-          8 days on / 6 days off · Wednesday-to-Wednesday handoff
+          CompleteFlight · May 2026 · 8 days on / 6 days off rotation
         </p>
 
         {/* Region filter */}
@@ -74,45 +114,51 @@ export default function OncallSchedule() {
           ))}
         </div>
 
-        {/* Current on-call — one card per BASE, grouped by region */}
+        {/* ── On Call Today ── */}
         <section className="mb-8">
           <h2 className="text-xs font-bold uppercase tracking-widest text-neutral-500 mb-3">
-            On-Call Now
+            On Call Today · {formatDate(DEMO_TODAY_ISO)}
           </h2>
-          {Object.entries(byRegion).map(([region, slots]) => (
-            <div key={region} className="mb-4">
+
+          {Object.entries(todayByRegion).map(([region, bases]) => (
+            <div key={region} className="mb-5">
               <div className="text-[10px] font-semibold uppercase tracking-widest text-neutral-600 mb-2">
                 {region}
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
-                {slots.map(slot => (
-                  <CurrentCard
-                    key={slot.baseId}
-                    slot={slot}
-                    onClick={() => selectSlot(slot.baseId, todaySlot?.slotIndex, slot.slotStart, slot.slotEnd, slot.person, slot.personIndex)}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
+                {bases.map(({ base, entries }) => (
+                  <TodayCard
+                    key={base}
+                    base={base}
+                    entries={entries}
+                    onSelect={entry => setSelected({ base, entry, date: DEMO_TODAY_ISO })}
                   />
                 ))}
               </div>
             </div>
           ))}
+
+          {Object.keys(todayByRegion).length === 0 && (
+            <p className="text-sm text-neutral-500">No data for selected region today.</p>
+          )}
         </section>
 
-        {/* 8-week rotation grid */}
+        {/* ── Weekly Grid ── */}
         <section>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-xs font-bold uppercase tracking-widest text-neutral-500">
-              8-Week Rotation
+              Weekly Schedule
             </h2>
             <div className="flex items-center gap-1">
-              <button onClick={() => setWeekOffset(w => w - 8)}
+              <button onClick={prevWeek}
                 className="p-1.5 rounded-md bg-neutral-900 border border-neutral-800 hover:border-neutral-700">
                 <ChevronLeft size={14} />
               </button>
-              <button onClick={() => setWeekOffset(0)}
+              <button onClick={goToday}
                 className="px-3 py-1.5 rounded-md bg-neutral-900 border border-neutral-800 hover:border-neutral-700 text-xs">
                 Today
               </button>
-              <button onClick={() => setWeekOffset(w => w + 8)}
+              <button onClick={nextWeek}
                 className="p-1.5 rounded-md bg-neutral-900 border border-neutral-800 hover:border-neutral-700">
                 <ChevronRight size={14} />
               </button>
@@ -123,66 +169,77 @@ export default function OncallSchedule() {
             <table className="w-full text-xs">
               <thead>
                 <tr className="bg-neutral-900">
-                  <th className="text-left p-2 text-neutral-500 font-semibold sticky left-0 bg-neutral-900 z-10 min-w-[140px]">
+                  <th className="text-left p-2 text-neutral-500 font-semibold sticky left-0 bg-neutral-900 z-10 min-w-[150px]">
                     Base
                   </th>
-                  {schedule.map(w => (
-                    <th key={w.slotIndex}
-                      className={`p-2 text-center font-semibold whitespace-nowrap ${
-                        w.isCurrent ? 'bg-orange-500/10 text-orange-400' : 'text-neutral-500'
+                  {weekDays.map(({ date }) => (
+                    <th key={date}
+                      className={`p-2 text-center font-semibold whitespace-nowrap min-w-[90px] ${
+                        date === DEMO_TODAY_ISO
+                          ? 'bg-orange-500/10 text-orange-400'
+                          : 'text-neutral-500'
                       }`}>
-                      {new Date(w.slotStart + 'T12:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })}
+                      {shortDate(date)}
                     </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {/* Region divider rows + base rows */}
                 {REGIONS.filter(r => regionFilter === 'ALL' || r === regionFilter).map(region => {
-                  const bases = visibleRoster.filter(b => b.region === region);
+                  const bases = visibleBases.filter(b => BASE_META[b]?.region === region);
                   if (!bases.length) return null;
+
+                  // Check if this region has any data in this week
+                  const hasData = bases.some(b => weekDays.some(d => d.byBase[b]?.length > 0));
+                  if (!hasData) return null;
+
                   return (
                     <React.Fragment key={region}>
                       <tr className="border-t-2 border-neutral-700">
-                        <td colSpan={schedule.length + 1}
+                        <td colSpan={8}
                           className="px-2 py-1 bg-neutral-900/50 text-[10px] font-bold uppercase tracking-widest text-neutral-500 sticky left-0">
                           {region}
                         </td>
                       </tr>
-                      {bases.map(base => (
-                        <tr key={base.baseId} className="border-t border-neutral-800/60">
-                          <td className="p-2 sticky left-0 bg-neutral-950 z-10">
-                            <div className="font-medium text-neutral-200">{base.baseLabel}</div>
-                          </td>
-                          {schedule.map(w => {
-                            const cell = w.bases.find(b => b.baseId === base.baseId);
-                            if (!cell) return <td key={w.slotIndex} />;
-                            const isTbd = cell.person.name === '[TBD]';
-                            const colors = [
-                              'bg-blue-500/15 text-blue-300 hover:bg-blue-500/30',
-                              'bg-orange-500/15 text-orange-300 hover:bg-orange-500/30',
-                              'bg-purple-500/15 text-purple-300 hover:bg-purple-500/30',
-                              'bg-green-500/15 text-green-300 hover:bg-green-500/30',
-                            ];
-                            const bg = isTbd
-                              ? 'bg-neutral-800/40 text-neutral-600 cursor-default'
-                              : colors[cell.personIndex % colors.length];
-                            const currentRing = w.isCurrent ? 'ring-2 ring-orange-500 ring-inset' : '';
-                            const selectedRing = selected?.baseId === base.baseId && selected?.slotIndex === w.slotIndex
-                              ? 'ring-2 ring-white ring-inset' : '';
-                            return (
-                              <td key={w.slotIndex} className="p-1">
-                                <button
-                                  disabled={isTbd}
-                                  onClick={() => !isTbd && selectSlot(base.baseId, w.slotIndex, w.slotStart, w.slotEnd, cell.person, cell.personIndex)}
-                                  className={`w-full px-2 py-1.5 rounded text-center transition-colors ${bg} ${currentRing} ${selectedRing}`}>
-                                  {cell.person.initials}
-                                </button>
-                              </td>
-                            );
-                          })}
-                        </tr>
-                      ))}
+                      {bases.map(base => {
+                        const hasAny = weekDays.some(d => d.byBase[base]?.length > 0);
+                        if (!hasAny) return null;
+                        return (
+                          <tr key={base} className="border-t border-neutral-800/60">
+                            <td className="p-2 sticky left-0 bg-neutral-950 z-10">
+                              <div className="font-medium text-neutral-200 leading-tight">
+                                {BASE_META[base]?.label ?? base}
+                              </div>
+                            </td>
+                            {weekDays.map(({ date, byBase }) => {
+                              const entries = byBase[base] ?? [];
+                              const isToday = date === DEMO_TODAY_ISO;
+                              return (
+                                <td key={date}
+                                  className={`p-1 align-top ${isToday ? 'bg-orange-500/5' : ''}`}>
+                                  <div className="flex flex-col gap-0.5">
+                                    {entries.map((entry, idx) => (
+                                      <button
+                                        key={idx}
+                                        onClick={() => setSelected({ base, entry, date })}
+                                        className={`w-full px-1.5 py-1 rounded text-center text-[10px] leading-tight border transition-colors hover:opacity-80 ${slotColor(idx)} ${
+                                          isToday ? 'ring-1 ring-orange-500/40' : ''
+                                        } ${
+                                          selected?.entry === entry ? 'ring-2 ring-white' : ''
+                                        }`}>
+                                        <div className="font-semibold">{initials(entry.owner)}</div>
+                                        {entries.length === 1 && entry.type !== 'Maintenance On Call' && (
+                                          <div className="text-[9px] opacity-70">{typeLabel(entry.type)}</div>
+                                        )}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        );
+                      })}
                     </React.Fragment>
                   );
                 })}
@@ -192,43 +249,75 @@ export default function OncallSchedule() {
         </section>
       </div>
 
-      {/* Detail panel */}
-      {selected && <DetailPanel selected={selected} onClose={() => setSelected(null)} />}
+      {/* ── Detail panel ── */}
+      {selected && (
+        <DetailPanel
+          selected={selected}
+          onClose={() => setSelected(null)}
+        />
+      )}
     </div>
   );
 }
 
-// ─── Detail panel ──────────────────────────────────────────────────────────────
+// ── Today card ────────────────────────────────────────────────────────────────
+
+function TodayCard({ base, entries, onSelect }) {
+  const meta = BASE_META[base] ?? { label: base, region: '' };
+
+  return (
+    <div className="bg-neutral-900/60 rounded-lg border border-neutral-800 p-3">
+      <div className="text-[10px] uppercase tracking-widest text-neutral-500 mb-1.5 leading-tight">
+        {meta.label}
+      </div>
+      <div className="flex flex-col gap-1.5">
+        {entries.map((entry, idx) => {
+          const phone = phoneFor(entry.owner);
+          return (
+            <button
+              key={idx}
+              onClick={() => onSelect(entry)}
+              className={`flex items-center gap-2 w-full rounded px-2 py-1.5 text-left border transition-colors hover:opacity-80 ${slotColor(idx)}`}>
+              <div className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold bg-black/20 shrink-0">
+                {initials(entry.owner)}
+              </div>
+              <div className="min-w-0">
+                <div className="text-xs font-semibold leading-tight truncate">{entry.owner}</div>
+                <div className="text-[10px] opacity-70 flex items-center gap-1">
+                  <Clock size={9} />
+                  {entry.hours}
+                  {entry.type !== 'Maintenance On Call' && (
+                    <span className="ml-1 opacity-60">· {typeLabel(entry.type)}</span>
+                  )}
+                </div>
+              </div>
+              {phone && <Phone size={11} className="ml-auto shrink-0 opacity-60" />}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Detail panel ───────────────────────────────────────────────────────────────
 
 function DetailPanel({ selected, onClose }) {
-  const handoffDays = Math.ceil(
-    (new Date(selected.slotEnd) - new Date(DEMO_TODAY_ISO)) / 86_400_000
-  );
-  const slotStartDate = new Date(selected.slotStart + 'T12:00:00Z');
-  const slotEndDate   = new Date(selected.slotEnd   + 'T12:00:00Z');
-  const today         = new Date(DEMO_TODAY_ISO      + 'T12:00:00Z');
-  const isPast   = slotEndDate   < today;
-  const isFuture = slotStartDate > today;
-  const isCurrent = !isPast && !isFuture;
-
-  const colorIdx = selected.personIndex % 4;
-  const borders = [
-    'border-blue-700/40 bg-blue-900/10',
-    'border-orange-700/40 bg-orange-900/10',
-    'border-purple-700/40 bg-purple-900/10',
-    'border-green-700/40 bg-green-900/10',
-  ];
+  const { base, entry, date } = selected;
+  const meta  = BASE_META[base] ?? { label: base, region: '' };
+  const phone = phoneFor(entry.owner);
+  const isToday = date === DEMO_TODAY_ISO;
 
   return (
     <div className="w-72 shrink-0 sticky top-6 h-fit">
-      <div className={`rounded-lg border ${borders[colorIdx]} p-4`}>
+      <div className="rounded-lg border border-neutral-700 bg-neutral-900/80 p-4">
         <div className="flex items-start justify-between mb-3">
           <div>
             <div className="text-[10px] uppercase tracking-widest text-neutral-500 mb-0.5">
-              {selected.region} · {selected.baseLabel}
+              {meta.region} · {meta.label}
             </div>
             <div className="text-[10px] font-semibold uppercase tracking-wider text-neutral-300">
-              {isCurrent ? 'On Call Now' : isPast ? 'Past Slot' : 'Upcoming Slot'}
+              {isToday ? 'On Call Now' : formatDate(date)}
             </div>
           </div>
           <button onClick={onClose} className="text-neutral-500 hover:text-neutral-200">
@@ -236,89 +325,35 @@ function DetailPanel({ selected, onClose }) {
           </button>
         </div>
 
-        <h3 className="text-xl font-semibold mb-4">{selected.person.name}</h3>
+        <h3 className="text-xl font-semibold mb-1">{entry.owner}</h3>
+        <div className="text-xs text-neutral-400 mb-4 flex items-center gap-1.5">
+          <Clock size={11} />
+          {entry.hours} {entry.timezone}
+          <span className="ml-1 px-1.5 py-0.5 rounded bg-neutral-800 text-neutral-400 text-[10px]">
+            {typeLabel(entry.type)}
+          </span>
+        </div>
 
-        {selected.person.phone && (
-          <a href={`tel:${selected.person.phone}`}
-            className="flex items-center justify-center gap-2 w-full mb-4 px-3 py-2 bg-neutral-900/60 hover:bg-neutral-900 border border-neutral-700 rounded-md text-sm font-medium">
+        {phone ? (
+          <a href={`tel:${phone}`}
+            className="flex items-center justify-center gap-2 w-full mb-4 px-3 py-2 bg-neutral-800/60 hover:bg-neutral-800 border border-neutral-700 rounded-md text-sm font-medium transition-colors">
             <Phone size={14} />
-            {selected.person.phone}
+            {phone}
           </a>
+        ) : (
+          <div className="mb-4 text-xs text-neutral-600 flex items-center gap-1.5">
+            <Phone size={11} />
+            Phone not on file
+          </div>
         )}
 
-        <div className="space-y-3 pt-3 border-t border-neutral-800">
-          <div>
-            <div className="text-[10px] uppercase tracking-widest text-neutral-500 mb-1">Slot Window</div>
-            <div className="text-sm">
-              {slotStartDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' })}
-              <ArrowRight size={11} className="inline mx-1.5 text-neutral-600" />
-              {slotEndDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' })}
-            </div>
-            <div className="text-[10px] text-neutral-500 mt-0.5">
-              {isCurrent
-                ? `Handoff in ${handoffDays} days`
-                : isPast ? 'Completed'
-                : `Starts in ${Math.ceil((slotStartDate - today) / 86_400_000)} days`}
-            </div>
+        <div className="pt-3 border-t border-neutral-800 space-y-1 text-xs text-neutral-400">
+          <div className="flex items-center gap-1.5">
+            <Users size={11} />
+            <span>{entry.base}</span>
           </div>
-
-          {selected.relief && (
-            <div>
-              <div className="text-[10px] uppercase tracking-widest text-neutral-500 mb-1">Next On-Call</div>
-              <div className="flex items-center gap-2">
-                <Users size={11} className="text-neutral-500" />
-                <span className="text-sm">{selected.relief.name}</span>
-              </div>
-              {selected.relief.phone && (
-                <div className="text-[10px] text-neutral-500 mt-0.5">{selected.relief.phone}</div>
-              )}
-            </div>
-          )}
         </div>
       </div>
     </div>
-  );
-}
-
-// ─── Current card ───────────────────────────────────────────────────────────────
-
-function CurrentCard({ slot, onClick }) {
-  const handoffDays = Math.ceil(
-    (new Date(slot.slotEnd) - new Date(DEMO_TODAY_ISO)) / 86_400_000
-  );
-  const isTbd = slot.person.name === '[TBD]';
-  const borders = [
-    'border-blue-700/40 bg-blue-900/10 hover:bg-blue-900/20',
-    'border-orange-700/40 bg-orange-900/10 hover:bg-orange-900/20',
-    'border-purple-700/40 bg-purple-900/10 hover:bg-purple-900/20',
-    'border-green-700/40 bg-green-900/10 hover:bg-green-900/20',
-  ];
-  const bg = isTbd
-    ? 'border-neutral-800 bg-neutral-900/40'
-    : borders[slot.personIndex % borders.length];
-
-  return (
-    <button onClick={isTbd ? undefined : onClick}
-      disabled={isTbd}
-      className={`text-left p-3 rounded-lg border ${bg} transition-colors ${isTbd ? 'cursor-default' : 'cursor-pointer'}`}>
-      <div className="text-[9px] font-bold uppercase tracking-wider text-neutral-500 mb-1 truncate">
-        {slot.baseLabel}
-      </div>
-      <div className={`text-sm font-semibold mb-0.5 ${isTbd ? 'text-neutral-600 italic' : ''}`}>
-        {slot.person.name}
-      </div>
-      {!isTbd && (
-        <div className="flex items-center justify-between mt-2">
-          <a href={`tel:${slot.person.phone}`} onClick={e => e.stopPropagation()}
-            className="flex items-center gap-1.5 px-2 py-1 rounded bg-neutral-800/60 hover:bg-neutral-800 text-xs">
-            <Phone size={11} />
-            Call
-          </a>
-          <span className="text-[10px] text-neutral-500">
-            {handoffDays}d left
-          </span>
-        </div>
-      )}
-    </button>
   );
 }
