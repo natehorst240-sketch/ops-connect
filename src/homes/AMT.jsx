@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Plane, UserCircle, Wrench, MessageSquare, Shield, Calendar } from 'lucide-react';
 import { AIRCRAFT as STATIC_AIRCRAFT, INSPECTIONS_DUE } from '../data';
 import { useFleet } from '../contexts/FleetDataContext';
@@ -13,6 +13,11 @@ export default function AMTHome({ persona }) {
   const { aircraft: live } = useFleet();
   const navigate = useNavigation();
   const AIRCRAFT = live.length ? live : STATIC_AIRCRAFT;
+
+  const myAircraft = useMemo(
+    () => AIRCRAFT.find(a => a.base === persona.base) ?? null,
+    [AIRCRAFT, persona.base]
+  );
   return (
     <>
       <PageHeader persona={persona} subtitle="Frontline view — submit requests, view schedule, stay updated." />
@@ -36,7 +41,12 @@ export default function AMTHome({ persona }) {
             {persona.onShift ? 'Go Off Shift' : 'Go On Shift'}
           </button>
         </div>
-        <Metric label="My Aircraft" value="N39KM" sub="Greybull" accent="#22c55e" />
+        <Metric
+          label="My Aircraft"
+          value={myAircraft?.tail ?? '—'}
+          sub={myAircraft ? myAircraft.base : 'No aircraft assigned'}
+          accent="#22c55e"
+        />
         <Metric label="Next Due" value="04/30" sub="6 days" accent="#eab308" />
       </div>
 
@@ -92,12 +102,14 @@ export default function AMTHome({ persona }) {
               const color = i.level === 'red' ? 'bg-red-500' : i.level === 'amber' ? 'bg-amber-500' : 'bg-green-500';
               const tc = i.level === 'red' ? 'text-red-400' : i.level === 'amber' ? 'text-amber-400' : 'text-green-400';
               return (
-                <div key={idx} className="flex items-center gap-3 py-2 px-2 hover:bg-neutral-800/50 rounded">
-                  <div className={`w-1.5 h-1.5 rounded-full ${color}`} />
-                  <div className="mono text-[12px] font-medium w-[72px]">{i.tail}</div>
-                  <div className="text-[12px] text-neutral-300 flex-1 truncate">{i.desc}</div>
-                  <div className="mono text-[11px] text-neutral-500">{i.due}</div>
-                  <div className={`mono text-[11px] w-16 text-right ${tc}`}>{i.days}d</div>
+                <div key={idx} className="py-2 px-2 hover:bg-neutral-800/50 rounded">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${color}`} />
+                    <div className="mono text-[12px] font-semibold text-neutral-100">{i.tail}</div>
+                    <div className="flex-1" />
+                    <div className={`mono text-[11px] font-semibold ${tc}`}>{i.days}d</div>
+                  </div>
+                  <div className="text-[11px] text-neutral-400 mt-0.5 pl-[18px]">{i.desc}</div>
                 </div>
               );
             })}

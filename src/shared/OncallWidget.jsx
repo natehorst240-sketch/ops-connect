@@ -12,10 +12,10 @@ import {
 // ── colours by slot index ─────────────────────────────────────────────────────
 // Stronger text (200 instead of 300) so it reads clearly on the tinted bg.
 const SLOT_COLORS = [
-  'bg-blue-500/20 text-blue-200 border-blue-500/30',
-  'bg-orange-500/20 text-orange-200 border-orange-500/30',
-  'bg-purple-500/20 text-purple-200 border-purple-500/30',
-  'bg-green-500/20 text-green-200 border-green-500/30',
+  'bg-blue-500/25 text-white border-blue-500/40',
+  'bg-orange-500/25 text-white border-orange-500/40',
+  'bg-purple-500/25 text-white border-purple-500/40',
+  'bg-green-500/25 text-white border-green-500/40',
 ];
 
 function slotColor(idx) {

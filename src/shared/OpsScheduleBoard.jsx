@@ -11,13 +11,13 @@ import { BASE_META, REGIONS, DEMO_TODAY_ISO, addDays } from '../data/mxOncallSch
 // ── Personnel type config ─────────────────────────────────────────────────────
 
 const PT = {
-  'MX On-Call':  { label: 'MX On-Call',  icon: Wrench,    source: 'CompleteFlight', chipCls: 'bg-orange-500/20 text-orange-200 border-orange-500/30', dotColor: '#f97316' },
-  'Pilot':       { label: 'Pilot',       icon: Plane,     source: 'CompleteFlight', chipCls: 'bg-blue-500/20 text-blue-200 border-blue-500/30',   dotColor: '#3b82f6' },
-  'Clinical':    { label: 'Clinical',    icon: Heart,     source: 'Protean Hub',    chipCls: 'bg-green-500/20 text-green-200 border-green-500/30',  dotColor: '#22c55e' },
-  'OCS':             { label: 'OCS',             icon: Radio,     source: 'Protean Hub', chipCls: 'bg-purple-500/20 text-purple-200 border-purple-500/30', dotColor: '#a855f7' },
-  'CS':              { label: 'CS',              icon: PhoneCall, source: 'Protean Hub', chipCls: 'bg-cyan-500/20 text-cyan-200 border-cyan-500/30',   dotColor: '#06b6d4' },
-  'FOC On-Call':     { label: 'FOC On-Call',     icon: Briefcase, source: 'Manual',      chipCls: 'bg-amber-500/20 text-amber-200 border-amber-500/30',  dotColor: '#f59e0b' },
-  'AMC Coordinator': { label: 'AMC Coordinator', icon: Globe,     source: 'Manual',      chipCls: 'bg-sky-500/20 text-sky-200 border-sky-500/30',         dotColor: '#0ea5e9' },
+  'MX On-Call':  { label: 'MX On-Call',  icon: Wrench,    source: 'CompleteFlight', chipCls: 'bg-orange-500/25 text-white border-orange-500/40', dotColor: '#f97316' },
+  'Pilot':       { label: 'Pilot',       icon: Plane,     source: 'CompleteFlight', chipCls: 'bg-blue-500/25 text-white border-blue-500/40',     dotColor: '#3b82f6' },
+  'Clinical':    { label: 'Clinical',    icon: Heart,     source: 'Protean Hub',    chipCls: 'bg-green-500/25 text-white border-green-500/40',    dotColor: '#22c55e' },
+  'OCS':             { label: 'OCS',             icon: Radio,     source: 'Protean Hub', chipCls: 'bg-purple-500/25 text-white border-purple-500/40', dotColor: '#a855f7' },
+  'CS':              { label: 'CS',              icon: PhoneCall, source: 'Protean Hub', chipCls: 'bg-cyan-500/25 text-white border-cyan-500/40',     dotColor: '#06b6d4' },
+  'FOC On-Call':     { label: 'FOC On-Call',     icon: Briefcase, source: 'Manual',      chipCls: 'bg-amber-500/25 text-white border-amber-500/40',   dotColor: '#f59e0b' },
+  'AMC Coordinator': { label: 'AMC Coordinator', icon: Globe,     source: 'Manual',      chipCls: 'bg-sky-500/25 text-white border-sky-500/40',         dotColor: '#0ea5e9' },
 };
 
 const ALL_TYPES = Object.keys(PT);
