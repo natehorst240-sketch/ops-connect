@@ -88,7 +88,7 @@ function mapMxRequest(row) {
 function mapScheduleEvent(row) {
   const eventTypeFormatted = row[fv('eventtype')];
   return {
-    id:            row[Object.keys(row).find(k => k.endsWith('eventid'))],
+    id:            row[f('scheduleeventid')],
     title:         pick(row, f('scheduleeventtitle'), f('title')),
     eventId:       pick(row, f('eventid')),
     sourceSystem:  pick(row, f('sourcesystem')),

@@ -1,25 +1,6 @@
 import { useMemo, useCallback } from 'react';
 import { useFleet } from '../contexts/FleetDataContext';
-
-// Fallback for numbers not yet entered in the Dataverse personnel table.
-// As HR updates cr463_phonenumber for each mechanic this list shrinks to zero.
-const PHONE_FALLBACK = {
-  'alec overton':       '801-660-7640',
-  'mac paye':           '916-871-6135',
-  'jean-paul guidry':   '801-738-4919',
-  'bryce low':          '909-744-7878',
-  'nate anderson':      '360-951-3875',
-  'nathan anderson':    '360-951-3875',
-  'robert guty':        '307-272-2616',
-  'rex schwarz':        '208-969-0844',
-  'nicholas gonzales':  '337-519-5722',
-  'derek jorgensen':    '801-707-0318',
-  'john modrow':        '907-209-9701',
-  'jon hankins':        '702-824-8755',
-  'brian hyland':       '801-842-9086',
-  'fred bistline':      '435-233-8177',
-  'denton siebrecht':   '928-640-1840',
-};
+import { PHONE_FALLBACK } from '../data/mxOncallSchedule';
 
 /**
  * Returns a phoneFor(name) lookup function.

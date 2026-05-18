@@ -77,7 +77,7 @@ export const BASE_CAPABILITIES = {
   'Roosevelt':         { tier: 'Standard RW', specialties: RW },
   'MKY/LGU':          { tier: 'Standard RW', specialties: RW },
   'SGU/CDC':           { tier: 'Standard RW', specialties: RW },
-  'Greybulll':         { tier: 'Standard RW', specialties: RW },
+  'Greybull':          { tier: 'Standard RW', specialties: RW },
   'Lander':            { tier: 'Standard RW', specialties: RW },
   'Rawlins':           { tier: 'Standard RW', specialties: RW },
   'Vernal':            { tier: 'Standard RW', specialties: RW },

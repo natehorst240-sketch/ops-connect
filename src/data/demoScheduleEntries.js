@@ -21,7 +21,7 @@ const WEEK_DATES = Array.from({ length: 7 }, (_, i) => addDays(DEMO_TODAY_ISO, i
 // Production rows: CompleteFlight (pilots), Protean Hub (clinical).
 
 const BASE_CREWS = {
-  'Greybulll':         { pilots: ['Pilot 1 (PIC)',  'Pilot 2 (SIC)'],  clinical: ['Flight Nurse 1',  'Paramedic 1'] },
+  'Greybull':          { pilots: ['Pilot 1 (PIC)',  'Pilot 2 (SIC)'],  clinical: ['Flight Nurse 1',  'Paramedic 1'] },
   'Lander':            { pilots: ['Pilot 1 (PIC)',  'Pilot 2 (SIC)'],  clinical: ['Flight Nurse 1',  'Paramedic 1'] },
   'Rawlins':           { pilots: ['Pilot 1 (PIC)',  'Pilot 2 (SIC)'],  clinical: ['Flight Nurse 1',  'Paramedic 1'] },
   'Vernal':            { pilots: ['Pilot 1 (PIC)',  'Pilot 2 (SIC)'],  clinical: ['Flight Nurse 1',  'Paramedic 1'] },
@@ -88,8 +88,8 @@ for (const e of CF_SCHEDULE) {
     personnelType: 'MX On-Call',
     roleType: e.type,
     ownerName: e.owner,
-    base: e.base,
-    region: BASE_META[e.base]?.region ?? '',
+    base: e.base === 'Greybulll' ? 'Greybull' : e.base,
+    region: BASE_META[e.base === 'Greybulll' ? 'Greybull' : e.base]?.region ?? '',
     shiftDate: e.date,
     hours: e.hours,
     timezone: e.timezone,
@@ -100,6 +100,10 @@ for (const e of CF_SCHEDULE) {
 const focAdded = new Set();
 for (const [base, crew] of Object.entries(BASE_CREWS)) {
   const region = BASE_META[base]?.region ?? '';
+  if (!BASE_META[base]) {
+    console.warn(`[demoScheduleEntries] Unknown base "${base}" — not in BASE_META, skipping.`);
+    continue;
+  }
   for (const date of WEEK_DATES) {
     crew.pilots.forEach((name, i) => entries.push({
       id: `pilot-${seq++}`,

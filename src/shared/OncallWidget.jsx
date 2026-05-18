@@ -35,7 +35,7 @@ function typeLabel(type) {
 
 // ── Map persona.base strings → CF base names for the highlight accent ─────────
 const BASE_HIGHLIGHT_MAP = {
-  'greybull':     'Greybulll',
+  'greybull':     'Greybull',
   'cedar city':   'SGU/CDC',
   'st. george':   'SGU/CDC',
   'cedar':        'SGU/CDC',

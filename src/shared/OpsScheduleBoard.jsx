@@ -37,14 +37,22 @@ function inferView(role) {
   return 'base';
 }
 
+function maxView(role) {
+  if (role === 'DIRECTOR' || role === 'ADOM' || role === 'MX_SCHEDULER') return 'master';
+  if (role === 'RMM') return 'region';
+  return 'base';
+}
+
 // ── Persona base → CF base name ───────────────────────────────────────────────
 
 const BASE_RESOLVE = {
-  'greybull': 'Greybulll', 'lander': 'Lander', 'rawlins': 'Rawlins',
+  'greybull': 'Greybull', 'lander': 'Lander', 'rawlins': 'Rawlins',
   'vernal': 'Vernal', 'riverton': 'FW Riverton', 'woodscross': 'Woodscross',
-  'kslc': 'FW Hangar', 'hangar': 'FW Hangar', 'cedar': 'SGU/CDC',
+  'fw hangar': 'FW Hangar', 'kslc': 'FW Hangar',
+  'hangar': 'Hangar', 'cedar': 'SGU/CDC',
   'st. george': 'SGU/CDC', 'mckay': 'MKY/LGU', 'logan': 'MKY/LGU',
-  'utah valley': 'UV/ROOS', 'roosevelt': 'UV/ROOS', 'imed': 'IMED/Hangar',
+  'utah valley': 'Utah Valley', 'uvrmc': 'Utah Valley', 'roosevelt': 'Roosevelt',
+  'imed': 'IMED', 'pcmc': 'PCH', 'primary children': 'PCH',
   'rexburg': 'Rexburg', 'burley': 'Burley', 'elko': 'RW Elko',
   'ely': 'Ely', 'winnemucca': 'Winnemucca', 'glenwood': 'Glenwood Springs',
   'steamboat': 'Steamboat Springs', 'los alamos': 'Los Alamos', 'cortez': 'Cortez',
@@ -71,7 +79,9 @@ function fmtMonthDay(iso) {
   return new Date(iso + 'T12:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
 }
 
-function isToday(iso) { return iso === DEMO_TODAY_ISO; }
+const REAL_TODAY = new Date().toISOString().split('T')[0];
+
+function isToday(iso) { return iso === REAL_TODAY; }
 
 // ── Main component ────────────────────────────────────────────────────────────
 
@@ -79,7 +89,7 @@ export default function OpsScheduleBoard({ persona, compact = false }) {
   const navigate = useNavigation();
   const defaultView = inferView(persona?.role);
   const [view, setView] = useState(defaultView);
-  const [weekStart, setWeekStart] = useState(DEMO_TODAY_ISO);
+  const [weekStart, setWeekStart] = useState(REAL_TODAY);
   const [activeTypes, setActiveTypes] = useState(new Set(ALL_TYPES));
   const [selected, setSelected] = useState(null);
 
@@ -156,10 +166,10 @@ export default function OpsScheduleBoard({ persona, compact = false }) {
                 { id: 'base', label: 'Base' },
                 { id: 'region', label: 'Region' },
                 { id: 'master', label: 'All' },
-              ].map(v => (
+              ].filter(v => ['base','region','master'].indexOf(v.id) <= ['base','region','master'].indexOf(maxView(persona?.role))).map(v => (
                 <button
                   key={v.id}
-                  onClick={() => setView(v.id)}
+                  onClick={() => { if (['base','region','master'].indexOf(v.id) <= ['base','region','master'].indexOf(maxView(persona?.role))) setView(v.id); }}
                   className={`mono text-[10px] uppercase tracking-widest font-semibold px-2.5 h-7 transition-colors ${
                     view === v.id ? 'bg-orange-500 text-black' : 'text-neutral-400 hover:text-neutral-200'
                   }`}
@@ -180,7 +190,7 @@ export default function OpsScheduleBoard({ persona, compact = false }) {
                 <ChevronLeft size={14} />
               </button>
               <button
-                onClick={() => setWeekStart(DEMO_TODAY_ISO)}
+                onClick={() => setWeekStart(REAL_TODAY)}
                 className="mono text-[10px] uppercase tracking-widest font-semibold px-2.5 h-7 bg-neutral-800 border border-neutral-700 rounded text-neutral-300 hover:bg-neutral-700"
               >
                 Today

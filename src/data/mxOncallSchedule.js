@@ -25,7 +25,7 @@ export const BASE_META = {
   'Utah Valley':      { region: '109 UT',  label: 'UVRMC IH-16' },
   'Roosevelt':        { region: '109 UT',  label: 'Roosevelt (UBMC IH-19)' },
   'PCH':              { region: '109 UT',  label: 'Primary Children\'s Hospital' },
-  'Greybulll':        { region: 'WY/MT',   label: 'Greybull IH-23' },
+  'Greybull':         { region: 'WY/MT',   label: 'Greybull IH-23' },
   'FW Riverton':      { region: 'WY/MT',   label: 'Riverton IH-80 (FW)' },
   'Vernal':           { region: 'WY/MT',   label: 'Vernal IH-78' },
   'Lander':           { region: 'WY/MT',   label: 'Lander IH-21' },
@@ -50,7 +50,7 @@ export const BASE_META = {
 // Region display order
 export const REGIONS = ['SLC RW', 'SLC FW', '109 UT', 'WY/MT', 'ID/NV', 'CO/NM', 'UT/AZ', 'PAGE'];
 
-// Known phone numbers keyed by owner name (partial match — lowercase)
+// Known phone numbers keyed by owner name (exact lowercase match)
 // Kept as a standalone export so non-React code can reference it.
 // React components should use usePhoneFor() from hooks/usePhoneFor.js
 // which resolves against live Dataverse personnel first.

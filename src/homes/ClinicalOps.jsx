@@ -71,7 +71,6 @@ export default function ClinicalOpsHome({ persona }) {
           value={todayGaps.length}
           sub={`across ${myBases.length} bases`}
           alert={todayGaps.length > 0}
-          onClick={() => {}}
         />
         <SummaryCard
           label="Full Strength"

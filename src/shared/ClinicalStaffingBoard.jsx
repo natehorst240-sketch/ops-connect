@@ -21,7 +21,9 @@ function fmtRange(days) {
   const opts = { month: 'short', day: 'numeric', timeZone: 'UTC' };
   return `${new Date(days[0] + 'T12:00:00Z').toLocaleDateString('en-US', opts)} – ${new Date(days[days.length - 1] + 'T12:00:00Z').toLocaleDateString('en-US', opts)}`;
 }
-function isToday(iso) { return iso === DEMO_TODAY_ISO; }
+const REAL_TODAY = new Date().toISOString().split('T')[0];
+
+function isToday(iso) { return iso === REAL_TODAY; }
 
 // Short name: "Emily Torres" → "E. Torres"
 function shortName(full) {
@@ -34,7 +36,7 @@ function shortName(full) {
 
 export default function ClinicalStaffingBoard({ persona, compact = false }) {
   const navigate = useNavigation();
-  const [weekStart, setWeekStart] = useState(DEMO_TODAY_ISO);
+  const [weekStart, setWeekStart] = useState(REAL_TODAY);
   const [selected, setSelected] = useState(null);        // { base, specialty, date, entries }
   const [hiddenTiers, setHiddenTiers] = useState(new Set()); // collapsed tiers
 
@@ -144,7 +146,7 @@ export default function ClinicalStaffingBoard({ persona, compact = false }) {
               <ChevronLeft size={14} />
             </button>
             <button
-              onClick={() => setWeekStart(DEMO_TODAY_ISO)}
+              onClick={() => setWeekStart(REAL_TODAY)}
               className="mono text-[10px] uppercase tracking-widest font-semibold px-2.5 h-7 bg-neutral-800 border border-neutral-700 rounded text-neutral-300 hover:bg-neutral-700"
             >
               Today
