@@ -162,4 +162,46 @@ for (const date of WEEK_DATES) {
   }));
 }
 
+// ── Level 1 Trauma specialty staff ────────────────────────────────────────────
+// These generate realistic gap patterns for ClinicalStaffingBoard demo.
+// days[] indices correspond to WEEK_DATES positions (0=Mon, 1=Tue, ... 6=Sun).
+// Omitted day indices = staffing gaps shown in red on the board.
+
+const LEVEL1_SPECIALISTS = [
+  // IMED/Hangar — Intermountain Medical Center
+  { base: 'IMED/Hangar', region: '109 UT', roleType: 'Respiratory Therapist', ownerName: 'Laura Quinn',     days: [0, 1, 2, 4, 5] },
+  { base: 'IMED/Hangar', region: '109 UT', roleType: 'NICU RN',               ownerName: 'Michelle Park',   days: [0, 1, 3, 4, 5] },
+  { base: 'IMED/Hangar', region: '109 UT', roleType: 'Pediatric RN',           ownerName: 'Jason Wong',      days: [0, 2, 3, 5]     },
+  { base: 'IMED/Hangar', region: '109 UT', roleType: 'HROB RN',                ownerName: 'Amy Chen',        days: [1, 2, 4, 5]     },
+
+  // UV/ROOS — Utah Valley / Roosevelt
+  { base: 'UV/ROOS', region: '109 UT', roleType: 'Respiratory Therapist', ownerName: 'Brandon Ellis',    days: [0, 1, 3, 4]     },
+  { base: 'UV/ROOS', region: '109 UT', roleType: 'NICU RN',               ownerName: 'Tanya Ross',       days: [0, 2, 3, 4]     },
+  { base: 'UV/ROOS', region: '109 UT', roleType: 'Pediatric RN',           ownerName: 'Carlos Martinez',  days: [0, 1, 3, 5]     },
+  { base: 'UV/ROOS', region: '109 UT', roleType: 'HROB RN',                ownerName: 'Sarah Kim',        days: [0, 1, 2, 4]     },
+
+  // MKY/LGU — McKay-Dee / Logan
+  { base: 'MKY/LGU', region: '109 UT', roleType: 'Respiratory Therapist', ownerName: 'Patricia Nguyen',  days: [0, 1, 2, 5]     },
+  { base: 'MKY/LGU', region: '109 UT', roleType: 'NICU RN',               ownerName: 'Derek Johnson',    days: [0, 3, 4, 5]     },
+  { base: 'MKY/LGU', region: '109 UT', roleType: 'Pediatric RN',           ownerName: 'Lisa Chang',       days: [1, 2, 3, 4]     },
+  { base: 'MKY/LGU', region: '109 UT', roleType: 'HROB RN',                ownerName: 'Michael Torres',   days: [0, 2, 4, 5]     },
+];
+
+for (const spec of LEVEL1_SPECIALISTS) {
+  for (const dayIdx of spec.days) {
+    entries.push({
+      id: `l1-${seq++}`,
+      source: 'Protean',
+      personnelType: 'Clinical',
+      roleType: spec.roleType,
+      ownerName: spec.ownerName,
+      base: spec.base,
+      region: spec.region,
+      shiftDate: WEEK_DATES[dayIdx],
+      hours: '07:00 - 19:00',
+      timezone: 'MDT',
+    });
+  }
+}
+
 export const DEMO_SCHEDULE_ENTRIES = entries;
