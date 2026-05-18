@@ -50,7 +50,9 @@ export const ONCALL_ROSTER = [
   {
     baseId: 'mckay',        baseLabel: 'McKay-Dee IH-13',      region: '109 UT', phaseOffset: 4,
     persons: [
-      { id: 'mk1', name: '[TBD]', initials: '??', phone: '' },
+
+      { id: 'ao',  name: 'Alec Overton',   initials: 'AO', phone: '801-660-7640' },
+      { id: 'mp',  name: 'Mac Paye',       initials: 'MP', phone: '916-871-6135' },
     ],
   },
   {
