@@ -57,7 +57,8 @@ function mapPersonnel(row) {
     region:        pick(row, f('regioncode')),
     leader:        pick(row, f('leadername')),
     coverageBases: pick(row, f('coveragebases')),
-    isActive:      row[f('isactive')]
+    isActive:      row[f('isactive')],
+    assignedTail:  pick(row, f('assignedaircrafttail'), f('assignedtail')),
   };
 }
 

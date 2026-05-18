@@ -2,31 +2,16 @@ import React, { useMemo } from 'react';
 import { CheckCircle2, Timer, ArrowRight, Calendar, Zap, Shield, MessageSquare, Clock } from 'lucide-react';
 import { OPEN_SHIFTS, AIRCRAFT as STATIC_AIRCRAFT } from '../data';
 import { DEMO_TODAY_ISO } from '../data/mxOncallSchedule';
+import { DEMO_SHIFTS, DEMO_CERTS } from '../data/demoPersonnelData';
 import { useFleet } from '../contexts/FleetDataContext';
 import { PageHeader, Card, Metric, StatusDot, BulletinBanner } from '../ui';
 import WeekCalendar from '../shared/WeekCalendar';
 import { getEventsForPersona, getCalendarConfigForPersona } from '../shared/personaCalendarData';
 import OncallWidget from '../shared/OncallWidget';
 
-const MY_SHIFTS = [
-  { date: '2026-05-21', time: '09:00-09:00', base: 'Cedar City Hospital', role: 'FN - URBAN' },
-  { date: '2026-05-25', time: '09:00-09:00', base: 'Cedar City Hospital', role: 'FN - URBAN' },
-  { date: '2026-06-04', time: '09:00-09:00', base: 'Cedar City Hospital', role: 'FN - URBAN' },
-];
-
-// daysLeft derived from expires against the demo anchor; in production this
-// computes against new Date() once the array comes from Dataverse.
 const MS_PER_DAY = 86400000;
 const DEMO_NOW = new Date(DEMO_TODAY_ISO + 'T12:00:00Z').getTime();
 const daysUntil = iso => Math.ceil((new Date(iso + 'T12:00:00Z').getTime() - DEMO_NOW) / MS_PER_DAY);
-
-const MY_CERTS = [
-  { name: 'CCRN',   status: 'valid',    expires: '2027-08-14' },
-  { name: 'TNCC',   status: 'valid',    expires: '2026-11-03' },
-  { name: 'PALS',   status: 'expiring', expires: '2026-06-12' },
-  { name: 'STABLE', status: 'valid',    expires: '2027-02-28' },
-  { name: 'ACLS',   status: 'valid',    expires: '2026-12-05' },
-].map(c => ({ ...c, daysLeft: daysUntil(c.expires) }));
 
 // "Cedar City Hospital" → "Cedar City", "IMED IH-14" → "IMED"
 function cityFromBase(base) {
@@ -37,6 +22,18 @@ export default function NurseHome({ persona }) {
   const { aircraft: live } = useFleet();
   const AIRCRAFT = live.length ? live : STATIC_AIRCRAFT;
   const eligible = OPEN_SHIFTS.filter(s => s.specialty === 'flight_nurse');
+
+  // Shifts and certs from data layer — production reads from Protean Hub / Dataverse
+  const myShifts = DEMO_SHIFTS[persona.id] ?? [];
+  const myCerts = useMemo(
+    () => (DEMO_CERTS[persona.id] ?? []).map(c => ({ ...c, daysLeft: daysUntil(c.expires) })),
+    [persona.id]
+  );
+  const certsExpiring60d = useMemo(() => myCerts.filter(c => c.daysLeft <= 60).length, [myCerts]);
+  const soonestExpiring = useMemo(
+    () => myCerts.filter(c => c.daysLeft <= 60).sort((a, b) => a.daysLeft - b.daysLeft)[0],
+    [myCerts]
+  );
 
   // Aircraft serving this base: exact match first, then city-prefix match, then region
   const baseAircraft = useMemo(() => {
@@ -71,20 +68,20 @@ export default function NurseHome({ persona }) {
             {persona.onShift ? 'Go Off' : 'Go On'}
           </button>
         </div>
-        <Metric label="Shifts This Month" value="7" sub="84 hours" accent="#3b82f6" />
+        <Metric label="Shifts This Month" value={myShifts.length} sub={`${myShifts.length * 12}h scheduled`} accent="#3b82f6" />
         <Metric label="Claimable Open Shifts" value={eligible.length} accent="#ff6b1a" />
-        <Metric label="Certs Expiring 60d" value="1" sub="PALS 06/12" accent="#eab308" />
+        <Metric label="Certs Expiring 60d" value={certsExpiring60d} sub={soonestExpiring ? `${soonestExpiring.name} ${soonestExpiring.expires.slice(5).replace('-','/')}` : 'None'} accent="#eab308" />
       </div>
 
       <div className="grid grid-cols-2 gap-5 mb-5">
         <Card title="My Upcoming Shifts">
           <div className="space-y-0">
-            {MY_SHIFTS.map((s, idx) => {
-              const date = new Date(s.date);
-              const day = date.toLocaleDateString('en-US', { weekday: 'short' });
-              const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            {myShifts.map((s, idx) => {
+              const date = new Date(s.date + 'T12:00:00Z');
+              const day = date.toLocaleDateString('en-US', { weekday: 'short', timeZone: 'UTC' });
+              const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
               return (
-                <div key={idx} className={`flex items-center gap-4 py-3 ${idx !== MY_SHIFTS.length - 1 ? 'border-b border-neutral-800' : ''}`}>
+                <div key={idx} className={`flex items-center gap-4 py-3 ${idx !== myShifts.length - 1 ? 'border-b border-neutral-800' : ''}`}>
                   <div className="w-14 text-center">
                     <div className="mono text-[10px] text-neutral-500 uppercase">{day}</div>
                     <div className="mono text-[16px] font-semibold">{dateStr}</div>
@@ -162,7 +159,7 @@ export default function NurseHome({ persona }) {
       <div className="grid grid-cols-2 gap-5">
         <Card title="My Certifications" action={<span className="mono text-[11px]">From CompleteFlight</span>}>
           <div className="space-y-0.5">
-            {MY_CERTS.map(c => {
+            {myCerts.map(c => {
               const expiring = c.status === 'expiring';
               return (
                 <div key={c.name} className="flex items-center gap-3 py-2 px-2 hover:bg-neutral-800/30 rounded">
