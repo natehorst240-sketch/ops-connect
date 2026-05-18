@@ -29,9 +29,12 @@ export default function NurseHome({ persona }) {
     () => (DEMO_CERTS[persona.id] ?? []).map(c => ({ ...c, daysLeft: daysUntil(c.expires) })),
     [persona.id]
   );
-  const certsExpiring60d = useMemo(() => myCerts.filter(c => c.daysLeft <= 60).length, [myCerts]);
+  const certsExpiring60d = useMemo(
+    () => myCerts.filter(c => c.daysLeft >= 0 && c.daysLeft <= 60).length,
+    [myCerts]
+  );
   const soonestExpiring = useMemo(
-    () => myCerts.filter(c => c.daysLeft <= 60).sort((a, b) => a.daysLeft - b.daysLeft)[0],
+    () => myCerts.filter(c => c.daysLeft >= 0 && c.daysLeft <= 60).sort((a, b) => a.daysLeft - b.daysLeft)[0],
     [myCerts]
   );
 

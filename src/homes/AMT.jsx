@@ -156,6 +156,7 @@ export default function AMTHome({ persona }) {
                 <div className={`mono text-[10px] uppercase tracking-wider px-2 py-0.5 rounded ${
                   s.color === 'green' ? 'bg-green-500/10 text-green-400' :
                   s.color === 'amber' ? 'bg-amber-500/10 text-amber-400' :
+                  s.color === 'red'   ? 'bg-red-500/10 text-red-400' :
                   'bg-blue-500/10 text-blue-400'
                 }`}>{s.status}</div>
               </div>
