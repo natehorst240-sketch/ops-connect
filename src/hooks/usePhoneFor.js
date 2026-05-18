@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useCallback } from 'react';
 import { useFleet } from '../contexts/FleetDataContext';
 
 // Fallback for numbers not yet entered in the Dataverse personnel table.
@@ -47,14 +47,15 @@ export function usePhoneFor() {
     return map;
   }, [personnel]);
 
-  return function phoneFor(name) {
+  // Stable reference — only changes when liveMap changes (i.e. when
+  // personnel loads from Dataverse), so memos that depend on phoneFor
+  // recompute once after the initial data fetch and never again.
+  return useCallback(function phoneFor(name) {
     if (!name) return null;
     const lower = name.toLowerCase().trim();
 
-    // 1. Exact match against Dataverse
     if (liveMap[lower]) return liveMap[lower];
 
-    // 2. All-parts match — handles 'Jean-Paul Guidry' vs 'Jean Paul Guidry'
     const parts = lower.split(/[\s-]+/).filter(Boolean);
     if (parts.length >= 2) {
       for (const [key, phone] of Object.entries(liveMap)) {
@@ -62,7 +63,6 @@ export function usePhoneFor() {
       }
     }
 
-    // 3. Hardcoded fallback
     return PHONE_FALLBACK[lower] ?? null;
-  };
+  }, [liveMap]);
 }

@@ -36,7 +36,7 @@ export default function RMMHome({ persona }) {
       }
     }
     return results;
-  }, [persona.region]);
+  }, [persona.region, phoneFor]);
 
   return (
     <>
