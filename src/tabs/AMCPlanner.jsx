@@ -1,12 +1,13 @@
-import React, { useState, useMemo, useId } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Globe, Plus, Trash2, AlertTriangle, CheckCircle2, Info,
-  AlertCircle, ChevronDown, ChevronUp, Plane, Users, Stethoscope,
+  AlertCircle, ChevronDown, ChevronUp, Plane, Users,
   Clock, FileText, Shield,
 } from 'lucide-react';
 import { allocateAMCTrip } from '../engines/amcAllocator';
 import { FW_AIRCRAFT, FW_PILOT_POOL, AMC_CLINICAL_POOL } from '../data/fwResources';
-import { DEMO_TODAY_ISO } from '../data/mxOncallSchedule';
+import { useCalendarDate } from '../contexts/CalendarDateContext';
+import { useAMCTrips } from '../contexts/AMCTripContext';
 
 const SPECIALTIES = [
   'Respiratory Therapist', 'NICU RN', 'Pediatric RN',
@@ -36,15 +37,27 @@ const APPROVAL_STYLE = {
 let legSeq = 1;
 function newLeg() { return { id: legSeq++, destination: '', flightHours: 3.0 }; }
 
+// Days to span for a trip based on total flight hours (rough crew scheduling estimate)
+function tripEndDate(startDate, totalFlightHours) {
+  const offset = Math.max(0, Math.floor(totalFlightHours / 8));
+  const d = new Date(startDate + 'T12:00:00Z');
+  d.setUTCDate(d.getUTCDate() + offset);
+  return d.toISOString().slice(0, 10);
+}
+
 export default function AMCPlanner() {
+  // Departure date is the shared calendar anchor — bidirectional sync
+  const { anchorDate: startDate, setAnchorDate: setStartDate } = useCalendarDate();
+  const { addTrip } = useAMCTrips();
+
   const [tripType,   setTripType]   = useState('domestic');
   const [intlRegion, setIntlRegion] = useState('ns_america');
   const [patientType, setPatient]   = useState('adult');
-  const [startDate,  setStartDate]  = useState(DEMO_TODAY_ISO);
   const [legs,       setLegs]       = useState([newLeg()]);
   const [needs,      setNeeds]      = useState(new Set());
   const [aircraft,   setAircraft]   = useState(null);
   const [showPilotDetail, setShowPilotDetail] = useState(false);
+  const [allocated,  setAllocated]  = useState(false);
 
   const toggleNeed  = n => setNeeds(prev => { const s = new Set(prev); s.has(n) ? s.delete(n) : s.add(n); return s; });
   const addLeg      = ()  => setLegs(prev => [...prev, newLeg()]);
@@ -54,6 +67,33 @@ export default function AMCPlanner() {
 
   const selectedAC  = FW_AIRCRAFT.find(a => a.tail === aircraft) ?? null;
   const isIntl      = tripType === 'international';
+
+  function handleAllocate() {
+    if (!result.ok || !selectedAC) return;
+    const endDate = tripEndDate(startDate, result.totalFlightHours);
+    addTrip({
+      id: `amc-${Date.now()}`,
+      startDate,
+      endDate,
+      aircraft: selectedAC,
+      pilots: result.pilotResult.selected,
+      medical: result.clinicalResult.assigned,
+      legs: legs.map(l => ({ ...l })),
+      totalFlightHours: result.totalFlightHours,
+      patientType,
+      isIntl,
+    });
+    setAllocated(true);
+  }
+
+  function handleNewTrip() {
+    setAllocated(false);
+    setAircraft(null);
+    setLegs([newLeg()]);
+    setNeeds(new Set());
+    setTripType('domestic');
+    setPatient('adult');
+  }
 
   const result = useMemo(() => allocateAMCTrip({
     aircraft:           selectedAC,
@@ -136,9 +176,10 @@ export default function AMCPlanner() {
                 <input
                   type="date"
                   value={startDate}
-                  onChange={e => setStartDate(e.target.value)}
+                  onChange={e => { setStartDate(e.target.value); setAllocated(false); }}
                   className="w-full bg-neutral-800 border border-neutral-700 rounded-md px-3 py-1.5 text-[12px] text-neutral-200 outline-none focus:border-sky-500/50"
                 />
+                <div className="mt-1 text-[9px] text-sky-500/70 mono">Synced · all calendar views</div>
               </Field>
             </div>
           </Section>
@@ -383,22 +424,44 @@ export default function AMCPlanner() {
           )}
 
           {/* Action */}
-          <div className="flex gap-2 pt-1">
-            <button
-              disabled={!result.ok}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md text-[12px] font-semibold transition-colors ${result.ok ? 'bg-sky-600 hover:bg-sky-500 text-white' : 'bg-neutral-800 text-neutral-600 cursor-not-allowed border border-neutral-700'}`}
-            >
-              <Plane size={13} />
-              Allocate Resources
-            </button>
-            <button className="px-4 py-2.5 rounded-md border border-neutral-700 text-[12px] text-neutral-400 hover:border-neutral-600 hover:text-neutral-200 transition-colors flex items-center gap-1.5">
-              <FileText size={12} />
-              Save Draft
-            </button>
-          </div>
-          {result.ok && (
+          {allocated ? (
+            <div className="space-y-2 pt-1">
+              <div className="flex items-center gap-2 px-3 py-2.5 rounded-md bg-green-500/10 border border-green-500/25 text-green-300">
+                <CheckCircle2 size={14} className="shrink-0" />
+                <div className="flex-1 text-[11px]">
+                  <div className="font-semibold">Trip allocated · resources locked</div>
+                  <div className="text-[10px] opacity-75 mt-0.5">
+                    {selectedAC?.tail} · {startDate} · Ops Schedule &amp; calendar updated
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={handleNewTrip}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-md border border-neutral-700 text-[12px] text-neutral-300 hover:border-sky-500/40 hover:text-sky-300 transition-colors"
+              >
+                <Plus size={13} />
+                Plan New Trip
+              </button>
+            </div>
+          ) : (
+            <div className="flex gap-2 pt-1">
+              <button
+                disabled={!result.ok}
+                onClick={handleAllocate}
+                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md text-[12px] font-semibold transition-colors ${result.ok ? 'bg-sky-600 hover:bg-sky-500 text-white' : 'bg-neutral-800 text-neutral-600 cursor-not-allowed border border-neutral-700'}`}
+              >
+                <Plane size={13} />
+                Allocate Resources
+              </button>
+              <button className="px-4 py-2.5 rounded-md border border-neutral-700 text-[12px] text-neutral-400 hover:border-neutral-600 hover:text-neutral-200 transition-colors flex items-center gap-1.5">
+                <FileText size={12} />
+                Save Draft
+              </button>
+            </div>
+          )}
+          {result.ok && !allocated && (
             <div className="text-[10px] text-neutral-600 text-center">
-              Allocating locks these resources and notifies the AMC Coordinator. Trip will appear on the Ops Schedule board.
+              Allocating locks these resources and pushes the trip to the Ops Schedule, WeekCalendar, and Scheduler.
             </div>
           )}
         </div>

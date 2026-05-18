@@ -4,6 +4,7 @@ import { useFleet } from '../contexts/FleetDataContext';
 import { useNavigation } from '../contexts/NavigationContext';
 import { DEMO_SCHEDULE_ENTRIES } from '../data/demoScheduleEntries';
 import { BASE_META, REGIONS, DEMO_TODAY_ISO, addDays } from '../data/mxOncallSchedule';
+import { useCalendarDate } from '../contexts/CalendarDateContext';
 import {
   BASE_CAPABILITIES, SPECIALTIES, TIERS, TIER_ORDER, normalizeRole,
 } from '../data/baseCapabilities';
@@ -36,7 +37,7 @@ function shortName(full) {
 
 export default function ClinicalStaffingBoard({ persona, compact = false }) {
   const navigate = useNavigation();
-  const [weekStart, setWeekStart] = useState(REAL_TODAY);
+  const { anchorDate: weekStart, setAnchorDate: setWeekStart } = useCalendarDate();
   const [selected, setSelected] = useState(null);        // { base, specialty, date, entries }
   const [hiddenTiers, setHiddenTiers] = useState(new Set()); // collapsed tiers
 
@@ -146,7 +147,7 @@ export default function ClinicalStaffingBoard({ persona, compact = false }) {
               <ChevronLeft size={14} />
             </button>
             <button
-              onClick={() => setWeekStart(REAL_TODAY)}
+              onClick={() => setWeekStart(DEMO_TODAY_ISO)}
               className="mono text-[10px] uppercase tracking-widest font-semibold px-2.5 h-7 bg-neutral-800 border border-neutral-700 rounded text-neutral-300 hover:bg-neutral-700"
             >
               Today
