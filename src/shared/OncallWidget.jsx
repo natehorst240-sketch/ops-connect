@@ -9,12 +9,13 @@ import {
   phoneFor,
 } from '../data/mxOncallSchedule';
 
-// ── colours by slot index (same palette as OncallSchedule tab) ────────────────
+// ── colours by slot index ─────────────────────────────────────────────────────
+// Stronger text (200 instead of 300) so it reads clearly on the tinted bg.
 const SLOT_COLORS = [
-  'bg-blue-500/15 text-blue-300 border-blue-500/25',
-  'bg-orange-500/15 text-orange-300 border-orange-500/25',
-  'bg-purple-500/15 text-purple-300 border-purple-500/25',
-  'bg-green-500/15 text-green-300 border-green-500/25',
+  'bg-blue-500/20 text-blue-200 border-blue-500/30',
+  'bg-orange-500/20 text-orange-200 border-orange-500/30',
+  'bg-purple-500/20 text-purple-200 border-purple-500/30',
+  'bg-green-500/20 text-green-200 border-green-500/30',
 ];
 
 function slotColor(idx) {
@@ -76,13 +77,6 @@ function resolveHighlight(personaBase) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Compact on-call widget for home views.
- *
- * Props:
- *   persona – the current user's persona object ({ region, base, ... })
- *             defaults to ALL-region view if omitted
- */
 export default function OncallWidget({ persona }) {
   const defaultRegion = persona?.region ?? 'ALL';
   const highlightBase = resolveHighlight(persona?.base);
@@ -92,7 +86,6 @@ export default function OncallWidget({ persona }) {
 
   const todayByBase = useMemo(() => getOncallForDate(DEMO_TODAY_ISO), []);
 
-  // Build region → bases with today's data
   const regionGroups = useMemo(() => {
     const groups = {};
     for (const region of REGIONS) {
@@ -104,10 +97,8 @@ export default function OncallWidget({ persona }) {
     return groups;
   }, [todayByBase]);
 
-  // Which regions to show
   const visibleRegions = useMemo(() => {
     if (showAll) return Object.keys(regionGroups);
-    // show only the user's region, fall back to all if no match
     const match = Object.keys(regionGroups).filter(r => r === defaultRegion);
     return match.length ? match : Object.keys(regionGroups);
   }, [showAll, regionGroups, defaultRegion]);
@@ -123,7 +114,7 @@ export default function OncallWidget({ persona }) {
           <div className="mono text-[10px] uppercase tracking-widest text-orange-400 font-semibold">
             MX On-Call Today
           </div>
-          <div className="mono text-[10px] text-neutral-500 mt-0.5">
+          <div className="mono text-[10px] text-neutral-400 mt-0.5">
             {new Date(DEMO_TODAY_ISO + 'T12:00:00Z').toLocaleDateString('en-US', {
               weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC',
             })}
@@ -134,7 +125,7 @@ export default function OncallWidget({ persona }) {
         </div>
         <button
           onClick={() => navigate('oncall')}
-          className="flex items-center gap-1 text-[11px] text-neutral-500 hover:text-orange-400 transition-colors"
+          className="flex items-center gap-1 text-[11px] text-neutral-400 hover:text-orange-400 transition-colors"
         >
           Full Schedule <ExternalLink size={10} className="ml-0.5" />
         </button>
@@ -154,7 +145,7 @@ export default function OncallWidget({ persona }) {
         ))}
 
         {totalBases === 0 && (
-          <p className="text-xs text-neutral-500 py-2 text-center">
+          <p className="text-xs text-neutral-400 py-2 text-center">
             No on-call data for today.
           </p>
         )}
@@ -164,7 +155,7 @@ export default function OncallWidget({ persona }) {
       {(hasMore || expanded) && (
         <button
           onClick={() => setExpanded(v => !v)}
-          className="w-full flex items-center justify-center gap-1.5 py-2 border-t border-neutral-800 text-[11px] text-neutral-500 hover:text-neutral-300 hover:bg-neutral-800/30 transition-colors"
+          className="w-full flex items-center justify-center gap-1.5 py-2 border-t border-neutral-800 text-[11px] text-neutral-400 hover:text-neutral-100 hover:bg-neutral-800/30 transition-colors"
         >
           {expanded ? (
             <><ChevronUp size={12} /> Show my region only</>
@@ -183,7 +174,7 @@ function RegionGroup({ region, bases, todayByBase, highlightBase, showRegionLabe
   return (
     <div>
       {showRegionLabel && (
-        <div className="mono text-[9px] uppercase tracking-widest text-neutral-600 mb-1.5 px-0.5">
+        <div className="mono text-[10px] font-semibold uppercase tracking-widest text-neutral-400 mb-1.5 px-0.5">
           {region}
         </div>
       )}
@@ -210,9 +201,9 @@ function BaseCard({ base, entries, highlight }) {
     <div className={`rounded-md border p-2.5 ${
       highlight
         ? 'border-orange-500/40 bg-orange-500/5'
-        : 'border-neutral-800 bg-neutral-900/40'
+        : 'border-neutral-700 bg-neutral-800/50'
     }`}>
-      <div className="mono text-[9px] uppercase tracking-widest text-neutral-500 mb-1.5 leading-tight">
+      <div className="mono text-[10px] font-medium uppercase tracking-wider text-neutral-300 mb-1.5 leading-tight">
         {meta.label}
         {highlight && <span className="ml-1.5 text-orange-400">★</span>}
       </div>
@@ -223,12 +214,12 @@ function BaseCard({ base, entries, highlight }) {
           return (
             <div key={idx}
               className={`flex items-center gap-1.5 px-1.5 py-1 rounded border text-[11px] ${slotColor(idx)}`}>
-              <div className="w-5 h-5 rounded-full bg-black/20 flex items-center justify-center text-[9px] font-bold shrink-0">
+              <div className="w-5 h-5 rounded-full bg-black/25 flex items-center justify-center text-[9px] font-bold shrink-0">
                 {initials(entry.owner)}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="font-medium leading-tight truncate">{entry.owner}</div>
-                <div className="flex items-center gap-1 opacity-60 text-[9px]">
+                <div className="font-semibold leading-tight truncate">{entry.owner}</div>
+                <div className="flex items-center gap-1 text-[9px] opacity-80">
                   <Clock size={8} />
                   <span className="truncate">{entry.hours}</span>
                   {tag && <span className="ml-0.5">· {tag}</span>}
@@ -236,7 +227,7 @@ function BaseCard({ base, entries, highlight }) {
               </div>
               {phone && (
                 <a href={`tel:${phone}`}
-                  className="shrink-0 opacity-60 hover:opacity-100 transition-opacity"
+                  className="shrink-0 opacity-80 hover:opacity-100 transition-opacity"
                   title={phone}
                   onClick={e => e.preventDefault()}>
                   <Phone size={11} />

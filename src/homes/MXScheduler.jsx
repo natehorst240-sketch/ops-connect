@@ -200,7 +200,7 @@ function OncallScheduleBoard({ persona }) {
                   <div className="mono text-[11px] font-medium text-neutral-200 leading-tight">
                     {BASE_META[base]?.label ?? base}
                   </div>
-                  <div className="mono text-[9px] text-neutral-600">{BASE_META[base]?.region}</div>
+                  <div className="mono text-[9px] text-neutral-400">{BASE_META[base]?.region}</div>
                 </td>
                 {days.map(({ date, byBase }) => {
                   const entries = byBase[base] ?? [];
