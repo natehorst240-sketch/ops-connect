@@ -3,6 +3,7 @@ import { useFleet } from '../contexts/FleetDataContext';
 import { useViewAs } from '../contexts/ViewAsContext';
 import { useDemoMode } from '../contexts/DemoModeContext';
 import { PERSONAS } from '../data';
+import { personnelBases } from '../shared/baseMatch';
 
 // Resolves the signed-in MSAL user to a Personnel row (or a static PERSONA
 // in demo mode). The "view as" override applies in both modes so reviewers
@@ -73,6 +74,7 @@ export function useCurrentUser() {
 }
 
 function personaFrom(p) {
+  const bases = personnelBases(p);
   return {
     id:        p.id,
     name:      p.name,
@@ -80,6 +82,7 @@ function personaFrom(p) {
     role:      mapRole(p.role),
     roleTitle: p.roleTitle ?? p.role,
     base:      p.primaryBase ?? p.base,
+    bases,
     region:    p.region,
     email:     p.email,
     phone:     p.phone,
