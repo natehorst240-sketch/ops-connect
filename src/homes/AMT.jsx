@@ -8,16 +8,24 @@ import WeekCalendar from '../shared/WeekCalendar';
 import { getEventsForPersona, getCalendarConfigForPersona } from '../shared/personaCalendarData';
 import OncallWidget from '../shared/OncallWidget';
 import OpsScheduleBoard from '../shared/OpsScheduleBoard';
+import { basesMatch } from '../shared/baseMatch';
 
 export default function AMTHome({ persona }) {
   const { aircraft: live } = useFleet();
   const navigate = useNavigation();
   const AIRCRAFT = live.length ? live : STATIC_AIRCRAFT;
 
-  const baseAircraft = useMemo(
-    () => AIRCRAFT.filter(a => a.base === persona.base),
-    [AIRCRAFT, persona.base]
+  const personaBases = useMemo(
+    () => (persona.bases?.length ? persona.bases : [persona.base]).filter(Boolean),
+    [persona.bases, persona.base]
   );
+
+  const baseAircraft = useMemo(
+    () => AIRCRAFT.filter(a => personaBases.some(pb => basesMatch(a.base, pb))),
+    [AIRCRAFT, personaBases]
+  );
+
+  const baseLabel = personaBases.join(' · ') || persona.base;
 
   const myAircraft = baseAircraft[0] ?? null;
 
@@ -74,7 +82,7 @@ export default function AMTHome({ persona }) {
       {/* Base fleet */}
       <div className="mb-5">
         <Card
-          title={`Fleet at a Glance — ${persona.base}`}
+          title={`Fleet at a Glance — ${baseLabel}`}
           action={<span className="mono text-[11px] text-neutral-400">{baseAircraft.length} aircraft</span>}
         >
           {baseAircraft.length === 0 ? (
