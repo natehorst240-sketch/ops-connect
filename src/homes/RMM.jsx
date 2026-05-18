@@ -7,6 +7,7 @@ import { getEventsForPersona, getCalendarConfigForPersona } from '../shared/pers
 import { useFleet } from '../contexts/FleetDataContext';
 import { useNavigation } from '../contexts/NavigationContext';
 import OncallWidget from '../shared/OncallWidget';
+import OpsScheduleBoard from '../shared/OpsScheduleBoard';
 import { usePhoneFor } from '../hooks/usePhoneFor';
 import { getOncallForDate, BASE_META, DEMO_TODAY_ISO } from '../data/mxOncallSchedule';
 
@@ -143,6 +144,7 @@ export default function RMMHome({ persona }) {
       </div>
 
       <OncallWidget persona={persona} />
+      <OpsScheduleBoard persona={persona} compact />
     </>
   );
 }

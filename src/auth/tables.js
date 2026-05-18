@@ -15,5 +15,6 @@ export const TABLES = {
   scheduleEvent: `${P}scheduleevents`,
   fleetPosition: `${P}fleetpositions`,
   conflict:      `${P}conflicts`,
-  personnelCrew: `${P}personnelcrews`,
+  personnelCrew:  `${P}personnelcrews`,
+  scheduleEntry:  `${P}scheduleentries`,   // unified schedule: MX on-call (CF), pilots (CF), clinical/OCC/dispatch (Protean)
 };

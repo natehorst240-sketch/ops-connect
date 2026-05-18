@@ -6,6 +6,7 @@ import { getEventsForPersona, getCalendarConfigForPersona } from '../shared/pers
 import { useFleet } from '../contexts/FleetDataContext';
 import { useNavigation } from '../contexts/NavigationContext';
 import OncallWidget from '../shared/OncallWidget';
+import OpsScheduleBoard from '../shared/OpsScheduleBoard';
 
 export default function DirectorHome({ persona }) {
   const navigate = useNavigation();
@@ -91,6 +92,7 @@ export default function DirectorHome({ persona }) {
       </div>
 
       <OncallWidget persona={persona} />
+      <OpsScheduleBoard persona={persona} compact />
     </>
   );
 }

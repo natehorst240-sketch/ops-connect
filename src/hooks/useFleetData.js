@@ -115,6 +115,23 @@ function mapFleetPosition(row) {
   };
 }
 
+function mapScheduleEntry(row) {
+  return {
+    id:            row[f('scheduleentryid')],
+    source:        pick(row, f('sourcesystem')),
+    sourceRowId:   pick(row, f('sourcerowid')),
+    personnelType: pick(row, fv('personneltype')) ?? pick(row, f('personneltype')),
+    roleType:      pick(row, f('roletype')),
+    ownerName:     pick(row, f('ownername')),
+    base:          pick(row, f('base')),
+    region:        pick(row, f('region')),
+    shiftDate:     pick(row, f('shiftdate')),
+    hours:         pick(row, f('hours')),
+    timezone:      pick(row, f('timezone')),
+    notes:         pick(row, f('notes')),
+  };
+}
+
 function mapConflict(row) {
   return {
     id:                row[Object.keys(row).find(k => k.endsWith('conflictid'))],
@@ -140,6 +157,7 @@ export function useFleetData() {
     scheduleEvents: [],
     fleetPositions: [],
     conflicts: [],
+    scheduleEntries: [],
     loading: true,
     error: null
   });
@@ -153,19 +171,21 @@ export function useFleetData() {
           query(TABLES.mxRequest),
           query(TABLES.scheduleEvent),
           query(TABLES.fleetPosition),
-          query(TABLES.conflict)
+          query(TABLES.conflict),
+          query(TABLES.scheduleEntry),
         ]);
-        const [aircraft, personnel, mxRequests, scheduleEvents, fleetPositions, conflicts] = results;
+        const [aircraft, personnel, mxRequests, scheduleEvents, fleetPositions, conflicts, scheduleEntries] = results;
 
         setState({
-          aircraft:       aircraft.status === 'fulfilled' ? aircraft.value.map(mapAircraft) : [],
-          personnel:      personnel.status === 'fulfilled' ? personnel.value.map(mapPersonnel) : [],
-          mxRequests:     mxRequests.status === 'fulfilled' ? mxRequests.value.map(mapMxRequest) : [],
-          scheduleEvents: scheduleEvents.status === 'fulfilled' ? scheduleEvents.value.map(mapScheduleEvent) : [],
-          fleetPositions: fleetPositions.status === 'fulfilled' ? fleetPositions.value.map(mapFleetPosition) : [],
-          conflicts:      conflicts.status === 'fulfilled' ? conflicts.value.map(mapConflict) : [],
-          loading:        false,
-          error:          null
+          aircraft:        aircraft.status === 'fulfilled' ? aircraft.value.map(mapAircraft) : [],
+          personnel:       personnel.status === 'fulfilled' ? personnel.value.map(mapPersonnel) : [],
+          mxRequests:      mxRequests.status === 'fulfilled' ? mxRequests.value.map(mapMxRequest) : [],
+          scheduleEvents:  scheduleEvents.status === 'fulfilled' ? scheduleEvents.value.map(mapScheduleEvent) : [],
+          fleetPositions:  fleetPositions.status === 'fulfilled' ? fleetPositions.value.map(mapFleetPosition) : [],
+          conflicts:       conflicts.status === 'fulfilled' ? conflicts.value.map(mapConflict) : [],
+          scheduleEntries: scheduleEntries.status === 'fulfilled' ? scheduleEntries.value.map(mapScheduleEntry) : [],
+          loading:         false,
+          error:           null
         });
       } catch (e) {
         setState((s) => ({ ...s, loading: false, error: e.message }));
