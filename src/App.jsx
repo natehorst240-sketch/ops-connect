@@ -275,7 +275,7 @@ function BottomNav({ activeTab, setActiveTab }) {
                     className={`flex flex-col items-center gap-1.5 p-3 rounded-lg border transition-colors text-center ${
                       active
                         ? 'bg-orange-500/15 border-orange-500/40 text-orange-300'
-                        : 'bg-neutral-800/60 border-neutral-800 text-neutral-400 hover:text-neutral-200 hover:border-neutral-700'
+                        : 'bg-neutral-800/60 border-neutral-700 text-neutral-200 hover:text-white hover:border-neutral-600'
                     }`}
                   >
                     <t.Icon size={18} />
