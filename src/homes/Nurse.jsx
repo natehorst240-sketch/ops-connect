@@ -4,6 +4,7 @@ import { OPEN_SHIFTS } from '../data';
 import { PageHeader, Card, Metric, BulletinBanner } from '../ui';
 import WeekCalendar from '../shared/WeekCalendar';
 import { getEventsForPersona, getCalendarConfigForPersona } from '../shared/personaCalendarData';
+import OncallWidget from '../shared/OncallWidget';
 
 const MY_SHIFTS = [
   { date: '2026-04-25', time: '09:00-09:00', base: 'Cedar City Hospital', role: 'FN - URBAN' },
@@ -151,6 +152,8 @@ export default function NurseHome({ persona }) {
           </div>
         </Card>
       </div>
+
+      <OncallWidget persona={persona} />
     </>
   );
 }

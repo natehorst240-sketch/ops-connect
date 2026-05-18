@@ -6,6 +6,7 @@ import WeekCalendar from '../shared/WeekCalendar';
 import { getEventsForPersona, getCalendarConfigForPersona } from '../shared/personaCalendarData';
 import { useFleet } from '../contexts/FleetDataContext';
 import { useNavigation } from '../contexts/NavigationContext';
+import OncallWidget from '../shared/OncallWidget';
 
 export default function RMMHome({ persona }) {
   const navigate = useNavigation();
@@ -99,6 +100,8 @@ export default function RMMHome({ persona }) {
           </div>
         </Card>
       </div>
+
+      <OncallWidget persona={persona} />
     </>
   );
 }

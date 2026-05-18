@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Filter, ArrowRight, Users, ChevronLeft, ChevronRight, Phone, CalendarDays } from 'lucide-react';
+import { Filter, ArrowRight, Users, ChevronLeft, ChevronRight, Phone } from 'lucide-react';
+import OncallWidget from '../shared/OncallWidget';
 import { AIRCRAFT as STATIC_AIRCRAFT, INSPECTIONS_DUE, PENDING_REQUESTS as STATIC_REQS } from '../data';
 import { useFleet } from '../contexts/FleetDataContext';
 import { useNavigation } from '../contexts/NavigationContext';
@@ -118,13 +119,7 @@ export default function MXSchedulerHome({ persona }) {
       </div>
 
       {/* === MX On-Call Schedule === */}
-      <div className="mt-10 mb-4 pb-2 border-b border-neutral-800 flex items-center gap-2">
-        <CalendarDays size={16} className="text-orange-400" />
-        <h2 className="text-[18px] font-semibold tracking-tight">MX On-Call Schedule</h2>
-        <span className="mono text-[10px] uppercase tracking-widest text-neutral-500 ml-2">8 on · 6 off · Wed–Wed · 1 year pre-built</span>
-        <span className="mono text-[9px] uppercase tracking-widest text-neutral-600 ml-auto px-1.5 py-0.5 border border-neutral-800 rounded">Phase 1 of 2 · CompleteFlight API in Phase 2</span>
-      </div>
-      <OncallScheduleBoard />
+      <OncallScheduleBoard persona={persona} />
 
       {/* === Crew Scheduling section — Carla owns this too === */}
       <div className="mt-10 mb-4 pb-2 border-b border-neutral-800 flex items-center gap-2">
@@ -163,11 +158,10 @@ function initBoard(name) {
   return name.split(/\s+/).map(w => w[0]).join('').toUpperCase().slice(0, 2);
 }
 
-function OncallScheduleBoard() {
+function OncallScheduleBoard({ persona }) {
   const [weekOffset, setWeekOffset] = useState(0);
   const viewStart = addDays(DEMO_TODAY_ISO, weekOffset * 7);
   const days = getScheduleRange(viewStart, 7);
-  const todayByBase = getOncallForDate(DEMO_TODAY_ISO);
 
   // Collect all bases that appear in the displayed week
   const activeBases = new Set();
@@ -179,42 +173,9 @@ function OncallScheduleBoard() {
   });
 
   return (
-    <div className="space-y-4">
-      {/* Today strip */}
-      <div className="bg-neutral-900 border border-neutral-800 rounded-lg overflow-hidden">
-        <div className="px-4 py-2.5 border-b border-neutral-800 flex items-center justify-between bg-neutral-950/50">
-          <span className="mono text-[10px] uppercase tracking-widest text-orange-400 font-semibold">On-Call Today</span>
-          <span className="mono text-[9px] text-neutral-500">{fmtShort(DEMO_TODAY_ISO)}</span>
-        </div>
-        <div className="flex flex-wrap gap-2 p-3">
-          {Object.entries(todayByBase).map(([base, entries]) =>
-            entries.map((e, idx) => {
-              const col = SLOT_COLORS_BOARD[idx % SLOT_COLORS_BOARD.length];
-              const phone = phoneFor(e.owner);
-              return (
-                <div key={`${base}-${idx}`}
-                  className="flex items-center gap-2 px-3 py-2 rounded-md text-[11px]"
-                  style={{ background: col.bg, border: `1px solid ${col.border}33` }}>
-                  <div className="w-6 h-6 rounded-full flex items-center justify-center mono text-[10px] font-bold shrink-0 text-white"
-                    style={{ background: col.border + '99' }}>
-                    {initBoard(e.owner)}
-                  </div>
-                  <div>
-                    <div className="font-medium leading-tight" style={{ color: col.text }}>{e.owner}</div>
-                    <div className="mono text-[9px] text-neutral-500">{BASE_META[base]?.label ?? base}</div>
-                  </div>
-                  {phone && (
-                    <a href={`tel:${phone}`} className="ml-1 text-neutral-600 hover:text-neutral-400" title={phone}
-                      onClick={e => e.preventDefault()}>
-                      <Phone size={10} />
-                    </a>
-                  )}
-                </div>
-              );
-            })
-          )}
-        </div>
-      </div>
+    <div className="space-y-0 mt-5">
+      {/* Today — grouped by region/base via shared widget */}
+      <OncallWidget persona={persona} />
 
       {/* 7-day grid */}
       <div className="bg-neutral-900 border border-neutral-800 rounded-lg overflow-x-auto">
