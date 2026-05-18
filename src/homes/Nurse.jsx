@@ -14,11 +14,11 @@ const MY_SHIFTS = [
 ];
 
 const MY_CERTS = [
-  { name: 'CCRN', status: 'valid', expires: '2027-08-14', daysLeft: 477 },
-  { name: 'TNCC', status: 'valid', expires: '2026-11-03', daysLeft: 193 },
-  { name: 'PALS', status: 'expiring', expires: '2026-06-12', daysLeft: 49 },
-  { name: 'STABLE', status: 'valid', expires: '2027-02-28', daysLeft: 310 },
-  { name: 'ACLS', status: 'valid', expires: '2026-12-05', daysLeft: 225 },
+  { name: 'CCRN',   status: 'valid',    expires: '2027-08-14', daysLeft: 453 },
+  { name: 'TNCC',   status: 'valid',    expires: '2026-11-03', daysLeft: 169 },
+  { name: 'PALS',   status: 'expiring', expires: '2026-06-12', daysLeft: 25  },
+  { name: 'STABLE', status: 'valid',    expires: '2027-02-28', daysLeft: 286 },
+  { name: 'ACLS',   status: 'valid',    expires: '2026-12-05', daysLeft: 201 },
 ];
 
 // "Cedar City Hospital" → "Cedar City", "IMED IH-14" → "IMED"

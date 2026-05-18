@@ -22,6 +22,7 @@ const HOMES = {
   DIRECTOR:       DirectorHome,
   RMM:            RMMHome,
   AMT:            AMTHome,
+  ADOM:           QAHome,        // Assistant Director of MX Ops → QA home
   QA:             QAHome,
   MX_SCHEDULER:   MXSchedulerHome,
   CREW_SCHEDULER: CrewSchedulerHome,

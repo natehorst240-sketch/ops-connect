@@ -1,6 +1,24 @@
 // Real IHC data — aircraft roster, personnel, inspections, requests, crew shifts
 // Extracted from MASTER_BASE_MECHANIC_CONTACT_LIST.csv, Workday_Direct_Report_List.csv,
 // Due_List_2026-04-24.csv, and Connect___Protean_Connect.pdf
+//
+// INSPECTIONS_DUE and OPEN_SHIFTS are demo fallback only — replaced by live
+// Veryon/Dataverse data in production. Dates are computed relative to
+// DEMO_TODAY_ISO so the demo always shows a realistic near-future window.
+
+import { DEMO_TODAY_ISO } from './mxOncallSchedule';
+
+// d(n) → ISO date n days from demo today; dMDY(n) → MM/DD/YYYY for Veryon-style display
+function d(n) {
+  const dt = new Date(DEMO_TODAY_ISO + 'T12:00:00Z');
+  dt.setUTCDate(dt.getUTCDate() + n);
+  return dt;
+}
+function dISO(n) { return d(n).toISOString().slice(0, 10); }
+function dMDY(n) {
+  const dt = d(n);
+  return `${String(dt.getUTCMonth() + 1).padStart(2, '0')}/${String(dt.getUTCDate()).padStart(2, '0')}/${dt.getUTCFullYear()}`;
+}
 
 export const AIRCRAFT = [
   // AW109SP helicopters (9)
@@ -79,19 +97,20 @@ export const BULLETINS = [
   { level: 'INFO', title: 'AW109SP Q2 Inspection Cycle Starts 05/01', message: 'Review inspection intervals per aircraft. Coordinate with Carla/Rachel.', postedBy: 'Ryan Taul' },
 ];
 
+// Demo fallback — production reads from Veryon via Dataverse (cr463_inspection_due entity)
 export const INSPECTIONS_DUE = [
-  { tail: 'N281HC', desc: 'Monthly oxygen bottle exchange', due: '04/25/2026', days: 1, level: 'red' },
-  { tail: 'N291HC', desc: 'Tail rotor pitch change — grease', due: '04/27/2026', days: 3, level: 'red' },
-  { tail: 'N271HC', desc: '90-degree gearbox oil change', due: '04/28/2026', days: 4, level: 'amber' },
-  { tail: 'N531HC', desc: 'Port FX 30-day inspection', due: '04/29/2026', days: 5, level: 'amber' },
-  { tail: 'N581HC', desc: 'Landing gear inspection', due: '04/29/2026', days: 5, level: 'amber' },
-  { tail: 'N251HC', desc: 'Non-rotating scissors exam', due: '04/30/2026', days: 6, level: 'amber' },
-  { tail: 'N261HC', desc: 'Rotating scissors exam', due: '04/30/2026', days: 6, level: 'amber' },
-  { tail: 'N431HC', desc: 'Cockpit fire extinguisher monthly', due: '04/30/2026', days: 6, level: 'amber' },
-  { tail: 'N481HC', desc: 'AAIP LifePort 12-month inspection', due: '04/30/2026', days: 6, level: 'amber' },
-  { tail: 'N381HC', desc: 'Hydraulic fluid drain & replace', due: '05/01/2026', days: 7, level: 'amber' },
-  { tail: 'N781HC', desc: 'Airfoil de-icer application', due: '05/04/2026', days: 10, level: 'green' },
-  { tail: 'N251HC', desc: 'Power assurance check', due: '05/16/2026', days: 22, level: 'green' },
+  { tail: 'N281HC', desc: 'Monthly oxygen bottle exchange',    due: dMDY(1),  days: 1,  level: 'red'   },
+  { tail: 'N291HC', desc: 'Tail rotor pitch change — grease', due: dMDY(3),  days: 3,  level: 'red'   },
+  { tail: 'N271HC', desc: '90-degree gearbox oil change',     due: dMDY(5),  days: 5,  level: 'amber' },
+  { tail: 'N531HC', desc: 'Port FX 30-day inspection',        due: dMDY(7),  days: 7,  level: 'amber' },
+  { tail: 'N581HC', desc: 'Landing gear inspection',          due: dMDY(8),  days: 8,  level: 'amber' },
+  { tail: 'N251HC', desc: 'Non-rotating scissors exam',       due: dMDY(10), days: 10, level: 'amber' },
+  { tail: 'N261HC', desc: 'Rotating scissors exam',           due: dMDY(11), days: 11, level: 'amber' },
+  { tail: 'N431HC', desc: 'Cockpit fire extinguisher monthly',due: dMDY(12), days: 12, level: 'amber' },
+  { tail: 'N481HC', desc: 'AAIP LifePort 12-month inspection',due: dMDY(14), days: 14, level: 'amber' },
+  { tail: 'N381HC', desc: 'Hydraulic fluid drain & replace',  due: dMDY(16), days: 16, level: 'amber' },
+  { tail: 'N781HC', desc: 'Airfoil de-icer application',      due: dMDY(21), days: 21, level: 'green' },
+  { tail: 'N251HC', desc: 'Power assurance check',            due: dMDY(30), days: 30, level: 'green' },
 ];
 
 export const PENDING_REQUESTS = [
@@ -102,14 +121,15 @@ export const PENDING_REQUESTS = [
   { id: 'r5', type: 'Safety Report', submitter: 'Anonymous', detail: 'Tool control concern at IH-72', submitted: '6h ago', region: 'SLC' },
 ];
 
+// Demo fallback — production reads from Protean Hub via Dataverse (cr463_open_shift entity)
 export const OPEN_SHIFTS = [
-  { id: 'os1', date: '2026-04-30', time: '19:00-07:00', role: 'FN - URBAN', specialty: 'flight_nurse', base: 'Intermountain Medical Center', region: '109 UT', fatigueRisk: false, differential: '$8/hr' },
-  { id: 'os2', date: '2026-05-01', time: '19:00-07:00', role: 'RT ADULT', specialty: 'respiratory', base: 'McKay Dee', region: '109 UT', fatigueRisk: false, differential: '$6/hr' },
-  { id: 'os3', date: '2026-05-02', time: '06:00-18:00', role: 'FN - URBAN', specialty: 'flight_nurse', base: 'St. George Hospital', region: '109 UT', fatigueRisk: true, differential: '$8/hr' },
-  { id: 'os4', date: '2026-05-03', time: '19:00-07:00', role: 'PEDS', specialty: 'pediatric', base: 'Primary Childrens Hospital', region: '109 UT', fatigueRisk: false, differential: '$10/hr' },
-  { id: 'os5', date: '2026-05-04', time: '07:00-19:00', role: 'FP - URBAN', specialty: 'flight_paramedic', base: 'Utah Valley Hospital', region: '109 UT', fatigueRisk: false, differential: '$6/hr' },
-  { id: 'os6', date: '2026-05-05', time: '09:00-09:00', role: 'FN - URBAN', specialty: 'flight_nurse', base: 'Cedar City Hospital', region: '109 UT', fatigueRisk: false, differential: '$12/hr (24hr)' },
-  { id: 'os7', date: '2026-05-06', time: '19:00-07:00', role: 'NEO', specialty: 'neonatal', base: 'Primary Childrens Hospital', region: '109 UT', fatigueRisk: false, differential: '$10/hr' },
+  { id: 'os1', date: dISO(5),  time: '19:00-07:00', role: 'FN - URBAN', specialty: 'flight_nurse',    base: 'Intermountain Medical Center', region: '109 UT', fatigueRisk: false, differential: '$8/hr' },
+  { id: 'os2', date: dISO(6),  time: '19:00-07:00', role: 'RT ADULT',   specialty: 'respiratory',     base: 'McKay Dee',                    region: '109 UT', fatigueRisk: false, differential: '$6/hr' },
+  { id: 'os3', date: dISO(7),  time: '06:00-18:00', role: 'FN - URBAN', specialty: 'flight_nurse',    base: 'St. George Hospital',          region: '109 UT', fatigueRisk: true,  differential: '$8/hr' },
+  { id: 'os4', date: dISO(8),  time: '19:00-07:00', role: 'PEDS',       specialty: 'pediatric',       base: 'Primary Childrens Hospital',   region: '109 UT', fatigueRisk: false, differential: '$10/hr' },
+  { id: 'os5', date: dISO(10), time: '07:00-19:00', role: 'FP - URBAN', specialty: 'flight_paramedic',base: 'Utah Valley Hospital',         region: '109 UT', fatigueRisk: false, differential: '$6/hr' },
+  { id: 'os6', date: dISO(11), time: '09:00-09:00', role: 'FN - URBAN', specialty: 'flight_nurse',    base: 'Cedar City Hospital',          region: '109 UT', fatigueRisk: false, differential: '$12/hr (24hr)' },
+  { id: 'os7', date: dISO(13), time: '19:00-07:00', role: 'NEO',        specialty: 'neonatal',        base: 'Primary Childrens Hospital',   region: '109 UT', fatigueRisk: false, differential: '$10/hr' },
 ];
 
 export const CREW_REQUESTS = [
