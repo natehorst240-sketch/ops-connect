@@ -50,11 +50,15 @@ const FW = ['Flight RN', 'Paramedic'];
 
 export const BASE_CAPABILITIES = {
   // ── Level 1 Trauma (full specialty pool) ─────────────────────────────────
-  'IMED/Hangar':       { tier: 'Level 1 Trauma', specialties: L1 },
-  'UV/ROOS':           { tier: 'Level 1 Trauma', specialties: L1 },
+  // Clinical bases are tracked individually even though MX On-Call uses
+  // combined names (IMED/Hangar, UV/ROOS) because one AMT covers both.
+  'IMED':              { tier: 'Level 1 Trauma', specialties: L1 },
+  'Utah Valley':       { tier: 'Level 1 Trauma', specialties: L1 },
 
   // ── Standard Rotary Wing ──────────────────────────────────────────────────
-  'MKY/LGU':           { tier: 'Standard RW', specialties: RW },
+  'Hangar':            { tier: 'Standard RW', specialties: RW },
+  'Roosevelt':         { tier: 'Standard RW', specialties: RW },
+  'MKY/LGU':          { tier: 'Standard RW', specialties: RW },
   'SGU/CDC':           { tier: 'Standard RW', specialties: RW },
   'Greybulll':         { tier: 'Standard RW', specialties: RW },
   'Lander':            { tier: 'Standard RW', specialties: RW },

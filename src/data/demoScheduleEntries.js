@@ -29,8 +29,11 @@ const BASE_CREWS = {
   'FW Hangar':         { pilots: ['Pilot 1 (PIC)',  'Pilot 2 (SIC)'],  clinical: ['Flight Nurse 1',  'Paramedic 1'] },
   'SGU/CDC':           { pilots: ['Pilot 1 (PIC)',  'Pilot 2 (SIC)'],  clinical: ['Flight Nurse 1',  'Paramedic 1'] },
   'MKY/LGU':           { pilots: ['Pilot 1 (PIC)',  'Pilot 2 (SIC)'],  clinical: ['Flight Nurse 1',  'Paramedic 1'] },
-  'UV/ROOS':           { pilots: ['Pilot 1 (PIC)',  'Pilot 2 (SIC)'],  clinical: ['Flight Nurse 1',  'Paramedic 1'] },
-  'IMED/Hangar':       { pilots: ['Pilot 1 (PIC)',  'Pilot 2 (SIC)'],  clinical: ['Flight Nurse 1',  'Paramedic 1'] },
+  // UV/ROOS and IMED/Hangar are combined MX On-Call bases but 4 separate clinical bases
+  'IMED':              { pilots: ['Pilot 1 (PIC)',  'Pilot 2 (SIC)'],  clinical: ['Flight Nurse 1',  'Paramedic 1'] },
+  'Hangar':            { pilots: ['Pilot 1 (PIC)',  'Pilot 2 (SIC)'],  clinical: ['Flight Nurse 1',  'Paramedic 1'] },
+  'Utah Valley':       { pilots: ['Pilot 1 (PIC)',  'Pilot 2 (SIC)'],  clinical: ['Flight Nurse 1',  'Paramedic 1'] },
+  'Roosevelt':         { pilots: ['Pilot 1 (PIC)',  'Pilot 2 (SIC)'],  clinical: ['Flight Nurse 1',  'Paramedic 1'] },
   'Rexburg':           { pilots: ['Pilot 1 (PIC)',  'Pilot 2 (SIC)'],  clinical: ['Flight Nurse 1',  'Paramedic 1'] },
   'Burley':            { pilots: ['Pilot 1 (PIC)',  'Pilot 2 (SIC)'],  clinical: ['Flight Nurse 1',  'Paramedic 1'] },
   'RW Elko':           { pilots: ['Pilot 1 (PIC)',  'Pilot 2 (SIC)'],  clinical: ['Flight Nurse 1',  'Paramedic 1'] },
@@ -169,17 +172,17 @@ for (const date of WEEK_DATES) {
 // Omitted day indices = staffing gaps shown in red on the board.
 
 const LEVEL1_SPECIALISTS = [
-  // IMED/Hangar — Intermountain Medical Center
-  { base: 'IMED/Hangar', region: '109 UT', roleType: 'Respiratory Therapist', ownerName: 'Respiratory Therapist 1', days: [0, 1, 2, 4, 5] },
-  { base: 'IMED/Hangar', region: '109 UT', roleType: 'NICU RN',               ownerName: 'NICU RN 1',               days: [0, 1, 3, 4, 5] },
-  { base: 'IMED/Hangar', region: '109 UT', roleType: 'Pediatric RN',           ownerName: 'Pediatric RN 1',          days: [0, 2, 3, 5]     },
-  { base: 'IMED/Hangar', region: '109 UT', roleType: 'HROB RN',                ownerName: 'HROB RN 1',               days: [1, 2, 4, 5]     },
+  // IMED — Intermountain Medical Center (Level 1 Trauma)
+  { base: 'IMED', region: '109 UT', roleType: 'Respiratory Therapist', ownerName: 'Respiratory Therapist 1', days: [0, 1, 2, 4, 5] },
+  { base: 'IMED', region: '109 UT', roleType: 'NICU RN',               ownerName: 'NICU RN 1',               days: [0, 1, 3, 4, 5] },
+  { base: 'IMED', region: '109 UT', roleType: 'Pediatric RN',           ownerName: 'Pediatric RN 1',          days: [0, 2, 3, 5]     },
+  { base: 'IMED', region: '109 UT', roleType: 'HROB RN',                ownerName: 'HROB RN 1',               days: [1, 2, 4, 5]     },
 
-  // UV/ROOS — Utah Valley / Roosevelt
-  { base: 'UV/ROOS', region: '109 UT', roleType: 'Respiratory Therapist', ownerName: 'Respiratory Therapist 2', days: [0, 1, 3, 4]     },
-  { base: 'UV/ROOS', region: '109 UT', roleType: 'NICU RN',               ownerName: 'NICU RN 2',               days: [0, 2, 3, 4]     },
-  { base: 'UV/ROOS', region: '109 UT', roleType: 'Pediatric RN',           ownerName: 'Pediatric RN 2',          days: [0, 1, 3, 5]     },
-  { base: 'UV/ROOS', region: '109 UT', roleType: 'HROB RN',                ownerName: 'HROB RN 2',               days: [0, 1, 2, 4]     },
+  // Utah Valley — UVRMC IH-16 (Level 1 Trauma)
+  { base: 'Utah Valley', region: '109 UT', roleType: 'Respiratory Therapist', ownerName: 'Respiratory Therapist 2', days: [0, 1, 3, 4]     },
+  { base: 'Utah Valley', region: '109 UT', roleType: 'NICU RN',               ownerName: 'NICU RN 2',               days: [0, 2, 3, 4]     },
+  { base: 'Utah Valley', region: '109 UT', roleType: 'Pediatric RN',           ownerName: 'Pediatric RN 2',          days: [0, 1, 3, 5]     },
+  { base: 'Utah Valley', region: '109 UT', roleType: 'HROB RN',                ownerName: 'HROB RN 2',               days: [0, 1, 2, 4]     },
 
 ];
 

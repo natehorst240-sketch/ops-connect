@@ -16,8 +16,14 @@ export const BASE_META = {
   'MT Control':       { region: 'SLC FW',  label: 'Maintenance Control' },
   'SGU/CDC':          { region: '109 UT',  label: 'St. George / Cedar City' },
   'MKY/LGU':          { region: '109 UT',  label: 'McKay-Dee / Logan' },
+  // MX On-Call combined names (one AMT covers both bases in the pair)
   'UV/ROOS':          { region: '109 UT',  label: 'Utah Valley / Roosevelt' },
-  'IMED/Hangar':      { region: '109 UT',  label: 'IMED IH-14' },
+  'IMED/Hangar':      { region: '109 UT',  label: 'IMED / Hangar' },
+  // Clinical base names (one crew on-site per base, 12-hour shifts)
+  'IMED':             { region: '109 UT',  label: 'IMED IH-14' },
+  'Hangar':           { region: '109 UT',  label: '109 UT Hangar' },
+  'Utah Valley':      { region: '109 UT',  label: 'UVRMC IH-16' },
+  'Roosevelt':        { region: '109 UT',  label: 'Roosevelt IH-19' },
   'Greybulll':        { region: 'WY/MT',   label: 'Greybull IH-23' },
   'FW Riverton':      { region: 'WY/MT',   label: 'Riverton IH-80 (FW)' },
   'Vernal':           { region: 'WY/MT',   label: 'Vernal IH-78' },
