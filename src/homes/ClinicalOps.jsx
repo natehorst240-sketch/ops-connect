@@ -47,7 +47,9 @@ export default function ClinicalOpsHome({ persona }) {
     return myBases.filter(b => !gapBases.has(b)).length;
   }, [myBases, todayGaps]);
 
-  const criticalGaps = todayGaps.filter(g => ['HROB RN', 'NICU RN'].includes(g.spec));
+  const criticalGaps = todayGaps.filter(g =>
+    ['HROB RN', 'NICU RN', 'Balloon Pump', 'VAD', 'MCS/ECMO'].includes(g.spec)
+  );
 
   return (
     <>
@@ -80,7 +82,7 @@ export default function ClinicalOpsHome({ persona }) {
         <SummaryCard
           label="Critical Gaps"
           value={criticalGaps.length}
-          sub="HROB · NICU unfilled"
+          sub="HROB · NICU · IABP · VAD · ECMO"
           alert={criticalGaps.length > 0}
         />
         <SummaryCard

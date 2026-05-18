@@ -1,5 +1,5 @@
 // Demo schedule entries covering the 7-day window around DEMO_TODAY_ISO.
-// Covers all six personnel types across all regions.
+// Covers all personnel types across all regions.
 //
 // MX On-Call entries come from the real CompleteFlight export (cfSchedule.js) —
 // those names are real and must not be altered.
@@ -8,7 +8,7 @@
 // accidentally appear when real Dataverse data connects.
 //
 // When Dataverse is live, useFleetData fetches cr_scheduleentries and this
-// file becomes unused — OpsScheduleBoard falls through to live data first.
+// file becomes unused — all boards fall through to live data first.
 
 import { CF_SCHEDULE } from './cfSchedule';
 import { BASE_META, DEMO_TODAY_ISO, addDays } from './mxOncallSchedule';
@@ -16,8 +16,9 @@ import { BASE_META, DEMO_TODAY_ISO, addDays } from './mxOncallSchedule';
 const WEEK_DATES = Array.from({ length: 7 }, (_, i) => addDays(DEMO_TODAY_ISO, i));
 
 // ── Per-base pilot + clinical crews ──────────────────────────────────────────
-// Each base has one PIC, one SIC, one Flight RN, one Paramedic.
-// In production these rows come from CompleteFlight (pilots) and Protean (clinical).
+// Each RW/FW base has one PIC, one SIC, one Flight RN, one Paramedic.
+// PCH has a Peds-designated crew (same roleTypes, Peds-trained).
+// Production rows: CompleteFlight (pilots), Protean Hub (clinical).
 
 const BASE_CREWS = {
   'Greybulll':         { pilots: ['Pilot 1 (PIC)',  'Pilot 2 (SIC)'],  clinical: ['Flight Nurse 1',  'Paramedic 1'] },
@@ -34,6 +35,8 @@ const BASE_CREWS = {
   'Hangar':            { pilots: ['Pilot 1 (PIC)',  'Pilot 2 (SIC)'],  clinical: ['Flight Nurse 1',  'Paramedic 1'] },
   'Utah Valley':       { pilots: ['Pilot 1 (PIC)',  'Pilot 2 (SIC)'],  clinical: ['Flight Nurse 1',  'Paramedic 1'] },
   'Roosevelt':         { pilots: ['Pilot 1 (PIC)',  'Pilot 2 (SIC)'],  clinical: ['Flight Nurse 1',  'Paramedic 1'] },
+  // PCH — cross-region Peds/Neo team
+  'PCH':               { pilots: ['Pilot 1 (PIC)',  'Pilot 2 (SIC)'],  clinical: ['Peds Flight Nurse 1', 'Paramedic 1'] },
   'Rexburg':           { pilots: ['Pilot 1 (PIC)',  'Pilot 2 (SIC)'],  clinical: ['Flight Nurse 1',  'Paramedic 1'] },
   'Burley':            { pilots: ['Pilot 1 (PIC)',  'Pilot 2 (SIC)'],  clinical: ['Flight Nurse 1',  'Paramedic 1'] },
   'RW Elko':           { pilots: ['Pilot 1 (PIC)',  'Pilot 2 (SIC)'],  clinical: ['Flight Nurse 1',  'Paramedic 1'] },
@@ -62,9 +65,14 @@ const FOC_BY_REGION = {
   'PAGE':    'Field Ops Mgr — Page',
 };
 
-// OCC + Dispatch are centralized at Maintenance Control (SLC FW)
-const OCC_STAFF      = ['OCC Specialist 1', 'OCC Specialist 2', 'OCC Specialist 3', 'OCC Specialist 4'];
-const DISPATCH_STAFF = ['Dispatcher 1',     'Dispatcher 2',     'Dispatcher 3',     'Dispatcher 4'];
+// OCS (Operational Control Specialists) + CS (Communication Specialists)
+// — SOP terminology; centralized at MT Control (Comm Center)
+const OCS_STAFF = ['OCS 1', 'OCS 2', 'OCS 3', 'OCS 4'];
+const CS_STAFF  = ['CS 1',  'CS 2',  'CS 3',  'CS 4'];
+
+// AMC Coordinators — 24-hr coverage mandate (SOP 7.3.1)
+// Stationed at MT Control / Comm Center
+const AMC_STAFF = ['AMC Coordinator 1', 'AMC Coordinator 2', 'AMC Coordinator 3'];
 
 // ── Build entries ─────────────────────────────────────────────────────────────
 
@@ -137,13 +145,13 @@ for (const [base, crew] of Object.entries(BASE_CREWS)) {
   }
 }
 
-// 3. OCC + Dispatch — centralized at MT Control
+// 3. OCS + CS — Comm Center (MT Control) — SOP terms for OCC/Dispatch roles
 for (const date of WEEK_DATES) {
-  OCC_STAFF.forEach((name, i) => entries.push({
-    id: `occ-${seq++}`,
+  OCS_STAFF.forEach((name, i) => entries.push({
+    id: `ocs-${seq++}`,
     source: 'Protean Hub',
-    personnelType: 'OCC',
-    roleType: i < 2 ? 'Day OCC' : 'Night OCC',
+    personnelType: 'OCS',
+    roleType: i < 2 ? 'Day OCS' : 'Night OCS',
     ownerName: name,
     base: 'MT Control',
     region: 'SLC FW',
@@ -152,11 +160,11 @@ for (const date of WEEK_DATES) {
     timezone: 'MDT',
   }));
 
-  DISPATCH_STAFF.forEach((name, i) => entries.push({
-    id: `dsp-${seq++}`,
+  CS_STAFF.forEach((name, i) => entries.push({
+    id: `cs-${seq++}`,
     source: 'Protean Hub',
-    personnelType: 'Dispatch',
-    roleType: i < 2 ? 'Day Dispatch' : 'Night Dispatch',
+    personnelType: 'CS',
+    roleType: i < 2 ? 'Day CS' : 'Night CS',
     ownerName: name,
     base: 'MT Control',
     region: 'SLC FW',
@@ -166,30 +174,54 @@ for (const date of WEEK_DATES) {
   }));
 }
 
-// ── Level 1 Trauma specialty staff ────────────────────────────────────────────
-// These generate realistic gap patterns for ClinicalStaffingBoard demo.
-// days[] indices correspond to WEEK_DATES positions (0=Mon, 1=Tue, ... 6=Sun).
-// Omitted day indices = staffing gaps shown in red on the board.
+// 4. AMC Coordinators — 24-hr coverage, MT Control (SOP 7.3.1 Coordinator Schedule)
+for (const date of WEEK_DATES) {
+  AMC_STAFF.forEach((name, i) => entries.push({
+    id: `amc-${seq++}`,
+    source: 'Manual',
+    personnelType: 'AMC Coordinator',
+    roleType: i === 0 ? 'Day AMC' : i === 1 ? 'Night AMC' : 'On-Call AMC',
+    ownerName: name,
+    base: 'MT Control',
+    region: 'SLC FW',
+    shiftDate: date,
+    hours: i === 0 ? '07:00 - 19:00' : i === 1 ? '19:00 - 07:00' : '24hr',
+    timezone: 'MDT',
+  }));
+}
 
-const LEVEL1_SPECIALISTS = [
+// ── Level 1 Trauma specialty staff ────────────────────────────────────────────
+// Gap patterns for ClinicalStaffingBoard demo.
+// days[] indices → WEEK_DATES positions (0=Mon…6=Sun). Omitted = gap.
+
+const SPECIALTY_STAFF = [
   // IMED — Intermountain Medical Center (Level 1 Trauma)
   { base: 'IMED', region: '109 UT', roleType: 'Respiratory Therapist', ownerName: 'Respiratory Therapist 1', days: [0, 1, 2, 4, 5] },
   { base: 'IMED', region: '109 UT', roleType: 'NICU RN',               ownerName: 'NICU RN 1',               days: [0, 1, 3, 4, 5] },
   { base: 'IMED', region: '109 UT', roleType: 'Pediatric RN',           ownerName: 'Pediatric RN 1',          days: [0, 2, 3, 5]     },
   { base: 'IMED', region: '109 UT', roleType: 'HROB RN',                ownerName: 'HROB RN 1',               days: [1, 2, 4, 5]     },
+  { base: 'IMED', region: '109 UT', roleType: 'Balloon Pump',           ownerName: 'Balloon Pump Specialist 1', days: [0, 1, 2, 3, 5] },
+  { base: 'IMED', region: '109 UT', roleType: 'VAD',                    ownerName: 'VAD Specialist 1',          days: [0, 2, 3, 4, 5] },
+  { base: 'IMED', region: '109 UT', roleType: 'MCS/ECMO',               ownerName: 'ECMO Specialist 1',         days: [0, 1, 3, 4]     },
 
   // Utah Valley — UVRMC IH-16 (Level 1 Trauma)
   { base: 'Utah Valley', region: '109 UT', roleType: 'Respiratory Therapist', ownerName: 'Respiratory Therapist 2', days: [0, 1, 3, 4]     },
   { base: 'Utah Valley', region: '109 UT', roleType: 'NICU RN',               ownerName: 'NICU RN 2',               days: [0, 2, 3, 4]     },
   { base: 'Utah Valley', region: '109 UT', roleType: 'Pediatric RN',           ownerName: 'Pediatric RN 2',          days: [0, 1, 3, 5]     },
   { base: 'Utah Valley', region: '109 UT', roleType: 'HROB RN',                ownerName: 'HROB RN 2',               days: [0, 1, 2, 4]     },
+  { base: 'Utah Valley', region: '109 UT', roleType: 'Balloon Pump',           ownerName: 'Balloon Pump Specialist 2', days: [0, 2, 4, 5]   },
+  { base: 'Utah Valley', region: '109 UT', roleType: 'VAD',                    ownerName: 'VAD Specialist 2',          days: [1, 2, 3, 5]   },
+  { base: 'Utah Valley', region: '109 UT', roleType: 'MCS/ECMO',               ownerName: 'ECMO Specialist 2',         days: [0, 1, 4, 5]   },
 
+  // PCH — Peds/Neo specialty crew
+  { base: 'PCH', region: '109 UT', roleType: 'NICU RN',      ownerName: 'NICU RN 3',      days: [0, 1, 2, 3, 4, 5] },
+  { base: 'PCH', region: '109 UT', roleType: 'Pediatric RN', ownerName: 'Pediatric RN 3', days: [0, 1, 2, 4, 5]    },
 ];
 
-for (const spec of LEVEL1_SPECIALISTS) {
+for (const spec of SPECIALTY_STAFF) {
   for (const dayIdx of spec.days) {
     entries.push({
-      id: `l1-${seq++}`,
+      id: `spec-${seq++}`,
       source: 'Protean Hub',
       personnelType: 'Clinical',
       roleType: spec.roleType,
