@@ -7,7 +7,8 @@ import { getEventsForPersona, getCalendarConfigForPersona } from '../shared/pers
 import { useFleet } from '../contexts/FleetDataContext';
 import { useNavigation } from '../contexts/NavigationContext';
 import OncallWidget from '../shared/OncallWidget';
-import { getOncallForDate, BASE_META, DEMO_TODAY_ISO, phoneFor } from '../data/mxOncallSchedule';
+import { usePhoneFor } from '../hooks/usePhoneFor';
+import { getOncallForDate, BASE_META, DEMO_TODAY_ISO } from '../data/mxOncallSchedule';
 
 export default function RMMHome({ persona }) {
   const navigate = useNavigation();
@@ -16,6 +17,8 @@ export default function RMMHome({ persona }) {
   const PENDING_REQUESTS = liveReqs.length ? liveReqs : STATIC_REQS;
   const regionAircraft = AIRCRAFT.filter(a => a.region === persona.region);
   const regionRequests = PENDING_REQUESTS.filter(r => r.region === persona.region);
+
+  const phoneFor = usePhoneFor();
 
   // Today's on-call mechanics for this RMM's region
   const regionOnCall = useMemo(() => {

@@ -1,12 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { Phone, Clock, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
 import { useNavigation } from '../contexts/NavigationContext';
+import { usePhoneFor } from '../hooks/usePhoneFor';
 import {
   BASE_META,
   REGIONS,
   DEMO_TODAY_ISO,
   getOncallForDate,
-  phoneFor,
 } from '../data/mxOncallSchedule';
 
 // ── colours by slot index ─────────────────────────────────────────────────────
@@ -196,6 +196,7 @@ function RegionGroup({ region, bases, todayByBase, highlightBase, showRegionLabe
 
 function BaseCard({ base, entries, highlight }) {
   const meta = BASE_META[base] ?? { label: base };
+  const phoneFor = usePhoneFor();
 
   return (
     <div className={`rounded-md border p-2.5 ${

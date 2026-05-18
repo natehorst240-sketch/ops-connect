@@ -15,7 +15,6 @@ import {
   getOncallForDate,
   getScheduleRange,
   addDays,
-  phoneFor,
 } from '../data/mxOncallSchedule';
 
 export default function MXSchedulerHome({ persona }) {

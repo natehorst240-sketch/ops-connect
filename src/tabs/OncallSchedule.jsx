@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Phone, ChevronLeft, ChevronRight, Calendar as CalIcon, X, Clock, Users } from 'lucide-react';
+import { usePhoneFor } from '../hooks/usePhoneFor';
 import {
   BASE_META,
   REGIONS,
@@ -8,7 +9,6 @@ import {
   getOncallForDate,
   getScheduleRange,
   addDays,
-  phoneFor,
 } from '../data/mxOncallSchedule';
 
 // ── Colour palette by person slot (0-based index within the day's base list) ─
@@ -264,6 +264,7 @@ export default function OncallSchedule() {
 
 function TodayCard({ base, entries, onSelect }) {
   const meta = BASE_META[base] ?? { label: base, region: '' };
+  const phoneFor = usePhoneFor();
 
   return (
     <div className="bg-neutral-800/60 rounded-lg border border-neutral-700 p-3">
@@ -305,6 +306,7 @@ function TodayCard({ base, entries, onSelect }) {
 function DetailPanel({ selected, onClose }) {
   const { base, entry, date } = selected;
   const meta  = BASE_META[base] ?? { label: base, region: '' };
+  const phoneFor = usePhoneFor();
   const phone = phoneFor(entry.owner);
   const isToday = date === DEMO_TODAY_ISO;
 

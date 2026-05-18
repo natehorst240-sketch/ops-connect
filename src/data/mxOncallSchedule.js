@@ -44,7 +44,10 @@ export const BASE_META = {
 export const REGIONS = ['SLC RW', 'SLC FW', '109 UT', 'WY/MT', 'ID/NV', 'CO/NM', 'UT/AZ', 'PAGE'];
 
 // Known phone numbers keyed by owner name (partial match — lowercase)
-const PHONE_BOOK = {
+// Kept as a standalone export so non-React code can reference it.
+// React components should use usePhoneFor() from hooks/usePhoneFor.js
+// which resolves against live Dataverse personnel first.
+export const PHONE_FALLBACK = {
   'alec overton':       '801-660-7640',
   'mac paye':           '916-871-6135',
   'jean-paul guidry':   '801-738-4919',
@@ -62,8 +65,9 @@ const PHONE_BOOK = {
   'denton siebrecht':   '928-640-1840',
 };
 
+/** @deprecated — use usePhoneFor() hook in React components instead */
 export function phoneFor(name) {
-  return PHONE_BOOK[name?.toLowerCase()] ?? null;
+  return PHONE_FALLBACK[name?.toLowerCase()] ?? null;
 }
 
 // ── Date helpers ─────────────────────────────────────────────────────────────
