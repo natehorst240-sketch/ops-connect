@@ -33,6 +33,7 @@ import { NavigationProvider } from './contexts/NavigationContext';
 import { ViewAsProvider } from './contexts/ViewAsContext';
 import { DemoModeProvider, useDemoMode } from './contexts/DemoModeContext';
 import { CalendarDateProvider } from './contexts/CalendarDateContext';
+import { AMCTripProvider } from './contexts/AMCTripContext';
 import { useCurrentUser } from './hooks/useCurrentUser';
 
 const TABS = [
@@ -109,6 +110,7 @@ function AppInner() {
   return (
     <FleetDataProvider>
     <CalendarDateProvider>
+    <AMCTripProvider>
     <ViewAsProvider>
     <NavigationProvider navigate={setActiveTab}>
     <div className="min-h-screen bg-neutral-950 text-neutral-100 p-6">
@@ -134,6 +136,7 @@ function AppInner() {
     </div>
     </NavigationProvider>
     </ViewAsProvider>
+    </AMCTripProvider>
     </CalendarDateProvider>
     </FleetDataProvider>
   );

@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useCalendarDate } from '../contexts/CalendarDateContext';
+import { useAMCTrips } from '../contexts/AMCTripContext';
 import { DEMO_TODAY_ISO } from '../data/mxOncallSchedule';
 import {
   ChevronLeft, ChevronRight, Calendar as CalIcon,
@@ -32,6 +33,7 @@ export const EVENT_TYPES = {
   audit:      { label: 'Audit Event',    color: '#7c3aed', bg: 'rgba(139,92,246,0.10)', border: '#7c3aed55', textColor: '#4c1d95', icon: Shield },
   approval:   { label: 'Approval',       color: '#059669', bg: 'rgba(16,185,129,0.10)', border: '#05966955', textColor: '#064e3b', icon: Sparkles },
   summary:    { label: 'Summary',        color: '#475569', bg: 'rgba(100,116,139,0.14)', border: '#475569aa', textColor: '#1e293b', icon: CalIcon },
+  mission:    { label: 'AMC Mission',    color: '#0ea5e9', bg: 'rgba(14,165,233,0.08)', border: '#0ea5e9aa', textColor: '#0c4a6e', icon: Plane },
 };
 
 // ============================================================================
@@ -111,6 +113,24 @@ export default function WeekCalendar({
   const [view, setView] = useState('week'); // 'week' | 'month'
   const [detailEvent, setDetailEvent] = useState(null);
 
+  // Merge AMC allocated trips as mission events visible to all roles
+  const { trips: amcTrips } = useAMCTrips();
+  const amcEvents = useMemo(() => amcTrips.map(trip => ({
+    id: `amc-${trip.id}`,
+    date: trip.startDate,
+    endDate: trip.endDate,
+    type: 'mission',
+    title: `AMC · ${trip.aircraft?.tail ?? 'FW'}`,
+    detail: trip.legs.map(l => l.destination || '?').filter(Boolean).join(' → ') || trip.aircraft?.type,
+    aircraft: trip.aircraft?.tail,
+    crew: trip.pilots?.[0]?.name,
+    region: 'SLC FW',
+    base: trip.aircraft?.base ?? 'FW Hangar',
+    priority: 'normal',
+  })), [amcTrips]);
+
+  const allEvents = useMemo(() => [...events, ...amcEvents], [events, amcEvents]);
+
   const handleEventClick = (event) => {
     setDetailEvent(event);
     if (onEventClick) onEventClick(event);
@@ -120,15 +140,15 @@ export default function WeekCalendar({
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const today = new Date(DEMO_TODAY_ISO + 'T12:00:00Z');
 
-  // Group events by day
+  // Group events by day (including AMC missions)
   const eventsByDay = days.map(d => ({
     day: d,
-    events: events.filter(e => eventOnDay(e, d)),
+    events: allEvents.filter(e => eventOnDay(e, d)),
   }));
 
   // Active event types in this week (for legend filtering)
   const activeTypes = new Set();
-  events.forEach(e => {
+  allEvents.forEach(e => {
     if (eventsByDay.some(({ events: dayEvts }) => dayEvts.includes(e))) {
       activeTypes.add(e.type);
     }
@@ -197,7 +217,7 @@ export default function WeekCalendar({
       {view === 'week' ? (
         <WeekGrid eventsByDay={eventsByDay} today={today} density={density} onEventClick={handleEventClick} />
       ) : (
-        <MonthView anchorDate={anchorDate} events={events} today={today} onEventClick={handleEventClick} />
+        <MonthView anchorDate={anchorDate} events={allEvents} today={today} onEventClick={handleEventClick} />
       )}
 
       {/* Legend */}

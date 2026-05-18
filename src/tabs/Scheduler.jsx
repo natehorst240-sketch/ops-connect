@@ -3,6 +3,7 @@ import { Calendar as CalIcon, ChevronLeft, ChevronRight, AlertTriangle, X, Exter
 import { useFleet } from '../contexts/FleetDataContext';
 import { useCurrentUser } from '../hooks/useCurrentUser';
 import { useCalendarDate } from '../contexts/CalendarDateContext';
+import { useAMCTrips } from '../contexts/AMCTripContext';
 import { DEMO_TODAY_ISO } from '../data/mxOncallSchedule';
 
 const EVENT_COLORS = {
@@ -31,6 +32,7 @@ export default function Scheduler() {
   const regions = useMemo(() => ['ALL', ...[...new Set(aircraft.map(a => a.region).filter(Boolean))].sort()], [aircraft]);
 
   const { anchorDate, setAnchorDate } = useCalendarDate();
+  const { trips: amcTrips } = useAMCTrips();
 
   // Scheduler window: 7 days before the shared anchor to DAYS days after
   const start = useMemo(() => {
@@ -53,7 +55,7 @@ export default function Scheduler() {
     });
   }, [start]);
 
-  // Merge schedule events + MX requests into one timeline
+  // Merge schedule events + MX requests + allocated AMC trips into one timeline
   const allEvents = useMemo(() => {
     const fromSchedule = scheduleEvents
       .filter((e) => e.windowStart && e.windowEnd)
@@ -84,9 +86,19 @@ export default function Scheduler() {
         requestedBy: r.requestedBy,
         category: 'mx'
       }));
-    return [...fromSchedule, ...fromMx]
+    const fromAmc = amcTrips.map(trip => ({
+      id: `amc-${trip.id}`,
+      tail: trip.aircraft?.tail,
+      type: 'mission',
+      title: `AMC · ${trip.legs.map(l => l.destination || '?').filter(Boolean).join(' → ') || (trip.aircraft?.type ?? 'FW')}`,
+      start: new Date(trip.startDate + 'T06:00:00Z'),
+      endAt: new Date((trip.endDate ?? trip.startDate) + 'T22:00:00Z'),
+      source: 'AMC Planner',
+      category: 'amc',
+    }));
+    return [...fromSchedule, ...fromMx, ...fromAmc]
       .filter((e) => e.endAt >= start && e.start <= end);
-  }, [scheduleEvents, mxRequests, start, end]);
+  }, [scheduleEvents, mxRequests, amcTrips, start, end]);
 
   // Group by aircraft (rows) — filter by region, show rows with events first
   const rows = useMemo(() => {

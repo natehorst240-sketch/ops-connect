@@ -8,6 +8,7 @@ import { useNavigation } from '../contexts/NavigationContext';
 import { DEMO_SCHEDULE_ENTRIES } from '../data/demoScheduleEntries';
 import { BASE_META, REGIONS, DEMO_TODAY_ISO, addDays } from '../data/mxOncallSchedule';
 import { useCalendarDate } from '../contexts/CalendarDateContext';
+import { useAMCTrips } from '../contexts/AMCTripContext';
 
 // ── Personnel type config ─────────────────────────────────────────────────────
 
@@ -19,6 +20,7 @@ const PT = {
   'CS':              { label: 'CS',              icon: PhoneCall, source: 'Protean Hub', chipCls: 'bg-cyan-500/25 text-white border-cyan-500/40',     dotColor: '#06b6d4' },
   'FOC On-Call':     { label: 'FOC On-Call',     icon: Briefcase, source: 'Manual',      chipCls: 'bg-amber-500/25 text-white border-amber-500/40',   dotColor: '#f59e0b' },
   'AMC Coordinator': { label: 'AMC Coordinator', icon: Globe,     source: 'Manual',      chipCls: 'bg-sky-500/25 text-white border-sky-500/40',         dotColor: '#0ea5e9' },
+  'AMC Mission':     { label: 'AMC Mission',     icon: Plane,     source: 'AMC Planner', chipCls: 'bg-sky-600/30 text-white border-sky-400/50',           dotColor: '#38bdf8' },
 };
 
 const ALL_TYPES = Object.keys(PT);
@@ -28,6 +30,7 @@ const SRC_STYLE = {
   'CompleteFlight': 'bg-blue-500/15 text-blue-300 border-blue-500/25',
   'Protean Hub':    'bg-green-500/15 text-green-300 border-green-500/25',
   'Manual':         'bg-neutral-700 text-neutral-300 border-neutral-600',
+  'AMC Planner':    'bg-sky-500/15 text-sky-300 border-sky-500/25',
 };
 
 // ── View inference ────────────────────────────────────────────────────────────
@@ -86,16 +89,72 @@ function isToday(iso) { return iso === REAL_TODAY; }
 
 // ── Main component ────────────────────────────────────────────────────────────
 
+// Convert allocated AMC trips into OpsScheduleBoard-compatible entries
+function amcTripsToEntries(trips) {
+  const entries = [];
+  for (const trip of trips) {
+    const start = new Date(trip.startDate + 'T12:00:00Z');
+    const endDate = trip.endDate ?? trip.startDate;
+    const end = new Date(endDate + 'T12:00:00Z');
+    const base = 'FW Hangar';
+    // Generate one entry per day per crew member
+    for (let d = new Date(start); d <= end; d.setUTCDate(d.getUTCDate() + 1)) {
+      const shiftDate = d.toISOString().slice(0, 10);
+      const dests = trip.legs.map(l => l.destination || '?').filter(Boolean).join('→') || trip.aircraft?.type;
+      entries.push({
+        id: `${trip.id}-${shiftDate}-ac`,
+        base,
+        personnelType: 'AMC Mission',
+        shiftDate,
+        ownerName: `${trip.aircraft?.tail ?? 'FW'}: ${dests}`,
+        hours: '06:00–22:00',
+        roleType: 'Aircraft',
+        source: 'AMC Planner',
+      });
+      for (const p of trip.pilots ?? []) {
+        entries.push({
+          id: `${trip.id}-${shiftDate}-${p.id}`,
+          base,
+          personnelType: 'AMC Mission',
+          shiftDate,
+          ownerName: p.name,
+          hours: '06:00–22:00',
+          roleType: 'AMC Pilot',
+          source: 'AMC Planner',
+        });
+      }
+      for (const m of trip.medical ?? []) {
+        entries.push({
+          id: `${trip.id}-${shiftDate}-${m.id}`,
+          base,
+          personnelType: 'AMC Mission',
+          shiftDate,
+          ownerName: m.name,
+          hours: '06:00–22:00',
+          roleType: m.assignedRole ?? m.role,
+          source: 'AMC Planner',
+        });
+      }
+    }
+  }
+  return entries;
+}
+
 export default function OpsScheduleBoard({ persona, compact = false }) {
   const navigate = useNavigation();
   const { anchorDate: weekStart, setAnchorDate: setWeekStart } = useCalendarDate();
+  const { trips: amcTrips } = useAMCTrips();
   const defaultView = inferView(persona?.role);
   const [view, setView] = useState(defaultView);
   const [activeTypes, setActiveTypes] = useState(new Set(ALL_TYPES));
   const [selected, setSelected] = useState(null);
 
   const { scheduleEntries: live } = useFleet();
-  const allEntries = live?.length ? live : DEMO_SCHEDULE_ENTRIES;
+  const baseEntries = live?.length ? live : DEMO_SCHEDULE_ENTRIES;
+  const allEntries = useMemo(
+    () => [...baseEntries, ...amcTripsToEntries(amcTrips)],
+    [baseEntries, amcTrips]
+  );
 
   const days = useMemo(
     () => Array.from({ length: compact ? 2 : 7 }, (_, i) => addDays(weekStart, i)),
