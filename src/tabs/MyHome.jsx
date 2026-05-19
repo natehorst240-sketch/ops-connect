@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import {
   AlertCircle, MapPin, Briefcase, ChevronDown, Eye, RotateCcw,
   Send, Inbox, Megaphone, Clock, Calendar, BarChart3, Activity, Map as MapIcon,
+  WifiOff, ShieldAlert,
 } from 'lucide-react';
 import { useCurrentUser } from '../hooks/useCurrentUser';
 import { useFleet } from '../contexts/FleetDataContext';
@@ -32,7 +33,7 @@ const HOMES = {
 
 export default function MyHome() {
   const { account, persona, matched, viewingAs, loading, demo } = useCurrentUser();
-  const { personnel, mxRequests, aircraft } = useFleet();
+  const { personnel, mxRequests, aircraft, degraded } = useFleet();
   const { demoMode } = useDemoMode();
   const navigate = useNavigation();
   const { viewAsId, setViewAsId } = useViewAs();
@@ -53,7 +54,7 @@ export default function MyHome() {
     return <div className="p-8 text-neutral-400 text-sm">Not signed in.</div>;
   }
 
-  const Home = HOMES[persona?.role] ?? AMTHome;
+  const Home = persona?.role ? (HOMES[persona.role] ?? UnrecognizedRole) : UnrecognizedRole;
 
   const navTiles = [
     { id: 'submit',     label: 'Submit Request', Icon: Send,      sub: 'New MX / Safety / Time-off',          accent: 'orange' },
@@ -109,6 +110,15 @@ export default function MyHome() {
             />
           </div>
         </div>
+
+        {degraded && (
+          <div className="flex items-center gap-2 px-3 py-2 mb-3 rounded-md bg-red-900/20 border border-red-800/40">
+            <WifiOff size={12} className="text-red-400" />
+            <span className="text-xs text-red-400">
+              Connection degraded — one or more data sources failed to load. Some information may be incomplete or stale.
+            </span>
+          </div>
+        )}
 
         {!matched && !viewingAs && (
           <div className="flex items-center gap-2 px-3 py-2 mb-3 rounded-md bg-yellow-900/30 border border-yellow-700/40">
@@ -175,6 +185,26 @@ function ViewAsPicker({ personnel, viewAsId, onPick, viewingAs }) {
       </select>
       <ChevronDown size={11} className="text-neutral-500" />
     </label>
+  );
+}
+
+function UnrecognizedRole({ persona }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-16 text-center px-6">
+      <div className="w-14 h-14 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center mb-4">
+        <ShieldAlert size={28} className="text-red-400" />
+      </div>
+      <h2 className="text-lg font-semibold text-neutral-100 mb-1">Unrecognized Role</h2>
+      <p className="text-sm text-neutral-400 max-w-sm mb-2">
+        Your account (<span className="text-neutral-200">{persona?.name ?? '—'}</span>) has a role that
+        isn&apos;t mapped in OpsConnect:{' '}
+        <span className="font-mono text-amber-400">{persona?.roleTitle ?? '(none)'}</span>.
+      </p>
+      <p className="text-xs text-neutral-500 max-w-sm">
+        Contact your administrator to ensure your role is configured in Dataverse, or ask a Director to
+        use &ldquo;View as&rdquo; to verify your personnel record.
+      </p>
+    </div>
   );
 }
 

@@ -24,6 +24,7 @@ export default function ApprovalInbox() {
   const [comment, setComment] = useState({});       // per-request comment text
   const [busy, setBusy] = useState(null);           // request id currently patching
   const [error, setError] = useState(null);
+  const [auditWarning, setAuditWarning] = useState(null);
   const [updated, setUpdated] = useState({});       // optimistic status overrides
   const [regionFilter, setRegionFilter] = useState('ALL');
 
@@ -115,6 +116,7 @@ export default function ApprovalInbox() {
         });
       } catch (auditErr) {
         console.warn('Audit write failed:', auditErr);
+        setAuditWarning(`Audit log failed for ${req.requestNumber} — contact your administrator to record this decision manually.`);
       }
 
       // 3. Optimistic local update
@@ -174,6 +176,13 @@ export default function ApprovalInbox() {
         <div className="flex items-center gap-2 p-3 mb-4 rounded-lg bg-red-900/20 border border-red-800 text-red-400 text-sm">
           <AlertCircle size={16} />
           {error}
+        </div>
+      )}
+
+      {auditWarning && (
+        <div className="flex items-start gap-2 p-3 mb-4 rounded-lg bg-amber-900/20 border border-amber-700/40 text-amber-400 text-sm">
+          <AlertCircle size={16} className="shrink-0 mt-0.5" />
+          <span>{auditWarning}</span>
         </div>
       )}
 

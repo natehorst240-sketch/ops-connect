@@ -98,15 +98,19 @@ function initials(name) {
 }
 
 function mapRole(role) {
-  if (!role) return 'AMT';
+  if (!role) return null;
   const r = role.toUpperCase();
   if (r === 'DIRECTOR' || r === 'DOM') return 'DIRECTOR';
   if (r === 'RMM') return 'RMM';
   if (r === 'AMT' || r === 'AMT(ROVER)') return 'AMT';
-  if (r === 'QA' || r === 'ADOM' || r === 'QA MANAGER' || r === 'ADOM') return 'QA';
+  if (r === 'QA' || r === 'ADOM' || r === 'QA MANAGER') return 'QA';
   if (r === 'SCHEDULER' || r === 'MX_SCHEDULER') return 'MX_SCHEDULER';
   if (r === 'CREW_SCHEDULER') return 'CREW_SCHEDULER';
   if (r === 'FLIGHT_NURSE') return 'FLIGHT_NURSE';
+  if (r === 'BOM') return 'BOM';
   if (r === 'PILOT' || r === 'CHIEF PILOT') return 'AMT';
-  return 'AMT';
+  // Unknown role — caller must handle null and show an explicit error screen.
+  // Silent fallback to AMT masks org changes and creates invisible access gaps.
+  console.warn(`[useCurrentUser] Unrecognized Dataverse role: "${role}". Add it to mapRole() or to Dataverse.`);
+  return null;
 }

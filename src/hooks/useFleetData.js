@@ -149,6 +149,10 @@ function mapConflict(row) {
   };
 }
 
+// Poll interval for critical operational data (aircraft status, open requests).
+// Stale data during operations is a safety coordination risk, not just a UX issue.
+const POLL_INTERVAL_MS = 60_000;
+
 export function useFleetData() {
   const { query } = useDataverse();
   const [state, setState] = useState({
@@ -160,40 +164,53 @@ export function useFleetData() {
     conflicts: [],
     scheduleEntries: [],
     loading: true,
+    degraded: false,
     error: null
   });
 
   useEffect(() => {
-    async function load() {
-      try {
-        const results = await Promise.allSettled([
-          query(TABLES.aircraft),
-          query(TABLES.personnel),
-          query(TABLES.mxRequest),
-          query(TABLES.scheduleEvent),
-          query(TABLES.fleetPosition),
-          query(TABLES.conflict),
-          query(TABLES.scheduleEntry),
-        ]);
-        const [aircraft, personnel, mxRequests, scheduleEvents, fleetPositions, conflicts, scheduleEntries] = results;
+    let cancelled = false;
 
-        setState({
-          aircraft:        aircraft.status === 'fulfilled' ? aircraft.value.map(mapAircraft) : [],
-          personnel:       personnel.status === 'fulfilled' ? personnel.value.map(mapPersonnel) : [],
-          mxRequests:      mxRequests.status === 'fulfilled' ? mxRequests.value.map(mapMxRequest) : [],
-          scheduleEvents:  scheduleEvents.status === 'fulfilled' ? scheduleEvents.value.map(mapScheduleEvent) : [],
-          fleetPositions:  fleetPositions.status === 'fulfilled' ? fleetPositions.value.map(mapFleetPosition) : [],
-          conflicts:       conflicts.status === 'fulfilled' ? conflicts.value.map(mapConflict) : [],
-          scheduleEntries: scheduleEntries.status === 'fulfilled' ? scheduleEntries.value.map(mapScheduleEntry) : [],
-          loading:         false,
-          error:           null
-        });
-      } catch (e) {
-        setState((s) => ({ ...s, loading: false, error: e.message }));
-      }
+    async function load(isInitial) {
+      if (isInitial) setState(s => ({ ...s, loading: true }));
+
+      const results = await Promise.allSettled([
+        query(TABLES.aircraft),
+        query(TABLES.personnel),
+        query(TABLES.mxRequest),
+        query(TABLES.scheduleEvent),
+        query(TABLES.fleetPosition),
+        query(TABLES.conflict),
+        query(TABLES.scheduleEntry),
+      ]);
+
+      if (cancelled) return;
+
+      const [aircraft, personnel, mxRequests, scheduleEvents, fleetPositions, conflicts, scheduleEntries] = results;
+      const degraded = results.some(r => r.status === 'rejected');
+
+      setState({
+        aircraft:        aircraft.status === 'fulfilled' ? aircraft.value.map(mapAircraft) : [],
+        personnel:       personnel.status === 'fulfilled' ? personnel.value.map(mapPersonnel) : [],
+        mxRequests:      mxRequests.status === 'fulfilled' ? mxRequests.value.map(mapMxRequest) : [],
+        scheduleEvents:  scheduleEvents.status === 'fulfilled' ? scheduleEvents.value.map(mapScheduleEvent) : [],
+        fleetPositions:  fleetPositions.status === 'fulfilled' ? fleetPositions.value.map(mapFleetPosition) : [],
+        conflicts:       conflicts.status === 'fulfilled' ? conflicts.value.map(mapConflict) : [],
+        scheduleEntries: scheduleEntries.status === 'fulfilled' ? scheduleEntries.value.map(mapScheduleEntry) : [],
+        loading:         false,
+        degraded,
+        error:           null
+      });
     }
-    load();
-  }, []);
+
+    load(true);
+    const intervalId = setInterval(() => load(false), POLL_INTERVAL_MS);
+
+    return () => {
+      cancelled = true;
+      clearInterval(intervalId);
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return state;
 }

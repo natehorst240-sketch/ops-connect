@@ -58,6 +58,7 @@ export default function SubmitRequest() {
   const [status, setStatus] = useState('idle');
   const [error, setError] = useState(null);
   const [requestNumber, setRequestNumber] = useState(null);
+  const [auditFailed, setAuditFailed] = useState(false);
 
   const cfg = TYPE_CONFIG[form.requestType] ?? TYPE_CONFIG['Other'];
   const update = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
@@ -117,6 +118,7 @@ export default function SubmitRequest() {
         });
       } catch (auditErr) {
         console.warn('Audit write failed:', auditErr);
+        setAuditFailed(true);
       }
     } catch (e) {
       setError(e.message);
@@ -129,6 +131,7 @@ export default function SubmitRequest() {
     setStatus('idle');
     setError(null);
     setRequestNumber(null);
+    setAuditFailed(false);
   }
 
   const routing = getRouting();
@@ -146,6 +149,12 @@ export default function SubmitRequest() {
           Routed to <strong className="text-neutral-200">{routing}</strong>.
           {demoMode && <span className="text-orange-400"> (Demo — not written to Dataverse)</span>}
         </p>
+        {auditFailed && (
+          <div className="flex items-center gap-2 px-4 py-2 mb-6 rounded-lg bg-amber-900/20 border border-amber-700/40 text-amber-400 text-sm text-left">
+            <AlertCircle size={14} className="shrink-0" />
+            <span>Compliance audit log failed to write. Your request was saved, but this gap must be reported to your administrator.</span>
+          </div>
+        )}
         <button onClick={reset} className="px-6 py-2 bg-orange-500 hover:bg-orange-400 text-black font-semibold rounded-lg transition-colors">
           Submit Another
         </button>

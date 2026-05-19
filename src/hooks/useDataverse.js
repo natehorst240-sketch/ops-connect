@@ -22,9 +22,33 @@ export function useDataverse() {
     }
   }
 
-  async function query(endpoint) {
+  // Retries on 429 / 503 / 5xx with exponential backoff + jitter.
+  // Only for idempotent read operations — writes use single-attempt fetch.
+  async function fetchWithRetry(url, options) {
+    const MAX_ATTEMPTS = 3;
+    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+      const res = await fetch(url, options);
+      if (res.ok) return res;
+      const retryable = res.status === 429 || res.status === 503 || res.status >= 500;
+      if (!retryable || attempt === MAX_ATTEMPTS - 1) {
+        throw new Error(`Dataverse ${res.status}: ${url}`);
+      }
+      const delay = (2 ** attempt) * 1000 + Math.random() * 500;
+      await new Promise(r => setTimeout(r, delay));
+    }
+  }
+
+  // Accepts OData query options to avoid full-table scans.
+  async function query(endpoint, { filter, select, top, orderby } = {}) {
     const token = await getToken();
-    const res = await fetch(`${ORG}/${endpoint}`, {
+    const params = new URLSearchParams();
+    if (filter)       params.set('$filter',  filter);
+    if (select)       params.set('$select',  select);
+    if (top != null)  params.set('$top',     String(top));
+    if (orderby)      params.set('$orderby', orderby);
+    const qs = params.toString();
+    const url = `${ORG}/${endpoint}${qs ? `?${qs}` : ''}`;
+    const res = await fetchWithRetry(url, {
       headers: {
         Authorization: `Bearer ${token}`,
         'OData-MaxVersion': '4.0',
@@ -33,7 +57,6 @@ export function useDataverse() {
         Prefer: 'odata.include-annotations="OData.Community.Display.V1.FormattedValue"'
       }
     });
-    if (!res.ok) throw new Error(`Dataverse query failed: ${res.status} ${endpoint}`);
     const data = await res.json();
     return data.value ?? data;
   }
